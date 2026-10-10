@@ -20,6 +20,7 @@
     "validate:content": "tsx scripts/validate-content.ts",
     "cf:types": "wrangler types",
     "db:seed": "tsx scripts/seed-d1-from-markdown.ts",
+    "db:export": "tsx scripts/export-d1-to-markdown.ts",
     "cf:db:migrate": "wrangler d1 migrations apply light-content --remote",
     "cf:deploy": "wrangler deploy",
     "verify": "npm run validate:content && npm run check && npm run lint && npm run test && npm run build"

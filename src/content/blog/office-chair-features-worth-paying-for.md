@@ -1,17 +1,19 @@
 ---
 title: Office chair features actually worth paying for
 description: Adjustability beats padding. Here is what to check before paying a premium for a chair you sit in daily.
-pubDate: 2026-09-03
+status: published
+slug: office-chair-features-worth-paying-for
 tags:
   - chairs
   - buying-basics
+pubDate: 2026-09-03
+noindex: false
 affiliate: false
 faq:
   - question: Is a used premium chair a good idea?
     answer: Often yes. A well-built chair with replacement parts and a long warranty frequently outlasts a new budget model, provided the mechanism and gas cylinder still work.
   - question: Do I need adjustable armrests?
     answer: Adjustable height is the minimum, since fixed armrests can lift your shoulders or block you from sitting close to the desk. Adjustable width and depth are better still.
-status: published
 ---
 
 An office chair is the one piece of home office equipment you cannot easily work around. A slow

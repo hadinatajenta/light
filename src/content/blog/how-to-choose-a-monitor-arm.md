@@ -2,16 +2,16 @@
 title: How to choose a monitor arm for a small desk
 description: Clamp strength, weight range, and cable routing decide whether a monitor arm helps or hurts. Here is what to check before you buy one.
 status: published
+slug: how-to-choose-a-monitor-arm
 tags:
   - desk-setup
   - accessories
 pubDate: 2026-10-08T00:00:00.000Z
-coverAlt: A tidy home office desk with a monitor mounted on an arm
 noindex: false
 affiliate: false
 faq: []
-slug: how-to-choose-a-monitor-arm
 updatedDate: 2026-10-10T14:07:42.730Z
+coverAlt: A tidy home office desk with a monitor mounted on an arm
 ---
 
 A monitor arm looks like a small upgrade. On a narrow desk, it is often the difference between a setup that works and one you fight every day. The stand that ships with most monitors eats the most useful part of the desk, and it rarely puts the screen at the right height.
