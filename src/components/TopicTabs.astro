@@ -1,0 +1,26 @@
+---
+import { TOPICS } from '@/consts';
+
+interface Props {
+  activeSlug?: string;
+}
+
+const { activeSlug } = Astro.props;
+---
+
+<div class="tabs-wrap">
+  <nav class="tabs" aria-label="Topics">
+    <a class="tab" href="/blog/" aria-current={activeSlug === undefined ? 'page' : undefined}>Latest</a>
+    {
+      TOPICS.map((topic) => (
+        <a
+          class="tab"
+          href={`/tag/${topic.slug}/`}
+          aria-current={topic.slug === activeSlug ? 'page' : undefined}
+        >
+          {topic.label}
+        </a>
+      ))
+    }
+  </nav>
+</div>

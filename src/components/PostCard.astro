@@ -4,34 +4,46 @@ import { formatDate } from '@/utils/date';
 
 interface Props {
   post: CollectionEntry<'blog'>;
+  variant?: 'default' | 'feature' | 'text' | 'alt';
+  symbol?: string;
 }
 
-const { post } = Astro.props;
+const { post, variant = 'default', symbol } = Astro.props;
 const { title, description, pubDate, tags } = post.data;
+
+const isTextOnly = variant === 'text';
+const cardClass = ['m-card', variant === 'feature' ? 'm-card-feature' : '', isTextOnly ? 'm-card-text' : '']
+  .filter(Boolean)
+  .join(' ');
+const mediaClass = variant === 'alt' ? 'm-card-media alt' : 'm-card-media';
+const glyphClass = variant === 'alt' || isTextOnly ? 'sym-sm' : 'sym';
+const glyph = symbol ?? (tags[0] ? tags[0].charAt(0).toUpperCase() : 'L');
+const postHref = `/blog/${post.id}/`;
 ---
 
-<article class="border-b border-line pb-6">
-  <h2 class="text-xl font-semibold tracking-tight">
-    <a href={`/blog/${post.id}/`} class="hover:text-accent-strong">{title}</a>
-  </h2>
-  <p class="numeric mt-1 text-sm text-ink-muted">
+<article class={cardClass}>
+  {
+    !isTextOnly && (
+      <div class={mediaClass} aria-hidden="true">
+        <span class={glyphClass}>{glyph}</span>
+      </div>
+    )
+  }
+  <h3 class="m-card-title">
+    <a href={postHref}>{title}</a>
+  </h3>
+  <div class="m-card-rule"></div>
+  <p class="m-card-desc">{description}</p>
+  <div class="m-card-meta">
     <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
-  </p>
-  <p class="prose-measure mt-2 text-ink-muted">{description}</p>
+  </div>
   {
     tags.length > 0 && (
-      <ul class="mt-3 flex flex-wrap gap-2">
+      <div class="m-card-tags">
         {tags.map((tag) => (
-          <li>
-            <a
-              href={`/tag/${tag}/`}
-              class="rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-muted hover:text-ink"
-            >
-              {tag}
-            </a>
-          </li>
+          <span>#{tag}</span>
         ))}
-      </ul>
+      </div>
     )
   }
 </article>

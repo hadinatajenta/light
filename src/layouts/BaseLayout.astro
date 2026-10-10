@@ -3,7 +3,7 @@ import BaseHead from '@/components/BaseHead.astro';
 import CookieConsent from '@/components/CookieConsent.astro';
 import Footer from '@/components/Footer.astro';
 import Header from '@/components/Header.astro';
-import { SITE_LANGUAGE } from '@/consts';
+import { SITE_LANGUAGE, THEME_STORAGE_KEY } from '@/consts';
 import '@/styles/global.css';
 
 interface Props {
@@ -14,13 +14,15 @@ interface Props {
   type?: 'website' | 'article';
   noindex?: boolean;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  contained?: boolean;
 }
 
-const { title, description, canonical, image, type, noindex, jsonLd } = Astro.props;
+const { title, description, canonical, image, type, noindex, jsonLd, contained = true } =
+  Astro.props;
 ---
 
 <!doctype html>
-<html lang={SITE_LANGUAGE}>
+<html lang={SITE_LANGUAGE} data-theme="light">
   <head>
     <BaseHead
       title={title}
@@ -31,6 +33,13 @@ const { title, description, canonical, image, type, noindex, jsonLd } = Astro.pr
       noindex={noindex}
       jsonLd={jsonLd}
     />
+    <script is:inline define:vars={{ storageKey: THEME_STORAGE_KEY }}>
+      (() => {
+        const stored = localStorage.getItem(storageKey);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', stored || (prefersDark ? 'dark' : 'light'));
+      })();
+    </script>
   </head>
   <body>
     <a
@@ -40,7 +49,7 @@ const { title, description, canonical, image, type, noindex, jsonLd } = Astro.pr
       Skip to content
     </a>
     <Header />
-    <main id="main-content" class="mx-auto max-w-5xl px-4 py-10">
+    <main id="main-content" class={contained ? 'page-shell' : undefined}>
       <slot />
     </main>
     <Footer />

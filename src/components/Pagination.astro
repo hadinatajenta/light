@@ -15,25 +15,17 @@ const hasNextPage = currentPage < totalPages;
   totalPages > 1 && (
     <nav aria-label="Pagination" class="mt-10 flex items-center justify-between gap-4">
       {hasPreviousPage ? (
-        <a
-          href={buildBlogPagePath(currentPage - 1)}
-          rel="prev"
-          class="rounded-md border border-line px-4 py-2 text-sm hover:text-ink"
-        >
+        <a href={buildBlogPagePath(currentPage - 1)} rel="prev" class="btn btn-outline">
           Newer
         </a>
       ) : (
         <span />
       )}
-      <span class="numeric text-sm text-ink-muted">
+      <span class="label">
         Page {currentPage} of {totalPages}
       </span>
       {hasNextPage ? (
-        <a
-          href={buildBlogPagePath(currentPage + 1)}
-          rel="next"
-          class="rounded-md border border-line px-4 py-2 text-sm hover:text-ink"
-        >
+        <a href={buildBlogPagePath(currentPage + 1)} rel="next" class="btn btn-outline">
           Older
         </a>
       ) : (

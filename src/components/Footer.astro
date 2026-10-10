@@ -1,23 +1,28 @@
 ---
-import { FOOTER_LEGAL_NAVIGATION, SITE_AUTHOR, SITE_TITLE } from '@/consts';
+import { FOOTER_SECTIONS, SITE_AUTHOR, SITE_TAGLINE, SITE_TITLE } from '@/consts';
 
 const currentYear = new Date().getFullYear();
 ---
 
-<footer class="mt-16 border-t border-line bg-surface">
-  <div class="mx-auto max-w-5xl px-4 py-10">
-    <nav aria-label="Legal" class="flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-muted">
-      {
-        FOOTER_LEGAL_NAVIGATION.map((link) => (
-          <a href={link.href} class="hover:text-ink">
-            {link.label}
-          </a>
-        ))
-      }
-    </nav>
-    <p class="mt-6 text-sm text-ink-muted">
-      &copy; {currentYear} {SITE_TITLE}. Written by {SITE_AUTHOR}. Some links on this site are
-      affiliate links.
-    </p>
+<footer class="foot">
+  <div class="foot-inner">
+    <div class="foot-col foot-brand">
+      <span class="brand">{SITE_TITLE}<span class="brand-mark">.</span></span>
+      <p>{SITE_TAGLINE}</p>
+    </div>
+    {
+      FOOTER_SECTIONS.map((section) => (
+        <div class="foot-col">
+          <h5>{section.title}</h5>
+          {section.links.map((link) => (
+            <a href={link.href}>{link.label}</a>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+  <div class="foot-legal">
+    <span>&copy; {currentYear} {SITE_TITLE}.</span>
+    <span>Written by {SITE_AUTHOR}.</span>
   </div>
 </footer>

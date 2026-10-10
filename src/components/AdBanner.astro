@@ -1,0 +1,15 @@
+---
+interface Props {
+  label?: string;
+  size?: string;
+}
+
+const { label = 'Advertisement', size = '970 x 90 Leaderboard' } = Astro.props;
+---
+
+<div class="ad-banner">
+  <div class="ad-inner">
+    <span>{label}</span>
+    <small>{size}</small>
+  </div>
+</div>

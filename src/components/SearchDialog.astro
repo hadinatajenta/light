@@ -1,0 +1,142 @@
+---
+---
+
+<div class="search-overlay" id="search-overlay" role="dialog" aria-modal="true" aria-label="Search">
+  <div class="search-box">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      aria-hidden="true"
+      style="width:22px;height:22px;color:var(--ink-40)"
+    >
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="m20 20-3.6-3.6"></path>
+    </svg>
+    <input
+      id="search-input"
+      type="search"
+      placeholder="Search guides"
+      aria-label="Search guides"
+      autocomplete="off"
+    />
+    <button type="button" class="search-close" id="search-close">Close</button>
+  </div>
+  <div class="search-results" id="search-results"></div>
+</div>
+
+<script>
+  interface SearchEntry {
+    title: string;
+    description: string;
+    tags: string[];
+    url: string;
+  }
+
+  const HINT = 'Type to search buying guides by title or topic.';
+
+  const overlay = document.getElementById('search-overlay');
+  const input = document.getElementById('search-input') as HTMLInputElement | null;
+  const results = document.getElementById('search-results');
+  const closeButton = document.getElementById('search-close');
+  const triggers = Array.from(document.querySelectorAll('[data-search-trigger]'));
+
+  let indexPromise: Promise<SearchEntry[]> | null = null;
+  let lastFocused: HTMLElement | null = null;
+
+  const escapeHtml = (value: string): string => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return value.replace(/[&<>"']/g, (character: string) => entities[character] ?? character);
+  };
+
+  const loadIndex = (): Promise<SearchEntry[]> => {
+    if (!indexPromise) {
+      indexPromise = fetch('/search-index.json')
+        .then((response) => response.json() as Promise<SearchEntry[]>)
+        .catch(() => [] as SearchEntry[]);
+    }
+    return indexPromise;
+  };
+
+  const renderResults = (items: SearchEntry[], query: string): void => {
+    if (!results) {
+      return;
+    }
+
+    const trimmed = query.trim().toLowerCase();
+    if (trimmed.length === 0) {
+      results.innerHTML = `<p class="search-hint">${HINT}</p>`;
+      return;
+    }
+
+    const matches = items
+      .filter((entry: SearchEntry) => {
+        return (
+          entry.title.toLowerCase().includes(trimmed) ||
+          entry.description.toLowerCase().includes(trimmed) ||
+          entry.tags.some((tag: string) => tag.toLowerCase().includes(trimmed))
+        );
+      })
+      .slice(0, 8);
+
+    if (matches.length === 0) {
+      results.innerHTML = '<p class="search-hint">No guides matched that search.</p>';
+      return;
+    }
+
+    results.innerHTML = matches
+      .map((entry: SearchEntry) => {
+        return `<a class="search-result" href="${entry.url}"><h4>${escapeHtml(entry.title)}</h4><p>${escapeHtml(entry.description)}</p></a>`;
+      })
+      .join('');
+  };
+
+  const openDialog = async (): Promise<void> => {
+    if (!overlay || !input) {
+      return;
+    }
+    lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    overlay.classList.add('open');
+    input.value = '';
+    input.focus();
+    renderResults(await loadIndex(), '');
+  };
+
+  const closeDialog = (): void => {
+    if (!overlay) {
+      return;
+    }
+    overlay.classList.remove('open');
+    lastFocused?.focus();
+  };
+
+  for (const trigger of triggers) {
+    trigger.addEventListener('click', openDialog);
+  }
+
+  closeButton?.addEventListener('click', closeDialog);
+
+  overlay?.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      closeDialog();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && overlay?.classList.contains('open')) {
+      closeDialog();
+    }
+  });
+
+  input?.addEventListener('input', async () => {
+    renderResults(await loadIndex(), input.value);
+  });
+</script>

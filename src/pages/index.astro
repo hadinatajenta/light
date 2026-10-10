@@ -1,13 +1,17 @@
 ---
-import PostList from '@/components/PostList.astro';
+import AdBanner from '@/components/AdBanner.astro';
+import PostCard from '@/components/PostCard.astro';
+import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPosts } from '@/utils/content';
 import { buildCanonicalUrl, buildWebsiteJsonLd } from '@/utils/seo';
 
 const posts = await getPublishedPosts();
-const recentPosts = posts.slice(0, 6);
-const siteUrl = buildCanonicalUrl(Astro.site ?? undefined, '/') ?? new URL('/', Astro.url.origin).href;
+const [featurePost, altPost, thirdPost, fourthPost, fifthPost, sixthPost, seventhPost] = posts;
+
+const siteUrl =
+  buildCanonicalUrl(Astro.site ?? undefined, '/') ?? new URL('/', Astro.url.origin).href;
 const jsonLd = buildWebsiteJsonLd({
   name: SITE_TITLE,
   url: siteUrl,
@@ -15,23 +19,34 @@ const jsonLd = buildWebsiteJsonLd({
 });
 ---
 
-<BaseLayout jsonLd={jsonLd}>
-  <section class="prose-measure">
-    <h1 class="text-4xl font-semibold tracking-tight">Buying guides you can actually trust</h1>
-    <p class="mt-4 text-lg text-ink-muted">{SITE_DESCRIPTION}</p>
-    <p class="mt-4 text-ink-muted">
-      Every guide is researched by hand and updated when products change. If a pick stops being
-      worth your money, we say so.
-    </p>
+<BaseLayout contained={false} jsonLd={jsonLd}>
+  <TopicTabs />
+
+  <section class="mag-section">
+    <div class="magazine">
+      <div class="mag-col">
+        {altPost && <PostCard post={altPost} symbol="¶" />}
+        {fourthPost && <PostCard post={fourthPost} variant="text" />}
+        {fifthPost && <PostCard post={fifthPost} symbol="△" />}
+      </div>
+
+      <div class="mag-col mag-col-feature">
+        {featurePost && <PostCard post={featurePost} variant="feature" symbol="※" />}
+        {thirdPost && <PostCard post={thirdPost} variant="alt" symbol="❦" />}
+      </div>
+
+      <div class="mag-col">
+        {sixthPost && <PostCard post={sixthPost} variant="text" />}
+        {seventhPost && <PostCard post={seventhPost} symbol="❋" />}
+        <aside class="m-sponsored">
+          <span class="sp-label">Partner</span>
+          <h4>Sponsored placement</h4>
+          <p>This slot is reserved for a vetted product recommendation from a partner.</p>
+          <a class="btn btn-primary btn-sm" href="/affiliate-disclosure/">How we vet partners</a>
+        </aside>
+      </div>
+    </div>
   </section>
 
-  <section class="mt-12">
-    <h2 class="text-2xl font-semibold tracking-tight">Latest guides</h2>
-    <div class="mt-6">
-      <PostList posts={recentPosts} />
-    </div>
-    <p class="mt-8">
-      <a href="/blog/" class="text-accent-strong underline">Browse all guides</a>
-    </p>
-  </section>
+  <AdBanner />
 </BaseLayout>

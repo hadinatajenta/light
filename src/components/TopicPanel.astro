@@ -1,0 +1,74 @@
+---
+import { PRIMARY_NAVIGATION, TOPICS } from '@/consts';
+---
+
+<div class="topic-panel" id="topic-panel">
+  <div class="topic-inner">
+    <div class="topic-head">
+      <span class="label">All topics</span>
+      <span class="label">{TOPICS.length} topics</span>
+    </div>
+    <div class="topic-grid">
+      {
+        TOPICS.map((topic) => (
+          <a class="topic-item" href={`/tag/${topic.slug}/`}>
+            <span>{topic.label}</span>
+            <span class="arw" aria-hidden="true">
+              &rarr;
+            </span>
+          </a>
+        ))
+      }
+    </div>
+    <div class="topic-mobile-links">
+      {
+        PRIMARY_NAVIGATION.map((link) => (
+          <a href={link.href}>{link.label}</a>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<script>
+  const panel = document.getElementById('topic-panel');
+  const triggers = Array.from(document.querySelectorAll('[data-topics-trigger]'));
+
+  if (panel && triggers.length > 0) {
+    const setOpen = (isOpen: boolean): void => {
+      panel.classList.toggle('open', isOpen);
+      for (const trigger of triggers) {
+        trigger.setAttribute('aria-expanded', String(isOpen));
+      }
+    };
+
+    for (const trigger of triggers) {
+      trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        setOpen(!panel.classList.contains('open'));
+      });
+    }
+
+    panel.addEventListener('click', (event) => {
+      if (event.target instanceof Element && event.target.closest('a')) {
+        setOpen(false);
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+      if (panel.contains(event.target) || event.target.closest('[data-topics-trigger]')) {
+        return;
+      }
+      setOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    });
+  }
+</script>

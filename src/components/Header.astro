@@ -1,5 +1,8 @@
 ---
 import { PRIMARY_NAVIGATION, SITE_TITLE } from '@/consts';
+import SearchDialog from './SearchDialog.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import TopicPanel from './TopicPanel.astro';
 
 const currentPath = Astro.url.pathname;
 
@@ -12,24 +15,84 @@ function isActive(href: string): boolean {
 }
 ---
 
-<header class="border-b border-line bg-paper">
-  <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
-    <a href="/" class="text-lg font-semibold tracking-tight">{SITE_TITLE}</a>
-    <nav aria-label="Primary" class="flex flex-wrap items-center gap-1">
+<header class="nav">
+  <div class="nav-inner">
+    <div class="nav-left">
+      <a class="brand" href="/">{SITE_TITLE}<span class="brand-mark">.</span></a>
+    </div>
+
+    <nav class="nav-links" aria-label="Primary">
+      <button
+        type="button"
+        class="nav-link"
+        data-topics-trigger
+        aria-expanded="false"
+        aria-controls="topic-panel"
+      >
+        Topics
+        <svg
+          class="chev"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
       {
         PRIMARY_NAVIGATION.map((link) => (
           <a
+            class="nav-link"
             href={link.href}
             aria-current={isActive(link.href) ? 'page' : undefined}
-            class:list={[
-              'rounded-md px-3 py-2 text-sm transition-colors',
-              isActive(link.href) ? 'font-medium text-accent-strong' : 'text-ink-muted hover:text-ink',
-            ]}
           >
             {link.label}
           </a>
         ))
       }
     </nav>
+
+    <div class="nav-right">
+      <button
+        type="button"
+        class="icon-btn menu-btn"
+        data-topics-trigger
+        aria-expanded="false"
+        aria-controls="topic-panel"
+        aria-label="Open topics"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M4 7h16M4 12h16M4 17h16"></path>
+        </svg>
+      </button>
+      <button type="button" class="icon-btn" data-search-trigger aria-label="Search">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="m20 20-3.6-3.6"></path>
+        </svg>
+      </button>
+      <ThemeToggle />
+    </div>
   </div>
 </header>
+
+<TopicPanel />
+<SearchDialog />
