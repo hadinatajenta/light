@@ -14,7 +14,8 @@
       "**/*.mjs",
       "**/*.json",
       "!src/components/ui",
-      "!src/hooks"
+      "!src/hooks",
+      "!worker-configuration.d.ts"
     ]
   },
   "formatter": {

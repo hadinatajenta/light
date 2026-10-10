@@ -26,3 +26,4 @@ pnpm-debug.log*
 UML/
 .wrangler/
 .dev.vars
+migrations/seed.sql
