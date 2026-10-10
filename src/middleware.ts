@@ -2,7 +2,7 @@ import { defineMiddleware } from 'astro:middleware';
 import { getAuthProvider } from '@/lib/auth';
 
 const CANONICAL_HOST = 'lightscripts.com';
-const REDIRECT_HOSTS = new Set(['www.lightscripts.com']);
+const REDIRECT_HOSTS = new Set(['www.lightscripts.com', 'light.hadinata.me']);
 
 const PROTECTED_PREFIXES = ['/dashboard', '/api/dashboard'];
 

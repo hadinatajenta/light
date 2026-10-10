@@ -1,9 +1,9 @@
-export const SITE_TITLE = 'Light';
+export const SITE_TITLE = 'Light Scripts';
 export const SITE_DESCRIPTION =
   'Independent buying guides and product comparisons for people who would rather buy once and buy well.';
 export const SITE_TAGLINE =
   'A reading room for people who would rather research once and buy well, than buy twice and regret it.';
-export const SITE_AUTHOR = 'Light Editorial Team';
+export const SITE_AUTHOR = 'Light Scripts Editorial Team';
 export const SITE_LOCALE = 'en-US';
 export const SITE_LANGUAGE = 'en';
 export const POSTS_PER_PAGE = 9;

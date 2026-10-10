@@ -26,6 +26,7 @@
     { "pattern": "light.hadinata.me", "custom_domain": true },
     { "pattern": "admin.hadinata.me", "custom_domain": true },
     { "pattern": "lightscripts.com", "custom_domain": true },
-    { "pattern": "www.lightscripts.com", "custom_domain": true }
+    { "pattern": "www.lightscripts.com", "custom_domain": true },
+    { "pattern": "admin.lightscripts.com", "custom_domain": true }
   ]
 }
