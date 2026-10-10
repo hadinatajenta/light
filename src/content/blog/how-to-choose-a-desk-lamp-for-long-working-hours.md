@@ -80,6 +80,12 @@ Features that rarely earn their place: touch controls that are hard to find in t
 
 A desk lamp is a small purchase that you use for thousands of hours. Getting the placement and the flicker right matters far more than buying the brightest one on the shelf.
 
+## Related guides
+
+- [How to choose a standing desk for a small home office](/blog/how-to-choose-a-standing-desk-for-a-small-home-office/)
+- [How to plan a desk setup you will not outgrow](/blog/how-to-plan-a-desk-setup-you-will-not-outgrow/)
+- [Cable management for a small desk: what to plan before you buy](/blog/cable-management-for-a-small-desk/)
+
 ## Sources and further reading
 
 - OSHA, Computer Workstations eTool: Workstation Environment. Covers glare and lighting placement, including the point that a bright source in your field of view makes the screen harder to read rather than easier. The placement advice in this article follows that guidance.

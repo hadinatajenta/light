@@ -88,6 +88,12 @@ If the room cannot take a full standing desk, a converter that sits on an existi
 
 Get the height range, the depth, and the stability right, and a standing desk earns its place in a small room. Get any of those wrong and it becomes a fixed desk with a motor you stop using.
 
+## Related guides
+
+- [How to choose a desk lamp for long working hours](/blog/how-to-choose-a-desk-lamp-for-long-working-hours/)
+- [How to plan a desk setup you will not outgrow](/blog/how-to-plan-a-desk-setup-you-will-not-outgrow/)
+- [Cable management for a small desk: what to plan before you buy](/blog/cable-management-for-a-small-desk/)
+
 ## Sources and further reading
 
 - OSHA, Computer Workstations eTool: Monitors. The preferred viewing distance is 20 to 40 inches (50 to 100 cm) from the eye to the screen, and the centre of the screen should sit 15 to 20 degrees below horizontal eye level. That is what sets the minimum depth your desk needs.

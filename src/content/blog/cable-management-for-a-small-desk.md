@@ -90,6 +90,12 @@ If all four pass, the setup will stay tidy. If any fails, fix that one thing now
 
 Cable management is a layout problem with a shopping list attached. Solve the layout, and the accessories are cheap and obvious.
 
+## Related guides
+
+- [How to choose a laptop stand for daily use](/blog/how-to-choose-a-laptop-stand-for-daily-use/)
+- [How to choose a monitor arm for a small desk](/blog/how-to-choose-a-monitor-arm/)
+- [How to choose a USB-C docking station for a laptop](/blog/how-to-choose-a-usb-c-docking-station-for-a-laptop/)
+
 ## Sources and further reading
 
 - OSHA, Computer Workstations eTool: Desks. Covers the clearance needed under a work surface and keyboard tray positioning, both of which are constrained by where cables and a power strip sit.

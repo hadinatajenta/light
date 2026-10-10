@@ -85,6 +85,12 @@ If the laptop is paired with an external monitor, a stand that positions the lap
 
 A laptop stand is cheap and small, but it only earns its place as part of a complete setup. Decide the keyboard question first, and everything else follows.
 
+## Related guides
+
+- [How to choose a USB-C docking station for a laptop](/blog/how-to-choose-a-usb-c-docking-station-for-a-laptop/)
+- [Cable management for a small desk: what to plan before you buy](/blog/cable-management-for-a-small-desk/)
+- [How to choose a monitor arm for a small desk](/blog/how-to-choose-a-monitor-arm/)
+
 ## Sources and further reading
 
 - OSHA, Computer Workstations eTool: Monitors. States the placement criteria used above: the top of the screen at or slightly below eye level, the centre of the screen 15 to 20 degrees below horizontal eye level, and a preferred viewing distance of 20 to 40 inches (50 to 100 cm) from the eye to the screen. It also notes that bifocal wearers often need the monitor lower than everyone else, which is worth knowing before you fix a stand height.

@@ -71,6 +71,12 @@ Then look for **seat depth adjustment** and, if you are shorter than average, tr
 
 Then check the three items that are visible in a photograph: a five-leg base, a rounded seat edge, and a backrest that reclines. If a listing does not state the seat height range at all, that is information about the seller, and it is usually enough to move on.
 
+## Related guides
+
+- [Office chair features actually worth paying for](/blog/office-chair-features-worth-paying-for/)
+- [How to choose a desk lamp for long working hours](/blog/how-to-choose-a-desk-lamp-for-long-working-hours/)
+- [How to choose a monitor for a home office](/blog/how-to-choose-a-monitor-for-a-home-office/)
+
 ## Sources and further reading
 
 - OSHA, Computer Workstations eTool: Chairs. The source for the seat height criterion, the seat pan criterion, the 15 degree recline, the waterfall edge, and the five-leg base.

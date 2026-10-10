@@ -83,6 +83,12 @@ A dock is a small computer. It gets warm, and some get warm enough to throttle.
 
 A dock is worth buying when it removes cables rather than adding a box. If a monitor can do the same job, the monitor is the better purchase.
 
+## Related guides
+
+- [How to choose a laptop stand for daily use](/blog/how-to-choose-a-laptop-stand-for-daily-use/)
+- [Cable management for a small desk: what to plan before you buy](/blog/cable-management-for-a-small-desk/)
+- [How to choose a monitor arm for a small desk](/blog/how-to-choose-a-monitor-arm/)
+
 ## Sources and further reading
 
 - USB Implementers Forum (USB-IF). Publishes the USB Type-C and USB Power Delivery specifications, and the certified-logo programme. When a dock states a wattage or a data rate, this is the body that defines what those terms are allowed to mean.
