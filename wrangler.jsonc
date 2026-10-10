@@ -15,5 +15,11 @@
       "database_name": "light-content",
       "database_id": "9e14ae8a-5736-4458-b199-2deeb40abe8c"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "light-media"
+    }
   ]
 }

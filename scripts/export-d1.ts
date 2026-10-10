@@ -5,6 +5,7 @@ import YAML from 'yaml';
 
 const BLOG_DIRECTORY = 'src/content/blog';
 const CATEGORIES_PATH = 'src/data/categories.json';
+const MEDIA_PATH = 'src/data/media.json';
 const DATABASE_NAME = 'light-content';
 
 interface PostRow {
@@ -31,6 +32,16 @@ interface CategoryRow {
   slug: string;
   label: string;
   description: string;
+}
+
+interface MediaRow {
+  id: string;
+  path: string;
+  url: string;
+  alt: string;
+  mime: string;
+  bytes: number;
+  created_at: string;
 }
 
 function queryRows<T>(command: string): T[] {
@@ -145,12 +156,32 @@ async function exportCategories(): Promise<number> {
   return changed ? 1 : 0;
 }
 
+async function exportMedia(): Promise<number> {
+  const rows = queryRows<MediaRow>(
+    'SELECT id, path, url, alt, mime, bytes, created_at FROM media ORDER BY created_at DESC',
+  );
+  const items = rows.map((row) => ({
+    id: row.id,
+    path: row.path,
+    url: row.url,
+    alt: row.alt,
+    mime: row.mime,
+    bytes: row.bytes,
+    createdAt: row.created_at,
+  }));
+
+  const changed = await writeIfChanged(MEDIA_PATH, `${JSON.stringify(items, null, 2)}\n`);
+
+  return changed ? 1 : 0;
+}
+
 async function main(): Promise<void> {
   const postChanges = await exportPosts();
   const categoryChanges = await exportCategories();
+  const mediaChanges = await exportMedia();
 
   console.log(
-    `Exported posts (${postChanges} file(s) changed) and categories (${categoryChanges} file(s) changed).`,
+    `Exported posts (${postChanges}), categories (${categoryChanges}), media (${mediaChanges}) file(s) changed.`,
   );
 }
 

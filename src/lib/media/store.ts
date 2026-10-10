@@ -1,7 +1,9 @@
 import { z } from 'astro/zod';
+import { getGithubConfig } from '../content/config';
 import { deleteFile, type GithubConfig, getFile, putFile, putFileBase64 } from '../content/github';
 import { ApiError } from '../http';
 import { detectImageExtension, IMAGE_CONTENT_TYPES } from './image-type';
+import { createR2MediaStore } from './r2-store';
 
 export const mediaItemSchema = z.object({
   id: z.string(),
@@ -134,4 +136,28 @@ export function createGitMediaStore(config: GithubConfig): MediaStore {
       );
     },
   };
+}
+
+async function resolveMediaBindings(): Promise<{ database: D1Database; bucket: R2Bucket } | null> {
+  try {
+    const { env } = await import('cloudflare:workers');
+    const bindings = env as unknown as { CONTENT_DB?: D1Database; MEDIA_BUCKET?: R2Bucket };
+
+    if (!bindings.CONTENT_DB || !bindings.MEDIA_BUCKET) {
+      return null;
+    }
+
+    return { database: bindings.CONTENT_DB, bucket: bindings.MEDIA_BUCKET };
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveMediaStore(): Promise<MediaStore> {
+  const bindings = await resolveMediaBindings();
+  if (bindings) {
+    return createR2MediaStore(bindings.database, bindings.bucket);
+  }
+
+  return createGitMediaStore(getGithubConfig());
 }

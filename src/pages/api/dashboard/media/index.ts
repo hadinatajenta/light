@@ -1,19 +1,17 @@
 import { withAdmin } from '@/lib/api/handler';
-import { getGithubConfig } from '@/lib/content/config';
 import { ApiError, jsonOk } from '@/lib/http';
-import { createGitMediaStore } from '@/lib/media/store';
+import { resolveMediaStore } from '@/lib/media/store';
 
 export const prerender = false;
 
 export const GET = withAdmin(async (_context, requestId) => {
-  const config = getGithubConfig();
-  const items = await createGitMediaStore(config).list();
+  const store = await resolveMediaStore();
+  const items = await store.list();
+
   return jsonOk({ media: items }, requestId);
 });
 
 export const POST = withAdmin(async ({ request }, requestId) => {
-  const config = getGithubConfig();
-
   let form: FormData;
   try {
     form = await request.formData();
@@ -27,7 +25,8 @@ export const POST = withAdmin(async ({ request }, requestId) => {
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const item = await createGitMediaStore(config).put({ bytes, originalName: file.name });
+  const store = await resolveMediaStore();
+  const item = await store.put({ bytes, originalName: file.name });
 
   return jsonOk({ media: item }, requestId, 201);
 });
