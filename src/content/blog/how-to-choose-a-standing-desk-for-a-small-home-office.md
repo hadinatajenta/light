@@ -9,11 +9,7 @@ tags:
 pubDate: 2026-10-11T08:00:00.000Z
 noindex: false
 affiliate: false
-faq:
-  - question: Is a standing desk worth it in a small room?
-    answer: It is worth it when you actually change position. A desk that is too small for two monitors, or too wobbly to type on, gets left in one position and you lose the benefit.
-  - question: What height range do I need?
-    answer: Measure your seated elbow height and your standing elbow height with your shoes on. The desk has to cover both, with a little room at each end.
+faq: []
 slug: how-to-choose-a-standing-desk-for-a-small-home-office
 ---
 
@@ -91,3 +87,10 @@ If the room cannot take a full standing desk, a converter that sits on an existi
 - Measure the chair's travel and the door swing, not only the desk.
 
 Get the height range, the depth, and the stability right, and a standing desk earns its place in a small room. Get any of those wrong and it becomes a fixed desk with a motor you stop using.
+
+## Sources and further reading
+
+- OSHA, Computer Workstations eTool: Monitors. The preferred viewing distance is 20 to 40 inches (50 to 100 cm) from the eye to the screen, and the centre of the screen should sit 15 to 20 degrees below horizontal eye level. That is what sets the minimum depth your desk needs.
+- OSHA, Computer Workstations eTool: Desks. Covers table depth, the space needed under the work surface, and keyboard tray clearance, which together decide whether a deep desk is usable at standing height.
+- OSHA, Computer Workstations eTool: Workstation Environment. Relevant if the room is small enough that lighting and glare become part of the decision.
+- ANSI/BIFMA G1, Ergonomics Guideline for Furniture Used in Office Work Spaces. The dimensional standard for adjustable work surfaces. Paid document, so compare against a manufacturer's summary.

@@ -9,11 +9,7 @@ tags:
 pubDate: 2026-10-11T10:00:00.000Z
 noindex: false
 affiliate: false
-faq:
-  - question: Do I need an external keyboard with a laptop stand?
-    answer: Yes, if the stand raises the screen to eye level. At that height the built-in keyboard is out of reach, so a stand only works as a complete setup with a separate keyboard and mouse.
-  - question: Does a stand actually help a laptop run cooler?
-    answer: Raising the machine and exposing the underside helps airflow, and it stops the base from sitting on a soft surface that blocks the vents. The gain depends on where the vents are.
+faq: []
 slug: how-to-choose-a-laptop-stand-for-daily-use
 ---
 
@@ -88,3 +84,9 @@ If the laptop is paired with an external monitor, a stand that positions the lap
 - Re-check the angle after a week, because the right height is usually not the first one you pick.
 
 A laptop stand is cheap and small, but it only earns its place as part of a complete setup. Decide the keyboard question first, and everything else follows.
+
+## Sources and further reading
+
+- OSHA, Computer Workstations eTool: Monitors. States the placement criteria used above: the top of the screen at or slightly below eye level, the centre of the screen 15 to 20 degrees below horizontal eye level, and a preferred viewing distance of 20 to 40 inches (50 to 100 cm) from the eye to the screen. It also notes that bifocal wearers often need the monitor lower than everyone else, which is worth knowing before you fix a stand height.
+- OSHA, Computer Workstations eTool: Chairs. Useful for the seat height and depth criteria that decide whether you can sit close enough to the laptop to type on it comfortably.
+- Your laptop manufacturer's documentation for the vent locations. The stand only helps cooling if it holds the vents clear, and the vents are not always underneath.

@@ -9,11 +9,7 @@ tags:
 pubDate: 2026-10-11T09:00:00.000Z
 noindex: false
 affiliate: false
-faq:
-  - question: Is a brighter desk lamp always better?
-    answer: No. Too much light directly in your field of view causes glare and makes text harder to read. Placement and evenness matter more than the maximum brightness figure.
-  - question: What colour temperature should I choose?
-    answer: A neutral white around 4000K suits reading and writing through the day. Very warm light is restful but tiring for detail work, and very cool light can feel harsh in the evening.
+faq: []
 slug: how-to-choose-a-desk-lamp-for-long-working-hours
 ---
 
@@ -83,3 +79,9 @@ Features that rarely earn their place: touch controls that are hard to find in t
 - Aim the light at the surface you read, not at your face.
 
 A desk lamp is a small purchase that you use for thousands of hours. Getting the placement and the flicker right matters far more than buying the brightest one on the shelf.
+
+## Sources and further reading
+
+- OSHA, Computer Workstations eTool: Workstation Environment. Covers glare and lighting placement, including the point that a bright source in your field of view makes the screen harder to read rather than easier. The placement advice in this article follows that guidance.
+- OSHA, Computer Workstations eTool: Monitors, section on viewing time. The eye fatigue guidance there, looking away and blinking at intervals, is worth pairing with better lighting rather than replacing it.
+- On flicker: there is no consumer standard that requires a lamp to state its modulation. The phone camera test described above is a practical check, not a measurement, and should be treated as a screening tool rather than proof.

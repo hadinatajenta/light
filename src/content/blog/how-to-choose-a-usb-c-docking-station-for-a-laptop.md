@@ -9,11 +9,7 @@ tags:
 pubDate: 2026-10-11T12:00:00.000Z
 noindex: false
 affiliate: false
-faq:
-  - question: Do I need a dock if my monitor has USB-C?
-    answer: Often not. A monitor with USB-C power delivery and a few downstream ports can replace a dock entirely, which is one less box and one less cable on the desk.
-  - question: Why does my laptop charge slowly through a dock?
-    answer: The dock passes through a limited amount of power. If the laptop needs more than the dock supplies, the battery charges slowly or drains under heavy load.
+faq: []
 slug: how-to-choose-a-usb-c-docking-station-for-a-laptop
 ---
 
@@ -86,3 +82,9 @@ A dock is a small computer. It gets warm, and some get warm enough to throttle.
 - Confirm the dock ships with its own power adapter.
 
 A dock is worth buying when it removes cables rather than adding a box. If a monitor can do the same job, the monitor is the better purchase.
+
+## Sources and further reading
+
+- USB Implementers Forum (USB-IF). Publishes the USB Type-C and USB Power Delivery specifications, and the certified-logo programme. When a dock states a wattage or a data rate, this is the body that defines what those terms are allowed to mean.
+- VESA, DisplayPort Alt Mode over USB Type-C. The standard that lets a USB-C port carry video, which is why the number of displays a dock supports depends on the laptop as much as on the dock.
+- Your laptop manufacturer's power and display specifications. The recommended charger wattage and the maximum number of external displays are properties of the machine, and no dock can exceed them.

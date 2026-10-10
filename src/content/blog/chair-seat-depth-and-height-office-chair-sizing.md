@@ -1,6 +1,6 @@
 ---
-title: "Chair seat depth and height: how to size an office chair correctly"
-description: Seat depth and height decide whether a chair supports you or slowly hurts you. Two measurements tell you more than any feature list.
+title: "Sizing an office chair: what the standards actually require"
+description: OSHA and ANSI/BIFMA give specific chair measurements. Here is how to check a chair against them before you buy, using two measurements of your own.
 status: published
 category: chairs
 tags:
@@ -9,69 +9,70 @@ tags:
 pubDate: 2026-10-11T13:00:00.000Z
 noindex: false
 affiliate: false
-faq:
-  - question: What is the correct seat depth?
-    answer: You should be able to sit back against the backrest with a small gap, about two to three fingers wide, between the back of your knee and the front edge of the seat.
-  - question: Should my feet be flat on the floor?
-    answer: Yes, with your thighs roughly level. If the chair cannot go low enough for that, a footrest is the practical fix rather than forcing your feet down.
+faq: []
 slug: chair-seat-depth-and-height-office-chair-sizing
 ---
 
-Office chairs are sold on feature lists: lumbar support, tilt tension, armrest adjustments. Those features only work if two basic measurements are right first. A chair with excellent lumbar support but the wrong seat depth will still be uncomfortable after an hour.
+Most office chair advice is folk wisdom. You will read that you should fit "two to three fingers" between your knee and the seat edge, that lumbar support should sit "in the small of your back", that you should sit "with your feet flat". None of it is wrong, and none of it is checkable.
 
-This guide covers how to measure yourself, how to read a chair's specifications against those measurements, and what to do when no single chair fits.
+There is a better source. OSHA publishes workstation guidance that states the criteria in measurable terms, and ANSI/BIFMA G1 sets the dimensional requirements that office chairs sold in the United States are commonly designed against. Using those, you can decide whether a specific chair will work for you in about five minutes, without sitting in it.
 
-## Measure your seated height first
+## The two measurements that decide everything
 
-Sit on a hard chair with your feet flat on the floor and your knees at roughly a right angle. Measure from the floor to the crease behind your knee. That is your **popliteal height**, and it sets the seat height you need.
+Everything else in this article depends on two numbers you can take at home.
 
-Your chair's seat height range must contain that number. This is the specification most often missing from product pages, and it is the one that decides whether your feet reach the floor.
+Sit on a hard chair, shoes on, feet flat, knees roughly at a right angle. Measure from the floor to the crease behind your knee. That is your **popliteal height**.
 
-Two consequences follow:
+Then measure from that same crease, horizontally, to the back of your hip. That is your **buttock-to-knee length**, and it is what seat depth has to match.
 
-- If the chair's minimum seat height is **higher** than your measurement, your feet will dangle, your thighs will tilt down, and pressure will build at the front of the seat.
-- If the chair's maximum seat height is **lower** than your measurement, your knees will sit above your hips, which pushes you back and flattens the natural curve of your spine.
+Write both down. If you are shopping for a chair you cannot sit in first, these two numbers eliminate most of the market, and they are the only measurements where being shorter or taller than average changes the answer.
 
-A footrest fixes the first problem honestly. The second has no comfortable fix, so do not buy a chair that cannot reach your height.
+## Seat height: the knee, not the foot
 
-## Then measure for seat depth
+The common instruction is "feet flat on the floor". OSHA's criterion is more precise: the seat height is right when **the entire sole of the foot rests on the floor and the back of the knee sits slightly higher than the seat**.
 
-Seat depth is the distance from the front edge of the seat to the backrest. It has to match your thigh length, measured from the back of your knee to the back of your hip.
+That is a real test, and it is why a chair that is too high is worse than it looks. When the seat is above your popliteal height, the front edge lifts the back of your knee, pressure builds behind the leg, and most people slide forward to escape it. Slide forward far enough and the backrest is no longer touching you, which is the support you paid for.
 
-The test is simple. Sit all the way back against the backrest and look at the gap between the back of your knee and the front edge of the seat. You want roughly two to three fingers of space.
+A worked example. If your popliteal height is 42 cm, you need a chair whose seat adjusts down to 42 cm or below. A chair with a minimum seat height of 45 cm cannot be made to fit you, no matter how it is adjusted, and no amount of lumbar support will compensate.
 
-- **Too deep** and the front edge presses behind your knee, which restricts circulation and makes you slide forward. You then lose the backrest support you paid for.
-- **Too shallow** and your thighs carry the weight without support, which concentrates pressure instead of spreading it.
+If the chair is otherwise right but sits a little high, OSHA's own fix is a **footrest**, which raises the knee slightly and takes the pressure off the back of the leg. That is a legitimate solution rather than a workaround, and it is far cheaper than replacing the chair.
 
-If you are shorter than average, seat depth is the measurement most likely to be wrong, because many chairs are built around a taller frame.
+## Seat depth: a standard, not a finger count
 
-## What to do when nothing fits
+The finger-count heuristic exists because seat depth is the measurement people get wrong most often, and it is the one that hurts.
 
-Chairs are built in sizes, and a size that suits one person will not suit another. When the measurements do not line up, you have three practical options:
+OSHA's criterion: the seat pan should **support most of the thigh without contact between the back of your knee and the front edge of the seat pan**. Your buttock-to-knee length is what that has to match.
 
-1. **Choose a chair with an adjustable seat depth.** A sliding seat pan changes the depth without changing anything else, and it is the single most useful adjustment for a smaller user.
-2. **Add a footrest.** This fixes seat height that is slightly too high, and it is cheap.
-3. **Change the chair size.** Some ranges come in small, medium, and large, and the differences are in exactly these measurements rather than in the feature list.
+Two failure modes, and they are not symmetrical:
 
-An adjustable seat pan is worth more than an extra armrest adjustment, because it fixes a problem that otherwise has no fix.
+A seat that is too deep presses the front edge into the back of your knee. Circulation suffers, and you move forward to relieve it, which costs you the backrest. A seat that is too shallow leaves your thighs carrying weight with no support under most of their length, which concentrates pressure instead of spreading it.
 
-## Why the backrest comes second
+The standards answer to this is **depth adjustability**, which OSHA lists as a requirement for chairs shared between users. On some chairs the seat pan slides forward and back; on others the backrest moves. Either achieves the same thing, and it is the single most useful adjustment if you are shorter than the chair was designed for.
 
-Once height and depth are right, the backrest can do its job. A lumbar curve that sits too high or too low will feel like pressure rather than support, and the correct position depends on where your pelvis ends up when your feet are flat and your thighs are level.
+## What the standards say about the rest
 
-That is why the order matters: seat height and depth decide where your body sits, and only then does the backrest line up with your spine.
+Once height and depth are settled, the remaining criteria are easier to check against a specification sheet than by sitting.
 
-The same logic applies to armrests. They should support your forearms lightly when your shoulders are relaxed, and they should not stop you pulling the chair close to the desk. If they cannot go low enough, they will push your shoulders up, which is worse than having no armrests at all.
+**Recline.** OSHA calls for a backrest that reclines at least **15 degrees from vertical** and either locks or has adjustable tension. A backrest that only holds one angle cannot be adjusted to your posture.
 
-## A short checklist
+**Seat edge.** The front edge should be rounded, which OSHA describes as a "waterfall" edge. A square edge concentrates pressure on the same spot behind the knee.
 
-- Measure your popliteal height, floor to the crease behind your knee, sitting with feet flat.
-- Confirm the chair's seat height range contains that number.
-- Measure from the back of your knee to the back of your hip for seat depth.
-- Sit back and check for a two to three finger gap behind your knee.
-- Prefer a chair with an adjustable seat pan, especially if you are shorter than average.
-- Use a footrest if the seat is slightly too high, rather than forcing your feet down.
-- Set height and depth before adjusting the backrest and the armrests.
-- Check that the armrests go low enough that they do not lift your shoulders.
+**Base.** Five legs, not four. OSHA is explicit that chairs with four or fewer legs are prone to tipping. Casters should match the floor: hard casters for carpet, soft for hard flooring.
 
-Two measurements, taken in five minutes at home, will tell you more about whether a chair will work than any feature list. Take them before you shop, and the shortlist gets much shorter.
+**Armrests.** Optional, and often better removed than badly adjusted. The test is that your shoulders stay relaxed and your elbows stay close to your body while your forearms rest lightly. Armrests that are too high lift the shoulders; too wide and you reach sideways to use them.
+
+**Backrest height adjustment.** Lumbar support needs to move up and down, because where it belongs depends on where your pelvis ends up once your feet are supported.
+
+## How to check a chair you cannot sit in
+
+Read the specification for the **seat height range** and compare it against your popliteal height. That single number rules chairs in or out.
+
+Then look for **seat depth adjustment** and, if you are shorter than average, treat its absence as a reason to keep looking.
+
+Then check the three items that are visible in a photograph: a five-leg base, a rounded seat edge, and a backrest that reclines. If a listing does not state the seat height range at all, that is information about the seller, and it is usually enough to move on.
+
+## Sources and further reading
+
+- OSHA, Computer Workstations eTool: Chairs. The source for the seat height criterion, the seat pan criterion, the 15 degree recline, the waterfall edge, and the five-leg base.
+- OSHA, Computer Workstations eTool: Monitors. Useful for the matching question of how far the screen should sit from your eyes.
+- ANSI/BIFMA G1, Ergonomics Guideline for Furniture Used in Office Work Spaces. The dimensional standard that office chairs are commonly designed against. The full document is paid, so look for a manufacturer's summary when comparing chairs.

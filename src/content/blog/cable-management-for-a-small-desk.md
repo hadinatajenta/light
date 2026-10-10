@@ -9,11 +9,7 @@ tags:
 pubDate: 2026-10-11T11:00:00.000Z
 noindex: false
 affiliate: false
-faq:
-  - question: What is the first thing to fix for a tidy desk?
-    answer: Power. Where the sockets are decides how every other cable has to travel. Move or add a socket before buying trays, clips, or boxes.
-  - question: Are adhesive cable clips a good idea?
-    answer: They are fine for a light, fixed cable and a clean surface. They fail on textured or dusty surfaces, and they leave marks, so treat them as temporary rather than permanent.
+faq: []
 slug: cable-management-for-a-small-desk
 ---
 
@@ -93,3 +89,9 @@ If all four pass, the setup will stay tidy. If any fails, fix that one thing now
 - Run the four movement tests before calling it finished.
 
 Cable management is a layout problem with a shopping list attached. Solve the layout, and the accessories are cheap and obvious.
+
+## Sources and further reading
+
+- OSHA, Computer Workstations eTool: Desks. Covers the clearance needed under a work surface and keyboard tray positioning, both of which are constrained by where cables and a power strip sit.
+- OSHA, Computer Workstations eTool: Workstation Environment. Relevant to routing cables away from walkways and heat sources.
+- Adjustable desk manufacturer documentation. The one claim worth checking before buying a tray is the load rating and whether the tray is designed to attach to a moving frame rather than a wall. This article otherwise relies on practical reasoning rather than a published standard, and it is worth saying so plainly.
