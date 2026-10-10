@@ -156,7 +156,8 @@ export function renderMarkdown(
     },
   );
 
-  const resolved = resolveAffiliateLinks(withHeadingIds, affiliateLinks);
+  const redirectLinks = new Map([...affiliateLinks.keys()].map((slug) => [slug, `/go/${slug}`]));
+  const resolved = resolveAffiliateLinks(withHeadingIds, redirectLinks);
 
   return {
     html: resolved.html,

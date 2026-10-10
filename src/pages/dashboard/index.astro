@@ -1,166 +1,429 @@
 ---
-import ActivityFeed from '@/components/dashboard/activity-feed.astro';
 import { LineChart } from '@/components/dashboard/line-chart';
 import Sparkline from '@/components/dashboard/sparkline.astro';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
-import { listActivity } from '@/lib/activity/store';
-import { listCategories } from '@/lib/content/categories';
-import { resolveContentDatabase } from '@/lib/content/database';
-import { listPosts } from '@/lib/content/store';
-import { buildDailySeries, countByRecency, formatDelta } from '@/lib/dashboard/metrics';
-import { resolveMediaStore } from '@/lib/media/store';
-import { formatDateRange, formatShortDate } from '@/utils/date';
+import { loadAnalyticsSnapshot } from '@/lib/analytics/store';
+import { requireContentDatabase } from '@/lib/content/database';
+import { formatRelativeTime } from '@/utils/date';
 
 export const prerender = false;
 
-const PERIOD_DAYS = 30;
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-const ACTIVITY_PREVIEW_LIMIT = 6;
+const database = await requireContentDatabase();
+const snapshot = await loadAnalyticsSnapshot(database);
+const { content, pipeline, agents, affiliate, activity, media } = snapshot;
 
-const posts = await listPosts();
-const categories = await listCategories();
-const mediaItems = await (await resolveMediaStore()).list();
+const DAY_COUNT = 30;
+const publishedDelta = content.publishedLast30 - content.publishedPrevious30;
+const publishedDeltaLabel =
+  publishedDelta === 0 ? 'No change' : publishedDelta > 0 ? `+${publishedDelta}` : `${publishedDelta}`;
 
-const database = await resolveContentDatabase();
-const recentActivity = database
-  ? await listActivity(database, { limit: ACTIVITY_PREVIEW_LIMIT })
-  : [];
+const cadenceDatasets = [
+  { id: '7d', label: '7d', values: content.series.sevenDay, axisLabels: [] as Array<{ id: string; label: string }> },
+  { id: '30d', label: '30d', values: content.series.thirtyDay, axisLabels: [] as Array<{ id: string; label: string }> },
+  { id: '90d', label: '90d', values: content.series.ninetyDay, axisLabels: [] as Array<{ id: string; label: string }> },
+];
 
-const publishedPosts = posts.filter((post) => post.status === 'published');
-const draftPosts = posts.filter((post) => post.status === 'draft');
-const publishedDates = publishedPosts.map((post) => post.pubDate);
-
-const publishedRecency = countByRecency(publishedDates, PERIOD_DAYS);
-const draftRecency = countByRecency(
-  draftPosts.map((post) => post.pubDate),
-  PERIOD_DAYS,
-);
-const categoryRecency = countByRecency(
-  categories.map((category) => category.createdAt),
-  PERIOD_DAYS,
-);
-const mediaRecency = countByRecency(
-  mediaItems.map((item) => item.createdAt),
-  PERIOD_DAYS,
+const funnelStages = [
+  { label: 'Queued', value: pipeline.topicsQueued },
+  { label: 'Researched', value: pipeline.topicsResearched },
+  { label: 'In progress', value: pipeline.topicsInProgress },
+  { label: 'Used', value: pipeline.topicsUsed },
+  { label: 'Blocked', value: pipeline.topicsBlocked },
+];
+const funnelTotal = Math.max(
+  1,
+  funnelStages.reduce((sum, stage) => sum + stage.value, 0),
 );
 
-const hasCategoryDates = categories.some((category) => category.createdAt !== null);
-
-function axisLabelsFor(days: number): Array<{ id: string; label: string }> {
-  const end = Date.now();
-  return [
-    { id: 'start', label: formatShortDate(new Date(end - (days - 1) * DAY_IN_MS)) },
-    {
-      id: 'middle',
-      label: formatShortDate(new Date(end - Math.floor((days - 1) / 2) * DAY_IN_MS)),
-    },
-    { id: 'end', label: formatShortDate(new Date(end)) },
-  ];
-}
-
-const chartDatasets = [7, 30, 90].map((days) => ({
-  id: `${days}d`,
-  label: `${days}d`,
-  values: buildDailySeries(publishedDates, days),
-  axisLabels: axisLabelsFor(days),
-}));
-
-const secondaryMetrics = [
+const categoryMax = Math.max(1, ...content.byCategory.map((entry) => entry.count));
+const qualityRows = [
+  { label: 'Average length', value: `${content.averageWords} words` },
   {
-    label: 'Drafts',
-    value: draftPosts.length,
-    delta: formatDelta(draftRecency.recent, draftRecency.previous),
-    href: '/dashboard/posts?status=draft',
+    label: 'With a cover image',
+    value: `${content.withCover} of ${content.published}`,
   },
   {
-    label: 'Categories',
-    value: categories.length,
-    delta: hasCategoryDates ? formatDelta(categoryRecency.recent, categoryRecency.previous) : '-',
-    href: '/dashboard/categories',
-  },
-  {
-    label: 'Media',
-    value: mediaItems.length,
-    delta: formatDelta(mediaRecency.recent, mediaRecency.previous),
-    href: '/dashboard/media',
+    label: 'With affiliate links',
+    value: `${content.withAffiliateLinks} of ${content.published}`,
   },
 ];
 
-const periodEnd = new Date();
-const periodStart = new Date(Date.now() - (PERIOD_DAYS - 1) * DAY_IN_MS);
-const primaryDelta = `${formatDelta(publishedRecency.recent, publishedRecency.previous)} vs previous ${PERIOD_DAYS} days`;
+const clickWindows = [
+  { label: '24h', value: affiliate.clicks.last24h },
+  { label: '7d', value: affiliate.clicks.last7d },
+  { label: '30d', value: affiliate.clicks.last30d },
+  { label: 'All time', value: affiliate.clicks.total },
+];
+
+const mediaSize =
+  media.totalBytes >= 1024 * 1024
+    ? `${(media.totalBytes / (1024 * 1024)).toFixed(1)} MB`
+    : `${Math.round(media.totalBytes / 1024)} KB`;
+
+const agentFailureRate =
+  agents.runsTotal > 0 ? Math.round((agents.failedTotal / agents.runsTotal) * 100) : 0;
 ---
 
 <DashboardLayout title="Dashboard">
   <div class="flex flex-col gap-6">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
-      <h2 class="text-lg font-semibold tracking-tight">Overview</h2>
-      <p class="text-sm text-muted-foreground tabular-nums">
-        {formatDateRange(periodStart, periodEnd)}
-      </p>
+      <div>
+        <h2 class="text-lg font-semibold tracking-tight">Overview</h2>
+        <p class="mt-0.5 text-xs text-muted-foreground">
+          Snapshot generated {formatRelativeTime(snapshot.generatedAt)}. Metrics cover the last {DAY_COUNT} days unless stated otherwise.
+        </p>
+      </div>
+      <a
+        href="/dashboard/insights"
+        class="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Open insights
+      </a>
     </div>
 
-    <section aria-label="Key metrics" class="grid gap-4 lg:grid-cols-3">
-      <article class="flex flex-col rounded-lg border border-border bg-card p-6 lg:col-span-2">
-        <h3 class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-          Published posts
-        </h3>
+    <section aria-label="Headline metrics" class="grid gap-4 lg:grid-cols-3">
+      <article class="flex flex-col rounded-xl border border-border bg-card p-6 lg:col-span-2">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+              Published articles
+            </h3>
+            <p class="mt-1 text-xs text-muted-foreground">All time</p>
+          </div>
+          <a
+            href="/dashboard/posts?status=published"
+            class="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            View posts
+          </a>
+        </div>
 
-        <div class="mt-4 flex items-end justify-between gap-6">
-          <p class="text-6xl font-semibold tracking-tight tabular-nums">
-            {publishedRecency.total}
-          </p>
-          <div class="w-36 shrink-0 pb-2 sm:w-44">
+        <div class="mt-5 flex items-end justify-between gap-6">
+          <p class="text-6xl font-semibold tracking-tight tabular-nums">{content.published}</p>
+          <div class="w-36 shrink-0 pb-2 sm:w-48">
             <Sparkline
-              values={buildDailySeries(publishedDates, PERIOD_DAYS)}
-              label={`Posts published per day over the last ${PERIOD_DAYS} days`}
+              values={content.series.thirtyDay}
+              label={`Articles published per day over the last ${DAY_COUNT} days`}
             />
           </div>
         </div>
 
-        <p class="mt-3 text-sm text-muted-foreground tabular-nums">{primaryDelta}</p>
+        <p class="mt-3 text-sm text-muted-foreground tabular-nums">
+          {publishedDeltaLabel} vs the previous {DAY_COUNT} days
+        </p>
 
-        <div class="mt-6 grid grid-cols-2 gap-4 border-t border-border pt-4">
+        <div class="mt-6 grid grid-cols-3 gap-4 border-t border-border pt-4">
           <div>
-            <p class="text-xs tracking-wider text-muted-foreground uppercase">
-              Last {PERIOD_DAYS} days
-            </p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums">{publishedRecency.recent}</p>
+            <p class="text-xs tracking-wider text-muted-foreground uppercase">Last {DAY_COUNT} days</p>
+            <p class="mt-1 text-2xl font-semibold tabular-nums">{content.publishedLast30}</p>
           </div>
           <div>
-            <p class="text-xs tracking-wider text-muted-foreground uppercase">Earlier</p>
-            <p class="mt-1 text-2xl font-semibold tabular-nums">
-              {publishedRecency.total - publishedRecency.recent}
-            </p>
+            <p class="text-xs tracking-wider text-muted-foreground uppercase">Drafts</p>
+            <p class="mt-1 text-2xl font-semibold tabular-nums">{content.drafts}</p>
+          </div>
+          <div>
+            <p class="text-xs tracking-wider text-muted-foreground uppercase">Archived</p>
+            <p class="mt-1 text-2xl font-semibold tabular-nums">{content.archived}</p>
           </div>
         </div>
       </article>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:col-span-1 lg:grid-cols-1">
-        {
-          secondaryMetrics.map((metric) => (
-            <a
-              href={metric.href}
-              class="flex flex-col justify-between rounded-lg border border-border bg-card p-5 transition-colors hover:border-foreground/25 hover:bg-accent/40"
-            >
-              <h3 class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
-                {metric.label}
-              </h3>
-              <div class="mt-2 flex items-baseline justify-between gap-3">
-                <p class="text-3xl font-semibold tabular-nums">{metric.value}</p>
-                <span class="text-xs text-muted-foreground tabular-nums">{metric.delta}</span>
-              </div>
-            </a>
-          ))
-        }
+        <a
+          href="/dashboard/posts?status=draft"
+          class="flex flex-col justify-between rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/25 hover:bg-accent/40"
+        >
+          <h3 class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+            Awaiting review
+          </h3>
+          <div class="mt-2 flex items-baseline justify-between gap-3">
+            <p class="text-3xl font-semibold tabular-nums">{pipeline.pendingReview}</p>
+            <span class="text-xs text-muted-foreground tabular-nums">
+              {pipeline.changesRequested} changes asked
+            </span>
+          </div>
+        </a>
+        <a
+          href="/dashboard/agents"
+          class="flex flex-col justify-between rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/25 hover:bg-accent/40"
+        >
+          <h3 class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+            Agent runs 24h
+          </h3>
+          <div class="mt-2 flex items-baseline justify-between gap-3">
+            <p class="text-3xl font-semibold tabular-nums">{agents.runsLast24h}</p>
+            <span class="text-xs text-muted-foreground tabular-nums">
+              {agents.enabled} of {agents.total} enabled
+            </span>
+          </div>
+        </a>
+        <a
+          href="/dashboard/monetization"
+          class="flex flex-col justify-between rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/25 hover:bg-accent/40"
+        >
+          <h3 class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+            Affiliate clicks 30d
+          </h3>
+          <div class="mt-2 flex items-baseline justify-between gap-3">
+            <p class="text-3xl font-semibold tabular-nums">{affiliate.clicks.last30d}</p>
+            <span class="text-xs text-muted-foreground tabular-nums">
+              {affiliate.activeProducts} active products
+            </span>
+          </div>
+        </a>
       </div>
     </section>
 
-    <LineChart client:visible datasets={chartDatasets} defaultDatasetId="30d" />
+    <section aria-label="Publishing activity" class="grid gap-4 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        <LineChart client:visible datasets={cadenceDatasets} defaultDatasetId="30d" />
+      </div>
 
-    <section aria-label="Recent activity" class="rounded-lg border border-border bg-card p-6">
-      <div class="flex items-center justify-between gap-3">
-        <h2 class="text-sm font-medium">Recent activity</h2>
+      <div class="rounded-xl border border-border bg-card p-6">
+        <h2 class="text-sm font-medium">Content mix</h2>
+        <ul class="mt-4 flex flex-col gap-3">
+          {
+            content.byCategory.length === 0 ? (
+              <li class="text-sm text-muted-foreground">No published articles yet.</li>
+            ) : (
+              content.byCategory.map((entry) => (
+                <li>
+                  <div class="flex items-baseline justify-between gap-3 text-sm">
+                    <span class="truncate">{entry.category}</span>
+                    <span class="tabular-nums text-muted-foreground">{entry.count}</span>
+                  </div>
+                  <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      class="h-full rounded-full bg-primary"
+                      style={`width: ${Math.round((entry.count / categoryMax) * 100)}%`}
+                    />
+                  </div>
+                </li>
+              ))
+            )
+          }
+        </ul>
+
+        <dl class="mt-5 grid gap-2 border-t border-border pt-4 text-sm">
+          {
+            qualityRows.map((row) => (
+              <div class="flex items-baseline justify-between gap-3">
+                <dt class="text-muted-foreground">{row.label}</dt>
+                <dd class="tabular-nums">{row.value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </div>
+    </section>
+
+    <section aria-label="Content pipeline" class="rounded-xl border border-border bg-card p-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-sm font-medium">Content pipeline</h2>
+        <a
+          href="/dashboard/agents/topics"
+          class="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Manage topics
+        </a>
+      </div>
+
+      <div class="mt-4 flex h-3 w-full overflow-hidden rounded-full bg-muted">
+        {
+          funnelStages.map((stage) => (
+            <div
+              class:list={[
+                'h-full',
+                stage.label === 'Blocked' ? 'bg-destructive/60' : 'bg-primary/70',
+              ]}
+              style={`width: ${(stage.value / funnelTotal) * 100}%`}
+              title={`${stage.label}: ${stage.value}`}
+            />
+          ))
+        }
+      </div>
+
+      <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+        {
+          funnelStages.map((stage) => (
+            <div>
+              <dt class="text-xs tracking-wider text-muted-foreground uppercase">{stage.label}</dt>
+              <dd class="mt-1 text-2xl font-semibold tabular-nums">{stage.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+
+      <div class="mt-5 grid gap-2 border-t border-border pt-4 text-sm sm:grid-cols-3">
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="text-muted-foreground">Research notes</span>
+          <span class="tabular-nums">{pipeline.researchNotes}</span>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="text-muted-foreground">Changes requested</span>
+          <span class="tabular-nums">{pipeline.changesRequested}</span>
+        </div>
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="text-muted-foreground">Approved, not published</span>
+          <span class="tabular-nums">{pipeline.approvedNotPublished}</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Agents" class="rounded-xl border border-border bg-card p-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-sm font-medium">Agents</h2>
+        <p class="text-xs text-muted-foreground tabular-nums">
+          {agents.successRate}% success across {agents.runsTotal} runs. Estimated cost ${agents.estimatedCostUsd}.
+        </p>
+      </div>
+
+      {
+        agents.perAgent.length === 0 ? (
+          <p class="mt-4 text-sm text-muted-foreground">No agents configured yet.</p>
+        ) : (
+          <div class="mt-4 overflow-x-auto">
+            <table class="w-full min-w-[42rem] text-sm">
+              <thead>
+                <tr class="border-b border-border text-left text-xs tracking-wider text-muted-foreground uppercase">
+                  <th scope="col" class="py-2 pr-3 font-medium">Agent</th>
+                  <th scope="col" class="py-2 pr-3 font-medium">Role</th>
+                  <th scope="col" class="py-2 pr-3 font-medium">State</th>
+                  <th scope="col" class="py-2 pr-3 text-right font-medium">Runs</th>
+                  <th scope="col" class="py-2 pr-3 text-right font-medium">Failed</th>
+                  <th scope="col" class="py-2 pr-3 text-right font-medium">Tokens out</th>
+                  <th scope="col" class="py-2 font-medium">Last run</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agents.perAgent.map((agent) => (
+                  <tr class="border-b border-border/60 last:border-0">
+                    <th scope="row" class="py-2 pr-3 text-left font-medium">{agent.name}</th>
+                    <td class="py-2 pr-3 text-muted-foreground">{agent.role}</td>
+                    <td class="py-2 pr-3 text-muted-foreground">
+                      {agent.enabled ? 'Enabled' : 'Disabled'}
+                    </td>
+                    <td class="py-2 pr-3 text-right tabular-nums">{agent.runs}</td>
+                    <td class="py-2 pr-3 text-right tabular-nums">{agent.failedRuns}</td>
+                    <td class="py-2 pr-3 text-right tabular-nums">{agent.tokensOut}</td>
+                    <td class="py-2 text-muted-foreground tabular-nums">
+                      {formatRelativeTime(agent.lastRunAt ?? '')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      }
+
+      {
+        agents.recentRuns.length > 0 && (
+          <ul class="mt-5 flex flex-col divide-y divide-border border-t border-border">
+            {agents.recentRuns.slice(0, 4).map((run) => (
+              <li class="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
+                <span class="font-medium">{run.agentName}</span>
+                <span
+                  class:list={[
+                    'text-xs',
+                    run.status === 'failed' ? 'text-destructive' : 'text-muted-foreground',
+                  ]}
+                >
+                  {run.status}
+                </span>
+                <span class="min-w-0 flex-1 truncate text-muted-foreground">
+                  {run.summary ?? 'No summary'}
+                </span>
+                <span class="text-xs text-muted-foreground tabular-nums">
+                  {formatRelativeTime(run.startedAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+
+    <section aria-label="Affiliate" class="grid gap-4 lg:grid-cols-3">
+      <div class="rounded-xl border border-border bg-card p-6 lg:col-span-2">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 class="text-sm font-medium">Affiliate clicks</h2>
+          <a
+            href="/dashboard/monetization/catalog"
+            class="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Open catalog
+          </a>
+        </div>
+
+        <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {
+            clickWindows.map((window) => (
+              <div>
+                <dt class="text-xs tracking-wider text-muted-foreground uppercase">{window.label}</dt>
+                <dd class="mt-1 text-2xl font-semibold tabular-nums">{window.value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+
+        {
+          affiliate.topProducts.length > 0 && (
+            <ul class="mt-5 flex flex-col divide-y divide-border border-t border-border">
+              {affiliate.topProducts.map((product) => (
+                <li class="flex items-baseline justify-between gap-3 py-2 text-sm">
+                  <span class="truncate">{product.name}</span>
+                  <span class="tabular-nums text-muted-foreground">{product.clicks} clicks</span>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </div>
+
+      <div class="rounded-xl border border-border bg-card p-6">
+        <h2 class="text-sm font-medium">Needs attention</h2>
+        {
+          affiliate.brokenReferences.length === 0 ? (
+            <p class="mt-3 text-sm text-muted-foreground">
+              Every product reference resolves. Nothing to fix.
+            </p>
+          ) : (
+            <ul class="mt-3 flex flex-col gap-2 text-sm">
+              {affiliate.brokenReferences.slice(0, 6).map((reference) => (
+                <li>
+                  <p class="truncate font-medium">{reference.postTitle}</p>
+                  <p class="text-xs text-muted-foreground">
+                    Missing product: <span class="font-mono">{reference.slug}</span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+
+        <dl class="mt-5 grid gap-2 border-t border-border pt-4 text-sm">
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-muted-foreground">Programs</dt>
+            <dd class="tabular-nums">{affiliate.programs}</dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-muted-foreground">Products</dt>
+            <dd class="tabular-nums">
+              {affiliate.activeProducts} of {affiliate.products} active
+            </dd>
+          </div>
+          <div class="flex items-baseline justify-between gap-3">
+            <dt class="text-muted-foreground">Media</dt>
+            <dd class="tabular-nums">{media.count} files, {mediaSize}</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section aria-label="Activity" class="rounded-xl border border-border bg-card p-6">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-sm font-medium">Activity</h2>
         <a
           href="/dashboard/activity"
           class="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
@@ -168,9 +431,37 @@ const primaryDelta = `${formatDelta(publishedRecency.recent, publishedRecency.pr
           View all
         </a>
       </div>
-      <div class="mt-2">
-        <ActivityFeed entries={recentActivity} />
-      </div>
+
+      <dl class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div>
+          <dt class="text-xs tracking-wider text-muted-foreground uppercase">24h</dt>
+          <dd class="mt-1 text-2xl font-semibold tabular-nums">{activity.last24h}</dd>
+        </div>
+        <div>
+          <dt class="text-xs tracking-wider text-muted-foreground uppercase">7d</dt>
+          <dd class="mt-1 text-2xl font-semibold tabular-nums">{activity.last7d}</dd>
+        </div>
+        <div>
+          <dt class="text-xs tracking-wider text-muted-foreground uppercase">All time</dt>
+          <dd class="mt-1 text-2xl font-semibold tabular-nums">{activity.total}</dd>
+        </div>
+        <div>
+          <dt class="text-xs tracking-wider text-muted-foreground uppercase">By actors</dt>
+          <dd class="mt-1 flex flex-wrap gap-x-3 text-sm">
+            {
+              activity.byActorType.length === 0 ? (
+                <span class="text-muted-foreground">None</span>
+              ) : (
+                activity.byActorType.map((entry) => (
+                  <span class="tabular-nums">
+                    {entry.type} {entry.count}
+                  </span>
+                ))
+              )
+            }
+          </dd>
+        </div>
+      </dl>
     </section>
   </div>
 </DashboardLayout>
