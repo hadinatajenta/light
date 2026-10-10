@@ -1,0 +1,37 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { formatDate } from '@/utils/date';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+}
+
+const { post } = Astro.props;
+const { title, description, pubDate, tags } = post.data;
+---
+
+<article class="border-b border-line pb-6">
+  <h2 class="text-xl font-semibold tracking-tight">
+    <a href={`/blog/${post.id}/`} class="hover:text-accent-strong">{title}</a>
+  </h2>
+  <p class="numeric mt-1 text-sm text-ink-muted">
+    <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+  </p>
+  <p class="prose-measure mt-2 text-ink-muted">{description}</p>
+  {
+    tags.length > 0 && (
+      <ul class="mt-3 flex flex-wrap gap-2">
+        {tags.map((tag) => (
+          <li>
+            <a
+              href={`/tag/${tag}/`}
+              class="rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-muted hover:text-ink"
+            >
+              {tag}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</article>

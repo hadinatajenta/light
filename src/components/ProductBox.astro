@@ -1,0 +1,67 @@
+---
+import AffiliateLink from './AffiliateLink.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  href: string;
+  priceLabel?: string;
+  ratingLabel?: string;
+  image?: string;
+  imageAlt?: string;
+  program?: string;
+}
+
+const {
+  title,
+  description,
+  href,
+  priceLabel,
+  ratingLabel,
+  image,
+  imageAlt = '',
+  program,
+} = Astro.props;
+---
+
+<aside class="my-8 rounded-lg border border-line bg-surface p-5">
+  <div class="flex flex-col gap-4 sm:flex-row">
+    {
+      image && (
+        <img
+          src={image}
+          alt={imageAlt}
+          width="160"
+          height="160"
+          loading="lazy"
+          class="h-40 w-40 rounded-md object-cover"
+        />
+      )
+    }
+    <div class="flex-1">
+      <h3 class="text-lg font-semibold">{title}</h3>
+      <p class="mt-1 text-sm text-ink-muted">{description}</p>
+      <dl class="mt-3 flex flex-wrap gap-6 text-sm">
+        {
+          priceLabel && (
+            <div>
+              <dt class="text-ink-muted">Price</dt>
+              <dd class="numeric font-medium">{priceLabel}</dd>
+            </div>
+          )
+        }
+        {
+          ratingLabel && (
+            <div>
+              <dt class="text-ink-muted">Rating</dt>
+              <dd class="numeric font-medium">{ratingLabel}</dd>
+            </div>
+          )
+        }
+      </dl>
+      <p class="mt-4">
+        <AffiliateLink href={href} label="Check price" program={program} />
+      </p>
+    </div>
+  </div>
+</aside>

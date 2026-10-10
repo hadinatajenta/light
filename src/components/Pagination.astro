@@ -1,0 +1,44 @@
+---
+import { buildBlogPagePath } from '@/utils/pagination';
+
+interface Props {
+  currentPage: number;
+  totalPages: number;
+}
+
+const { currentPage, totalPages } = Astro.props;
+const hasPreviousPage = currentPage > 1;
+const hasNextPage = currentPage < totalPages;
+---
+
+{
+  totalPages > 1 && (
+    <nav aria-label="Pagination" class="mt-10 flex items-center justify-between gap-4">
+      {hasPreviousPage ? (
+        <a
+          href={buildBlogPagePath(currentPage - 1)}
+          rel="prev"
+          class="rounded-md border border-line px-4 py-2 text-sm hover:text-ink"
+        >
+          Newer
+        </a>
+      ) : (
+        <span />
+      )}
+      <span class="numeric text-sm text-ink-muted">
+        Page {currentPage} of {totalPages}
+      </span>
+      {hasNextPage ? (
+        <a
+          href={buildBlogPagePath(currentPage + 1)}
+          rel="next"
+          class="rounded-md border border-line px-4 py-2 text-sm hover:text-ink"
+        >
+          Older
+        </a>
+      ) : (
+        <span />
+      )}
+    </nav>
+  )
+}

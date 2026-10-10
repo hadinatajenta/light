@@ -1,0 +1,21 @@
+---
+interface Props {
+  href: string;
+  label: string;
+  program?: string;
+  sponsored?: boolean;
+}
+
+const { href, label, program, sponsored = true } = Astro.props;
+const rel = sponsored ? 'sponsored nofollow noopener' : 'noopener';
+---
+
+<a
+  href={href}
+  rel={rel}
+  target="_blank"
+  data-affiliate-program={program}
+  class="text-accent-strong underline decoration-accent underline-offset-2 hover:decoration-accent-strong"
+>
+  {label}
+</a>

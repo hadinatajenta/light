@@ -1,0 +1,27 @@
+---
+import { AD_CONFIG } from '@/config/monetization';
+
+interface Props {
+  slotId: string;
+  label?: string;
+}
+
+const { slotId, label = 'Advertisement' } = Astro.props;
+const slot = AD_CONFIG.slots[slotId];
+const shouldRender = AD_CONFIG.network !== 'none' && Boolean(slot);
+---
+
+{
+  shouldRender && (
+    <aside
+      aria-label={label}
+      class="my-8 flex min-h-24 items-center justify-center border border-dashed border-line bg-surface text-xs uppercase tracking-wider text-ink-muted"
+    >
+      <ins
+        class="adsbygoogle"
+        data-ad-client={AD_CONFIG.adsenseClientId ?? undefined}
+        data-ad-slot={slot}
+      />
+    </aside>
+  )
+}

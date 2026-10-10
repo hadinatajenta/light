@@ -1,0 +1,35 @@
+---
+import { PRIMARY_NAVIGATION, SITE_TITLE } from '@/consts';
+
+const currentPath = Astro.url.pathname;
+
+function isActive(href: string): boolean {
+  if (href === '/') {
+    return currentPath === '/';
+  }
+
+  return currentPath.startsWith(href);
+}
+---
+
+<header class="border-b border-line bg-paper">
+  <div class="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
+    <a href="/" class="text-lg font-semibold tracking-tight">{SITE_TITLE}</a>
+    <nav aria-label="Primary" class="flex flex-wrap items-center gap-1">
+      {
+        PRIMARY_NAVIGATION.map((link) => (
+          <a
+            href={link.href}
+            aria-current={isActive(link.href) ? 'page' : undefined}
+            class:list={[
+              'rounded-md px-3 py-2 text-sm transition-colors',
+              isActive(link.href) ? 'font-medium text-accent-strong' : 'text-ink-muted hover:text-ink',
+            ]}
+          >
+            {link.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>

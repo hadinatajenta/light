@@ -1,0 +1,51 @@
+---
+import { COOKIE_CONSENT_STORAGE_KEY } from '@/consts';
+---
+
+<div
+  id="cookie-consent"
+  hidden
+  class="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-paper p-4"
+>
+  <div class="mx-auto flex max-w-5xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <p class="text-sm text-ink-muted">
+      We use cookies to measure traffic and show relevant advertising. Read our <a
+        href="/cookie-policy/"
+        class="underline">Cookie Policy</a
+      >.
+    </p>
+    <div class="flex gap-2">
+      <button
+        type="button"
+        data-cookie-decline
+        class="rounded-md border border-line px-4 py-2 text-sm hover:text-ink">Decline</button
+      >
+      <button
+        type="button"
+        data-cookie-accept
+        class="rounded-md bg-ink px-4 py-2 text-sm text-paper">Accept</button
+      >
+    </div>
+  </div>
+</div>
+
+<script define:vars={{ storageKey: COOKIE_CONSENT_STORAGE_KEY }}>
+  const banner = document.getElementById('cookie-consent');
+  if (banner && !localStorage.getItem(storageKey)) {
+    banner.hidden = false;
+  }
+
+  const persistChoice = (value) => {
+    localStorage.setItem(storageKey, value);
+    if (banner) {
+      banner.hidden = true;
+    }
+  };
+
+  document
+    .querySelector('[data-cookie-accept]')
+    ?.addEventListener('click', () => persistChoice('accepted'));
+  document
+    .querySelector('[data-cookie-decline]')
+    ?.addEventListener('click', () => persistChoice('declined'));
+</script>

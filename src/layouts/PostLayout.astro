@@ -1,0 +1,97 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import AdSlot from '@/components/AdSlot.astro';
+import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
+import { SITE_AUTHOR } from '@/consts';
+import { formatDate } from '@/utils/date';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildCanonicalUrl, buildFaqJsonLd } from '@/utils/seo';
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  post: CollectionEntry<'blog'>;
+  readingMinutes: number;
+}
+
+const { post, readingMinutes } = Astro.props;
+const { title, description, pubDate, updatedDate, tags, affiliate, faq } = post.data;
+
+const canonicalUrl =
+  buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname) ?? Astro.url.pathname;
+const jsonLd = [
+  buildArticleJsonLd({
+    title,
+    description,
+    url: canonicalUrl,
+    datePublished: pubDate,
+    dateModified: updatedDate,
+    authorName: SITE_AUTHOR,
+  }),
+  buildBreadcrumbJsonLd([
+    { name: 'Home', url: new URL('/', Astro.site ?? Astro.url.origin).href },
+    { name: 'Guides', url: new URL('/blog/', Astro.site ?? Astro.url.origin).href },
+    { name: title, url: canonicalUrl },
+  ]),
+  ...(faq.length > 0 ? [buildFaqJsonLd(faq)] : []),
+];
+---
+
+<BaseLayout title={title} description={description} type="article" jsonLd={jsonLd}>
+  <article class="mx-auto">
+    <header class="prose-measure">
+      <h1 class="text-3xl font-semibold tracking-tight">{title}</h1>
+      <p class="numeric mt-2 text-sm text-ink-muted">
+        <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+        <span aria-hidden="true"> | </span>
+        <span>{readingMinutes} min read</span>
+      </p>
+      {
+        tags.length > 0 && (
+          <ul class="mt-4 flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <li>
+                <a
+                  href={`/tag/${tag}/`}
+                  class="rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-muted hover:text-ink"
+                >
+                  {tag}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </header>
+
+    {
+      affiliate && (
+        <p class="prose-measure mt-6 rounded-md border border-line bg-surface p-4 text-sm text-ink-muted">
+          {DEFAULT_AFFILIATE_DISCLOSURE}
+        </p>
+      )
+    }
+
+    <AdSlot slotId="post-top" />
+
+    <div class="prose prose-neutral mt-8">
+      <slot />
+    </div>
+
+    {
+      faq.length > 0 && (
+        <section class="prose-measure mt-12">
+          <h2 class="text-2xl font-semibold tracking-tight">Frequently asked questions</h2>
+          <dl class="mt-4 flex flex-col gap-4">
+            {faq.map((entry) => (
+              <div>
+                <dt class="font-medium">{entry.question}</dt>
+                <dd class="mt-1 text-ink-muted">{entry.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )
+    }
+
+    <AdSlot slotId="post-bottom" />
+  </article>
+</BaseLayout>

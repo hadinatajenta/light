@@ -1,0 +1,19 @@
+---
+import Pagination from '@/components/Pagination.astro';
+import PostList from '@/components/PostList.astro';
+import { POSTS_PER_PAGE } from '@/consts';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getPublishedPosts } from '@/utils/content';
+import { paginateItems } from '@/utils/pagination';
+
+const posts = await getPublishedPosts();
+const { pageItems, totalPages, currentPage } = paginateItems(posts, 1, POSTS_PER_PAGE);
+---
+
+<BaseLayout title="Guides" description="Every buying guide and product review on the site.">
+  <h1 class="text-3xl font-semibold tracking-tight">Guides</h1>
+  <div class="mt-8">
+    <PostList posts={pageItems} />
+  </div>
+  <Pagination currentPage={currentPage} totalPages={totalPages} />
+</BaseLayout>

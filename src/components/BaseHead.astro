@@ -1,0 +1,53 @@
+---
+import { DEFAULT_OG_IMAGE, SITE_DESCRIPTION, SITE_LOCALE, SITE_TITLE } from '@/consts';
+import { buildCanonicalUrl, serializeJsonLd } from '@/utils/seo';
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  image?: string;
+  type?: 'website' | 'article';
+  noindex?: boolean;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
+  canonical,
+  image = DEFAULT_OG_IMAGE,
+  type = 'website',
+  noindex = false,
+  jsonLd,
+} = Astro.props;
+
+const canonicalUrl = canonical ?? buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname);
+const socialImage = new URL(image, Astro.site ?? Astro.url.origin).href;
+const jsonLdBlocks = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
+---
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="generator" content={Astro.generator} />
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
+<meta property="og:type" content={type} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={socialImage} />
+<meta property="og:locale" content={SITE_LOCALE.replace('-', '_')} />
+{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={socialImage} />
+{
+  jsonLdBlocks.map((block) => (
+    <script type="application/ld+json" set:html={serializeJsonLd(block)} />
+  ))
+}
