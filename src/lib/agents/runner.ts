@@ -403,7 +403,7 @@ export async function runAgent(
       effort: role.defaultEffort,
       userId: agent.id,
       jsonMode: true,
-      maxTokens: agent.role === 'writer' || agent.role === 'scrapper' ? 16_000 : 8_192,
+      maxTokens: 16_000,
       signal,
     });
 
