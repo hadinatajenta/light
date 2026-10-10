@@ -1,15 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { collectTags, filterPublishedPosts, sortPostsByDateDesc } from './posts';
+import type { PostStatus } from '@/lib/content/post-schema';
+import { collectTags, filterVisiblePosts, sortPostsByDateDesc } from './posts';
 
 interface TestPost {
   id: string;
-  data: { pubDate: Date; draft: boolean; tags: string[] };
+  data: { pubDate: Date; status: PostStatus; tags: string[] };
 }
 
 function buildPost(id: string, overrides: Partial<TestPost['data']> = {}): TestPost {
   return {
     id,
-    data: { pubDate: new Date('2026-01-01T00:00:00Z'), draft: false, tags: [], ...overrides },
+    data: {
+      pubDate: new Date('2026-01-01T00:00:00Z'),
+      status: 'published',
+      tags: [],
+      ...overrides,
+    },
   };
 }
 
@@ -26,23 +32,22 @@ describe('sortPostsByDateDesc', () => {
   });
 });
 
-describe('filterPublishedPosts', () => {
-  it('removes drafts when drafts are excluded', () => {
-    const published = buildPost('published');
-    const draft = buildPost('draft', { draft: true });
+describe('filterVisiblePosts', () => {
+  const published = buildPost('published', { status: 'published' });
+  const draft = buildPost('draft', { status: 'draft' });
+  const archived = buildPost('archived', { status: 'archived' });
 
-    const result = filterPublishedPosts([published, draft], false);
-
-    expect(result.map((post) => post.id)).toEqual(['published']);
+  it('keeps only published posts when drafts are excluded', () => {
+    expect(filterVisiblePosts([published, draft, archived], false).map((post) => post.id)).toEqual([
+      'published',
+    ]);
   });
 
-  it('keeps drafts when drafts are included', () => {
-    const published = buildPost('published');
-    const draft = buildPost('draft', { draft: true });
-
-    const result = filterPublishedPosts([published, draft], true);
-
-    expect(result.map((post) => post.id)).toEqual(['published', 'draft']);
+  it('includes drafts but never archived posts when drafts are included', () => {
+    expect(filterVisiblePosts([published, draft, archived], true).map((post) => post.id)).toEqual([
+      'published',
+      'draft',
+    ]);
   });
 });
 

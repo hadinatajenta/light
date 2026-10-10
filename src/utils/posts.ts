@@ -1,9 +1,11 @@
+import type { PostStatus } from '@/lib/content/post-schema';
+
 interface DatedPost {
   data: { pubDate: Date };
 }
 
-interface DraftablePost {
-  data: { draft: boolean };
+interface StatusPost {
+  data: { status: PostStatus };
 }
 
 interface TaggedPost {
@@ -16,15 +18,18 @@ export function sortPostsByDateDesc<T extends DatedPost>(posts: T[]): T[] {
   );
 }
 
-export function filterPublishedPosts<T extends DraftablePost>(
-  posts: T[],
-  includeDrafts: boolean,
-): T[] {
-  if (includeDrafts) {
-    return [...posts];
-  }
+export function filterVisiblePosts<T extends StatusPost>(posts: T[], includeDrafts: boolean): T[] {
+  return posts.filter((post) => {
+    if (post.data.status === 'published') {
+      return true;
+    }
 
-  return posts.filter((post) => post.data.draft !== true);
+    if (post.data.status === 'draft') {
+      return includeDrafts;
+    }
+
+    return false;
+  });
 }
 
 export function collectTags<T extends TaggedPost>(posts: T[]): string[] {

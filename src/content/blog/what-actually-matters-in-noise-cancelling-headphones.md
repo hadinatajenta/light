@@ -1,15 +1,17 @@
 ---
-title: "What actually matters in noise-cancelling headphones"
-description: "Effective noise cancelling is about the frequencies you face daily, not the biggest number on the box."
+title: What actually matters in noise-cancelling headphones
+description: Effective noise cancelling is about the frequencies you face daily, not the biggest number on the box.
 pubDate: 2026-07-21
-tags: ["audio", "buying-basics"]
+tags:
+  - audio
+  - buying-basics
 affiliate: false
-draft: false
 faq:
-  - question: "Will noise cancelling block nearby conversations?"
-    answer: "Mostly no. Active cancelling works best on steady low sounds such as engine drone and air conditioning. Speech and sudden noises remain audible, and a good physical seal helps more than the electronics."
-  - question: "What feature matters most for a home office?"
-    answer: "Comfort, a clear microphone, and multipoint pairing usually help more than a slightly lower noise figure."
+  - question: Will noise cancelling block nearby conversations?
+    answer: Mostly no. Active cancelling works best on steady low sounds such as engine drone and air conditioning. Speech and sudden noises remain audible, and a good physical seal helps more than the electronics.
+  - question: What feature matters most for a home office?
+    answer: Comfort, a clear microphone, and multipoint pairing usually help more than a slightly lower noise figure.
+status: published
 ---
 
 Noise cancelling is one of the most oversold features in consumer audio. Adverts promise silence, and

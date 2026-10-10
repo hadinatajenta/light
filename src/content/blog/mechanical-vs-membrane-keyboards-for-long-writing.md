@@ -1,15 +1,17 @@
 ---
-title: "Mechanical vs membrane keyboards for long writing"
-description: "Switches, key travel, and wrist angles decide whether a keyboard helps or hurts during a full day of typing."
+title: Mechanical vs membrane keyboards for long writing
+description: Switches, key travel, and wrist angles decide whether a keyboard helps or hurts during a full day of typing.
 pubDate: 2026-07-02
-tags: ["keyboards", "buying-basics"]
+tags:
+  - keyboards
+  - buying-basics
 affiliate: false
-draft: false
 faq:
-  - question: "Are mechanical keyboards always better for typing?"
-    answer: "No. A good membrane board is quiet and cheap and fine for years of writing. Mechanical boards give more consistent feel and are easier to repair, which is their real advantage."
-  - question: "Which switch type suits writers?"
-    answer: "A light tactile switch is a common choice. If you share a room, prioritise quiet switches. Heavier switches punish long sessions unless you have tried and liked them."
+  - question: Are mechanical keyboards always better for typing?
+    answer: No. A good membrane board is quiet and cheap and fine for years of writing. Mechanical boards give more consistent feel and are easier to repair, which is their real advantage.
+  - question: Which switch type suits writers?
+    answer: A light tactile switch is a common choice. If you share a room, prioritise quiet switches. Heavier switches punish long sessions unless you have tried and liked them.
+status: published
 ---
 
 Writing all day puts a different kind of demand on a keyboard than gaming does. You are not chasing

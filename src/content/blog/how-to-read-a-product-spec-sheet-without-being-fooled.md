@@ -1,15 +1,16 @@
 ---
-title: "How to read a product spec sheet without being fooled"
-description: "Spec sheets are written to sell. Learn which numbers reveal real performance and which exist to confuse you."
+title: How to read a product spec sheet without being fooled
+description: Spec sheets are written to sell. Learn which numbers reveal real performance and which exist to confuse you.
 pubDate: 2026-09-27
-tags: ["buying-basics"]
+tags:
+  - buying-basics
 affiliate: false
-draft: false
 faq:
-  - question: "Why do manufacturers leave out important specifications?"
-    answer: "Because a good sheet states its test conditions. When a number is missing, that omission is often the most honest signal about the product's weaknesses."
-  - question: "Should I trust peak brightness figures?"
-    answer: "Treat them as a best case. Peak figures often describe a small area or a short burst, so look for sustained performance instead."
+  - question: Why do manufacturers leave out important specifications?
+    answer: Because a good sheet states its test conditions. When a number is missing, that omission is often the most honest signal about the product's weaknesses.
+  - question: Should I trust peak brightness figures?
+    answer: Treat them as a best case. Peak figures often describe a small area or a short burst, so look for sustained performance instead.
+status: published
 ---
 
 Specification sheets exist to sell a product, not to inform you. They are written by people who know

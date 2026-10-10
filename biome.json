@@ -13,8 +13,8 @@
       "**/*.js",
       "**/*.mjs",
       "**/*.json",
-      "!src/components/ui/**",
-      "!src/hooks/**"
+      "!src/components/ui",
+      "!src/hooks"
     ]
   },
   "formatter": {

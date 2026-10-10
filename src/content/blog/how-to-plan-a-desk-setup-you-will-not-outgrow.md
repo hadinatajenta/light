@@ -1,15 +1,17 @@
 ---
-title: "How to plan a desk setup you will not outgrow"
-description: "Buy for the desk you will want in three years by planning cable, space, and height choices before you spend."
+title: How to plan a desk setup you will not outgrow
+description: Buy for the desk you will want in three years by planning cable, space, and height choices before you spend.
 pubDate: 2026-08-14
-tags: ["desk-setup", "buying-basics"]
+tags:
+  - desk-setup
+  - buying-basics
 affiliate: false
-draft: false
 faq:
-  - question: "Should I buy a sit-stand desk from the start?"
-    answer: "If there is any chance you will want to stand, yes. Retrofitting later costs more than choosing an adjustable frame at the outset."
-  - question: "What matters more, desk width or depth?"
-    answer: "Depth suits most people better. It keeps a large monitor at a comfortable distance and leaves room for your forearms, while extra width often collects clutter."
+  - question: Should I buy a sit-stand desk from the start?
+    answer: If there is any chance you will want to stand, yes. Retrofitting later costs more than choosing an adjustable frame at the outset.
+  - question: What matters more, desk width or depth?
+    answer: Depth suits most people better. It keeps a large monitor at a comfortable distance and leaves room for your forearms, while extra width often collects clutter.
+status: published
 ---
 
 A desk setup is easy to buy and hard to get right, because the mistakes only appear once you are

@@ -1,15 +1,17 @@
 ---
-title: "How to choose a monitor for a home office"
-description: "Resolution, panel type, and stand comfort matter far more than a high refresh rate if you read and write for a living."
+title: How to choose a monitor for a home office
+description: Resolution, panel type, and stand comfort matter far more than a high refresh rate if you read and write for a living.
 pubDate: 2026-06-08
-tags: ["monitors", "buying-basics"]
+tags:
+  - monitors
+  - buying-basics
 affiliate: false
-draft: false
 faq:
-  - question: "Is a higher refresh rate worth it for office work?"
-    answer: "Rarely. Refresh rate smooths motion in games. For reading, writing, and spreadsheets, resolution and text clarity matter far more."
-  - question: "Do I need a height-adjustable stand?"
-    answer: "You need the screen at eye level. If the included stand cannot do that, plan for a monitor arm or a stand, because a fixed monitor will strain your neck."
+  - question: Is a higher refresh rate worth it for office work?
+    answer: Rarely. Refresh rate smooths motion in games. For reading, writing, and spreadsheets, resolution and text clarity matter far more.
+  - question: Do I need a height-adjustable stand?
+    answer: You need the screen at eye level. If the included stand cannot do that, plan for a monitor arm or a stand, because a fixed monitor will strain your neck.
+status: published
 ---
 
 Most people buy a monitor by choosing a size and a budget, then discover a month later that the stand
