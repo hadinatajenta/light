@@ -1,5 +1,7 @@
 ---
 import PostLayout from '@/layouts/PostLayout.astro';
+import { loadAffiliateContext } from '@/lib/affiliate/store';
+import { resolveContentDatabase } from '@/lib/content/database';
 import { getPublishedPost } from '@/lib/content/public';
 
 export const prerender = false;
@@ -13,6 +15,15 @@ if (!post) {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },
   });
 }
+
+const database = await resolveContentDatabase();
+const affiliate = database
+  ? await loadAffiliateContext(database)
+  : { links: new Map<string, string>(), disclosure: '' };
 ---
 
-<PostLayout post={post} />
+<PostLayout
+  post={post}
+  affiliateLinks={affiliate.links}
+  affiliateDisclosure={affiliate.disclosure}
+/>

@@ -89,6 +89,7 @@ interface PostFrontmatterForm {
   canonical: string;
   noindex: boolean;
   focusKeyword: string;
+  affiliate: boolean;
 }
 
 interface PostDocumentResponse {
@@ -180,6 +181,7 @@ function createEmptyForm(): PostFrontmatterForm {
     canonical: '',
     noindex: false,
     focusKeyword: '',
+    affiliate: false,
   };
 }
 
@@ -198,6 +200,7 @@ function toForm(frontmatter: Record<string, unknown>, fallbackSlug: string): Pos
     canonical: readString(frontmatter.canonical),
     noindex: readBoolean(frontmatter.noindex),
     focusKeyword: readString(frontmatter.focusKeyword),
+    affiliate: readBoolean(frontmatter.affiliate),
   };
 }
 
@@ -212,7 +215,7 @@ function buildFrontmatterPayload(
     tags: form.tags,
     pubDate: form.pubDate || todayIsoDate(),
     noindex: form.noindex,
-    affiliate: false,
+    affiliate: form.affiliate,
     faq: [],
   };
 
@@ -800,6 +803,16 @@ export default function PostEditor({ postId }: PostEditorProps) {
               onChange={(tags) => handleFrontmatterChange({ tags })}
               disabled={isBusy}
             />
+            <label className="flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={form.affiliate}
+                onChange={(event) => handleFrontmatterChange({ affiliate: event.target.checked })}
+                disabled={isBusy}
+                className="size-4 rounded border-input accent-[var(--primary)]"
+              />
+              This post contains affiliate links
+            </label>
           </div>
         </div>
 

@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { resolveAffiliateLinks } from '../affiliate/links';
 import type { PostStatus } from './post-schema';
 import { toSlug } from './slug';
 import { getPost, listPosts } from './store';
@@ -135,13 +136,33 @@ export function extractHeadings(body: string): SiteHeading[] {
     .filter((heading) => heading.depth === 2 || heading.depth === 3);
 }
 
-export function renderMarkdown(body: string): string {
-  const html = marked.parse(body, { async: false }) as string;
+export interface RenderResult {
+  html: string;
+  affiliateLinks: number;
+  unresolvedProductSlugs: string[];
+}
 
-  return html.replace(/<h([23])>([\s\S]*?)<\/h\1>/g, (_match, depth: string, inner: string) => {
-    const text = inner.replace(/<[^>]+>/g, '');
-    return `<h${depth} id="${toSlug(text)}">${inner}</h${depth}>`;
-  });
+export function renderMarkdown(
+  body: string,
+  affiliateLinks: Map<string, string> = new Map(),
+): RenderResult {
+  const rawHtml = marked.parse(body, { async: false }) as string;
+
+  const withHeadingIds = rawHtml.replace(
+    /<h([23])>([\s\S]*?)<\/h\1>/g,
+    (_match, depth: string, inner: string) => {
+      const text = inner.replace(/<[^>]+>/g, '');
+      return `<h${depth} id="${toSlug(text)}">${inner}</h${depth}>`;
+    },
+  );
+
+  const resolved = resolveAffiliateLinks(withHeadingIds, affiliateLinks);
+
+  return {
+    html: resolved.html,
+    affiliateLinks: resolved.affiliateLinks,
+    unresolvedProductSlugs: resolved.unresolvedSlugs,
+  };
 }
 
 export function formatReadingTime(body: string): number {

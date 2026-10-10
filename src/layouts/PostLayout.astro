@@ -10,11 +10,20 @@ import BaseLayout from './BaseLayout.astro';
 
 interface Props {
   post: SitePost;
+  affiliateLinks?: Map<string, string>;
+  affiliateDisclosure?: string;
 }
 
-const { post } = Astro.props;
+const {
+  post,
+  affiliateLinks = new Map<string, string>(),
+  affiliateDisclosure,
+} = Astro.props;
 
-const html = renderMarkdown(post.body);
+const rendered = renderMarkdown(post.body, affiliateLinks);
+const html = rendered.html;
+const showsAffiliateDisclosure = post.affiliate || rendered.affiliateLinks > 0;
+const disclosureText = affiliateDisclosure || DEFAULT_AFFILIATE_DISCLOSURE;
 const tableOfContents = buildTableOfContents(extractHeadings(post.body));
 const readingMinutes = formatReadingTime(post.body);
 const primaryTag = post.tags[0] ?? 'guide';
@@ -141,7 +150,7 @@ const jsonLd = [
       <AdSlot slotId="in-article-top" format="leaderboard" />
 
       {
-        post.affiliate && <p class="post-disclosure">{DEFAULT_AFFILIATE_DISCLOSURE}</p>
+        showsAffiliateDisclosure && <p class="post-disclosure">{disclosureText}</p>
       }
 
       <article class="post-body">
