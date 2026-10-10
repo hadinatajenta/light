@@ -162,19 +162,17 @@ What is missing to close this loop:
 
 - [ ] **Media library UI** (upload grid, alt text, delete). The page is a
       placeholder; today you can only upload through the post editor toolbar.
-- [ ] **Affiliate toggle in the post editor.** `post-editor.tsx` hardcodes
-      `affiliate: false`, so the affiliate disclosure never renders even on a
-      post with affiliate links.
 - [ ] **Category and tag URL consistency.** The category editor previews
       `/tag/<slug>/`, but `/tag/[tag]` filters by post tags, not by the post
       category.
 - [ ] **Ad slots beyond `in-article-top`.** `in-article-mid` and
       `in-article-bottom` are configured but rendered nowhere.
-- [ ] **Affiliate program registered** and a tracking id configured
+- [ ] **Affiliate catalog UI** and the Monetization menu. The tables and the
+      link rewriting exist, but products must currently be inserted with SQL.
+- [ ] **Writer agent uses the catalog.** The agent cannot reference products
+      yet, so it does not emit affiliate links.
 - [ ] **AdSense** (or another network) enabled with real slot ids
 - [ ] Real `ads.txt`
-- [ ] Affiliate product catalog plus link rewriting so agents can emit real
-      affiliate links
 - [ ] **Content volume**: only 7 published articles exist
 - [ ] Keyword and topic plan for the next 90 days
 - [ ] Search Console sitemap accepted (needs a re-submit)
@@ -198,6 +196,7 @@ What is missing to close this loop:
 | Worker secrets | `GITHUB_TOKEN`, `AGENT_SECRET_KEY`, `AGENT_CRON_TOKEN` |
 | Migrations | `0001_init`, `0002_activity`, `0003_agents` |
 | D1 tables | `posts`, `categories`, `media`, `actors`, `activity`, `agents`, `agent_runs`, `settings` |
+| Amazon Associates tracking id | `lightscripts-20` (program `amazon`, status approved) |
 | Public host | `https://lightscripts.com` |
 | Content today | 7 published, 1 archived |
 

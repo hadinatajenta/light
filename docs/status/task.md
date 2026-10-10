@@ -49,13 +49,17 @@ owner, `(dev)` is engineering work.
 
 - [x] Decide the target audience: **United States and EU** (Amazon Associates,
       optional Impact, plus AdSense). Decided 2026-10-11. (you)
-- [ ] Register **Amazon Associates** and get a tracking id (you)
-- [ ] Optional: register Impact or ShareASale for software and services (you)
-- [ ] Configure the affiliate programs in `src/config/monetization.ts` (dev)
-- [ ] Build the affiliate product catalog in D1 (dev)
-- [ ] Build link rewriting so a `product:<slug>` reference becomes a real
-      affiliate URL with the tracking id (dev)
+- [x] Register **Amazon Associates** and get a tracking id: `lightscripts-20` (you)
+- [x] Configure the Amazon program in `src/config/monetization.ts` (dev)
+- [x] Affiliate storage: `affiliate_programs` plus `affiliate_products`, Amazon
+      seeded (migration `0004_affiliate`) (dev)
+- [x] Link rewriting: `product:<slug>` becomes a real Amazon URL with
+      `rel="sponsored nofollow noopener"` (dev)
+- [x] Affiliate disclosure gate: renders when a post has affiliate links, and
+      the editor now has the affiliate toggle (was hardcoded to false) (dev)
+- [ ] Build the affiliate product catalog UI and the Monetization menu (dev)
 - [ ] Teach the writer agent to reference only catalog products (dev)
+- [ ] Optional: register Impact or ShareASale for software and services (you)
 - [ ] Enable an ad network and set real slot ids (you, dev)
 - [ ] Replace the placeholder `ads.txt` (you)
 - [ ] Build the monetization dashboard (programs, catalog, ad slots, disclosure) (dev)
