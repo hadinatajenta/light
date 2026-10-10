@@ -12,6 +12,7 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
   { label: 'Media', href: '/dashboard/media', icon: 'media' },
   { label: 'Insights', href: '/dashboard/insights', icon: 'insights' },
   { label: 'Activity', href: '/dashboard/activity', icon: 'activity' },
+  { label: 'Agents', href: '/dashboard/agents', icon: 'agents' },
   { label: 'Redirects', href: '/dashboard/redirects', icon: 'redirects' },
   { label: 'Monetization', href: '/dashboard/monetization', icon: 'monetization' },
   { label: 'Settings', href: '/dashboard/settings', icon: 'settings' },

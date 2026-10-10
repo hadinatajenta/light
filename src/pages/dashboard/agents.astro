@@ -1,0 +1,14 @@
+---
+import AgentList from '@/components/dashboard/agent-list';
+import DeepSeekKeyCard from '@/components/dashboard/deepseek-key-card';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Agents">
+  <div class="flex flex-col gap-6">
+    <AgentList client:load />
+    <DeepSeekKeyCard client:load />
+  </div>
+</DashboardLayout>
