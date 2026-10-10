@@ -1,8 +1,7 @@
 ---
-import { type CollectionEntry, render } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
 import PostLayout from '@/layouts/PostLayout.astro';
 import { getPublishedPosts } from '@/utils/content';
-import { calculateReadingTimeMinutes } from '@/utils/readingTime';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -18,10 +17,6 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
-const readingMinutes = calculateReadingTimeMinutes(post.body ?? '');
 ---
 
-<PostLayout post={post} readingMinutes={readingMinutes}>
-  <Content />
-</PostLayout>
+<PostLayout post={post} />

@@ -1,19 +1,34 @@
 ---
-import type { CollectionEntry } from 'astro:content';
-import AdSlot from '@/components/AdSlot.astro';
+import { type CollectionEntry, render } from 'astro:content';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
 import { SITE_AUTHOR } from '@/consts';
 import { formatDate } from '@/utils/date';
-import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildCanonicalUrl, buildFaqJsonLd } from '@/utils/seo';
+import { calculateReadingTimeMinutes } from '@/utils/readingTime';
+import {
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+  buildCanonicalUrl,
+  buildFaqJsonLd,
+} from '@/utils/seo';
+import { buildTableOfContents } from '@/utils/toc';
 import BaseLayout from './BaseLayout.astro';
 
 interface Props {
   post: CollectionEntry<'blog'>;
-  readingMinutes: number;
 }
 
-const { post, readingMinutes } = Astro.props;
+const { post } = Astro.props;
 const { title, description, pubDate, updatedDate, tags, affiliate, faq } = post.data;
+
+const { Content, headings } = await render(post);
+const readingMinutes = calculateReadingTimeMinutes(post.body ?? '');
+const tableOfContents = buildTableOfContents(headings);
+const primaryTag = tags[0] ?? 'guide';
+const authorInitials = SITE_AUTHOR.split(' ')
+  .map((word) => word.charAt(0))
+  .slice(0, 2)
+  .join('')
+  .toUpperCase();
 
 const canonicalUrl =
   buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname) ?? Astro.url.pathname;
@@ -35,63 +50,206 @@ const jsonLd = [
 ];
 ---
 
-<BaseLayout title={title} description={description} type="article" jsonLd={jsonLd}>
-  <article class="mx-auto">
-    <header class="prose-measure">
-      <h1 class="text-3xl font-semibold tracking-tight">{title}</h1>
-      <p class="numeric mt-2 text-sm text-ink-muted">
-        <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
-        <span aria-hidden="true"> | </span>
-        <span>{readingMinutes} min read</span>
-      </p>
+<BaseLayout title={title} description={description} type="article" jsonLd={jsonLd} contained={false}>
+  <div id="progress"></div>
+
+  <div class="read-shell">
+    <aside class="toc-wrap">
+      <details class="toc-details" open>
+        <summary class="toc-summary">
+          <span class="toc-title">Contents</span>
+          <span class="toc-progress" aria-live="polite"><span id="toc-progress">0%</span></span>
+          <svg
+            class="toc-chevron"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </summary>
+        <nav class="toc-nav" aria-label="Table of contents">
+          <ol class="toc-list">
+            {
+              tableOfContents.map((entry) => (
+                <li class={entry.isSub ? 'sub' : undefined}>
+                  <a href={`#${entry.id}`} class="toc-link" data-target={entry.id}>
+                    <span class="toc-num">{entry.label}</span>
+                    <span>{entry.text}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ol>
+        </nav>
+      </details>
+    </aside>
+
+    <div class="read-col">
+      <a href="/blog/" class="back">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M19 12H5M12 19l-7-7 7-7"></path>
+        </svg>
+        All guides
+      </a>
+
+      <header class="post-head">
+        <span class="label">Guide &middot; {primaryTag}</span>
+        <h1 class="post-title">{title}</h1>
+        <p class="post-standfirst">{description}</p>
+        <div class="post-byline">
+          <span class="avatar">{authorInitials}</span>
+          <span><strong>{SITE_AUTHOR}</strong></span>
+          <span class="byline-dot" aria-hidden="true"></span>
+          <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+          <span class="byline-dot" aria-hidden="true"></span>
+          <span>{readingMinutes} min read</span>
+        </div>
+      </header>
+
       {
-        tags.length > 0 && (
-          <ul class="mt-4 flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <li>
-                <a
-                  href={`/tag/${tag}/`}
-                  class="rounded-full border border-line px-2.5 py-0.5 text-xs text-ink-muted hover:text-ink"
-                >
+        affiliate && <p class="post-disclosure">{DEFAULT_AFFILIATE_DISCLOSURE}</p>
+      }
+
+      <article class="post-body">
+        <Content />
+        {
+          faq.length > 0 && (
+            <section class="post-faq">
+              <h2>Frequently asked questions</h2>
+              <dl>
+                {faq.map((entry) => (
+                  <div>
+                    <dt>{entry.question}</dt>
+                    <dd>{entry.answer}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )
+        }
+      </article>
+
+      <footer class="post-foot">
+        {
+          tags.length > 0 && (
+            <div class="tag-row">
+              {tags.map((tag) => (
+                <a class="topic" href={`/tag/${tag}/`}>
                   {tag}
                 </a>
-              </li>
-            ))}
-          </ul>
-        )
-      }
-    </header>
-
-    {
-      affiliate && (
-        <p class="prose-measure mt-6 rounded-md border border-line bg-surface p-4 text-sm text-ink-muted">
-          {DEFAULT_AFFILIATE_DISCLOSURE}
-        </p>
-      )
-    }
-
-    <AdSlot slotId="post-top" />
-
-    <div class="prose prose-neutral mt-8">
-      <slot />
+              ))}
+            </div>
+          )
+        }
+      </footer>
     </div>
 
-    {
-      faq.length > 0 && (
-        <section class="prose-measure mt-12">
-          <h2 class="text-2xl font-semibold tracking-tight">Frequently asked questions</h2>
-          <dl class="mt-4 flex flex-col gap-4">
-            {faq.map((entry) => (
-              <div>
-                <dt class="font-medium">{entry.question}</dt>
-                <dd class="mt-1 text-ink-muted">{entry.answer}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      )
+    <aside class="read-rail">
+      <div class="rail-ad sq">
+        <span>Advertisement</span>
+        <small>300 x 250</small>
+      </div>
+      <div class="rail-card">
+        <div class="rail-card-head">
+          <span>Partner</span>
+          <span>01</span>
+        </div>
+        <div class="rail-card-body">
+          <h4>Sponsored placement</h4>
+          <p>Reserved for a vetted product recommendation from a partner.</p>
+          <a href="/affiliate-disclosure/" class="btn btn-primary btn-sm">How we vet partners</a>
+        </div>
+      </div>
+      <div class="rail-ad tall">
+        <span>Advertisement</span>
+        <small>300 x 600</small>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const progressBar = document.getElementById('progress');
+    const tocPercent = document.getElementById('toc-progress');
+    const article = document.querySelector<HTMLElement>('.post-body');
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.toc-link'));
+
+    const sections = links
+      .map((link) => {
+        const target = link.dataset.target;
+        return target ? document.getElementById(target) : null;
+      })
+      .filter((section): section is HTMLElement => section instanceof HTMLElement);
+
+    if (sections.length > 0) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+
+          if (!visible) {
+            return;
+          }
+
+          for (const link of links) {
+            link.classList.toggle('active', link.dataset.target === visible.target.id);
+          }
+        },
+        { rootMargin: '-140px 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] },
+      );
+
+      for (const section of sections) {
+        observer.observe(section);
+      }
     }
 
-    <AdSlot slotId="post-bottom" />
-  </article>
+    let animationFrame = 0;
+
+    const updateProgress = (): void => {
+      animationFrame = 0;
+      const scrollableDistance = document.documentElement.scrollHeight - window.innerHeight;
+      const ratio =
+        scrollableDistance > 0 ? Math.min(Math.max(window.scrollY / scrollableDistance, 0), 1) : 0;
+
+      if (progressBar) {
+        progressBar.classList.add('on');
+        progressBar.style.width = `${ratio * 100}%`;
+      }
+
+      if (tocPercent && article) {
+        const rect = article.getBoundingClientRect();
+        const articleTop = rect.top + window.scrollY;
+        const readRatio = Math.min(
+          Math.max((window.scrollY + window.innerHeight - articleTop) / rect.height, 0),
+          1,
+        );
+        tocPercent.textContent = `${Math.round(readRatio * 100)}%`;
+      }
+    };
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (animationFrame === 0) {
+          animationFrame = requestAnimationFrame(updateProgress);
+        }
+      },
+      { passive: true },
+    );
+
+    updateProgress();
+  </script>
 </BaseLayout>
