@@ -21,5 +21,11 @@
       "binding": "MEDIA_BUCKET",
       "bucket_name": "light-media"
     }
+  ],
+  "routes": [
+    { "pattern": "light.hadinata.me", "custom_domain": true },
+    { "pattern": "admin.hadinata.me", "custom_domain": true },
+    { "pattern": "lightscripts.com", "custom_domain": true },
+    { "pattern": "www.lightscripts.com", "custom_domain": true }
   ]
 }

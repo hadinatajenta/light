@@ -359,7 +359,7 @@ export default function SeoPanel({
             disabled={disabled}
             autoComplete="off"
             spellCheck={false}
-            placeholder="https://light.hadinata.me/blog/post-slug/"
+            placeholder="https://lightscripts.com/blog/post-slug/"
           />
         </div>
 

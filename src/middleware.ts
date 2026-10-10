@@ -1,6 +1,9 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getAuthProvider } from '@/lib/auth';
 
+const CANONICAL_HOST = 'lightscripts.com';
+const REDIRECT_HOSTS = new Set(['www.lightscripts.com']);
+
 const PROTECTED_PREFIXES = ['/dashboard', '/api/dashboard'];
 
 function isProtectedPath(pathname: string): boolean {
@@ -10,6 +13,13 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (REDIRECT_HOSTS.has(context.url.hostname)) {
+    const target = new URL(context.request.url);
+    target.hostname = CANONICAL_HOST;
+    target.protocol = 'https:';
+    return Response.redirect(target.toString(), 301);
+  }
+
   if (!isProtectedPath(context.url.pathname)) {
     return next();
   }

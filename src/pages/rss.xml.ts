@@ -11,7 +11,7 @@ export async function GET(context: APIContext) {
   return rss({
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    site: context.site ?? 'https://light.hadinata.me',
+    site: context.site ?? context.url.origin,
     items: posts.map((post) => ({
       title: post.title,
       description: post.description,
