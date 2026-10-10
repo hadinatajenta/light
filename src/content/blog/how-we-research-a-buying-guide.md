@@ -9,11 +9,7 @@ tags:
 pubDate: 2026-10-01
 noindex: false
 affiliate: false
-faq:
-  - question: Do you accept free products?
-    answer: No. We do not accept free products or paid placements in exchange for a review.
-  - question: How often are guides updated?
-    answer: We revisit a guide whenever the product changes, the price moves sharply, or a new model replaces one of our picks.
+faq: []
 ---
 
 Most review sites are not complicated. Someone gets a product, spends a few hours with it, writes

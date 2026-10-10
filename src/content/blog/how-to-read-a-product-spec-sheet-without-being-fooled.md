@@ -8,11 +8,7 @@ tags:
 pubDate: 2026-09-27
 noindex: false
 affiliate: false
-faq:
-  - question: Why do manufacturers leave out important specifications?
-    answer: Because a good sheet states its test conditions. When a number is missing, that omission is often the most honest signal about the product's weaknesses.
-  - question: Should I trust peak brightness figures?
-    answer: Treat them as a best case. Peak figures often describe a small area or a short burst, so look for sustained performance instead.
+faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
 ---
 

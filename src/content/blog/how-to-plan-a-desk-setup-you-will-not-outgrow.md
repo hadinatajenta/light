@@ -9,11 +9,7 @@ tags:
 pubDate: 2026-08-14
 noindex: false
 affiliate: false
-faq:
-  - question: Should I buy a sit-stand desk from the start?
-    answer: If there is any chance you will want to stand, yes. Retrofitting later costs more than choosing an adjustable frame at the outset.
-  - question: What matters more, desk width or depth?
-    answer: Depth suits most people better. It keeps a large monitor at a comfortable distance and leaves room for your forearms, while extra width often collects clutter.
+faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
 ---
 
