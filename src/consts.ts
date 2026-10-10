@@ -9,6 +9,7 @@ export const SITE_LANGUAGE = 'en';
 export const POSTS_PER_PAGE = 9;
 
 export const DEFAULT_OG_IMAGE = '/og-default.png';
+export const GOOGLE_SITE_VERIFICATION = '';
 export const COOKIE_CONSENT_STORAGE_KEY = 'light.cookie-consent';
 export const THEME_STORAGE_KEY = 'light-theme';
 

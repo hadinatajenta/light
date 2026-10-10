@@ -1,6 +1,12 @@
 ---
 import { AD_CONFIG } from '@/config/monetization';
-import { DEFAULT_OG_IMAGE, SITE_DESCRIPTION, SITE_LOCALE, SITE_TITLE } from '@/consts';
+import {
+  DEFAULT_OG_IMAGE,
+  GOOGLE_SITE_VERIFICATION,
+  SITE_DESCRIPTION,
+  SITE_LOCALE,
+  SITE_TITLE,
+} from '@/consts';
 import { buildCanonicalUrl, serializeJsonLd } from '@/utils/seo';
 
 interface Props {
@@ -34,6 +40,7 @@ const jsonLdBlocks = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
 <title>{title}</title>
 <meta name="description" content={description} />
 <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+{GOOGLE_SITE_VERIFICATION && <meta name="google-site-verification" content={GOOGLE_SITE_VERIFICATION} />}
 {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
