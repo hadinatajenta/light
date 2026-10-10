@@ -1,12 +1,11 @@
 import { PencilIcon, PlusIcon, RefreshCwIcon, Trash2Icon } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import { type ComponentProps, type FormEvent, useEffect, useRef, useState } from 'react';
+import { type SubmitEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Toaster } from '@/components/ui/sonner';
 import {
   Table,
   TableBody,
@@ -16,6 +15,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { ApiRequestError, requestJson, toErrorMessage } from './api-client';
+import { DialogSurface } from './dialog-surface';
 
 const CATEGORIES_ENDPOINT = '/api/dashboard/categories';
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -49,47 +50,6 @@ interface CategoryFormErrors {
   form?: string;
 }
 
-class ApiRequestError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'ApiRequestError';
-  }
-}
-
-interface ApiSuccessEnvelope<T> {
-  data: T;
-}
-
-interface ApiErrorEnvelope {
-  error?: {
-    code?: string;
-    message?: string;
-  };
-}
-
-async function requestCategoryApi<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(url, {
-    ...init,
-    headers: { 'Content-Type': 'application/json' },
-  });
-
-  if (!response.ok) {
-    const envelope = (await response.json().catch(() => null)) as ApiErrorEnvelope | null;
-    throw new ApiRequestError(
-      response.status,
-      envelope?.error?.code ?? 'REQUEST_FAILED',
-      envelope?.error?.message ?? 'The request could not be completed.',
-    );
-  }
-
-  const envelope = (await response.json()) as ApiSuccessEnvelope<T>;
-  return envelope.data;
-}
-
 function toSlug(value: string): string {
   return value
     .toLowerCase()
@@ -116,40 +76,16 @@ function validateCategoryForm(values: CategoryFormValues): CategoryFormErrors {
   return errors;
 }
 
-function toErrorMessage(error: unknown): string {
-  if (error instanceof ApiRequestError) {
-    return error.message;
-  }
-  return 'You appear to be offline. Check your connection and try again.';
-}
-
-function DialogSurface({
-  className,
-  children,
-  ...props
-}: ComponentProps<typeof DialogPrimitive.Content>) {
-  return (
-    <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-      <DialogPrimitive.Content
-        className={cn(
-          'fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-5 overflow-y-auto rounded-xl border border-border bg-background p-6 shadow-lg data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </DialogPrimitive.Content>
-    </DialogPrimitive.Portal>
-  );
-}
-
 function CategoryTableHead() {
   return (
     <TableHeader>
       <TableRow>
-        <TableHead className="text-xs tracking-wider text-muted-foreground uppercase">Name</TableHead>
-        <TableHead className="text-xs tracking-wider text-muted-foreground uppercase">Slug</TableHead>
+        <TableHead className="text-xs tracking-wider text-muted-foreground uppercase">
+          Name
+        </TableHead>
+        <TableHead className="text-xs tracking-wider text-muted-foreground uppercase">
+          Slug
+        </TableHead>
         <TableHead className="text-xs tracking-wider text-muted-foreground uppercase">
           Description
         </TableHead>
@@ -261,7 +197,11 @@ function CategoryFormDialog({
   onOpenChange,
   onSubmit,
 }: CategoryFormDialogProps) {
-  const [values, setValues] = useState<CategoryFormValues>({ label: '', slug: '', description: '' });
+  const [values, setValues] = useState<CategoryFormValues>({
+    label: '',
+    slug: '',
+    description: '',
+  });
   const [errors, setErrors] = useState<CategoryFormErrors>({});
   const [isSlugEdited, setIsSlugEdited] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -317,7 +257,7 @@ function CategoryFormDialog({
     setValues((current) => ({ ...current, slug }));
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSubmitting) {
       return;
@@ -401,13 +341,17 @@ function CategoryFormDialog({
               className="font-mono"
               aria-invalid={Boolean(slugErrorText)}
               aria-describedby={
-                slugErrorText ? 'category-slug-error category-slug-preview' : 'category-slug-preview'
+                slugErrorText
+                  ? 'category-slug-error category-slug-preview'
+                  : 'category-slug-preview'
               }
               placeholder="desk-setup"
             />
             <p id="category-slug-preview" className="text-xs text-muted-foreground">
               URL preview:{' '}
-              <span className="font-mono text-foreground">/tag/{values.slug || 'category-slug'}/</span>
+              <span className="font-mono text-foreground">
+                /tag/{values.slug || 'category-slug'}/
+              </span>
             </p>
             {slugErrorText ? (
               <p id="category-slug-error" className="text-sm text-destructive">
@@ -569,43 +513,43 @@ export default function CategoryManager() {
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [reloadCount, setReloadCount] = useState(0);
+  const controllerRef = useRef<AbortController | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryRecord | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<CategoryRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadCategories = useCallback(async () => {
+    controllerRef.current?.abort();
     const controller = new AbortController();
-    let isActive = true;
+    controllerRef.current = controller;
 
     setStatus('loading');
     setLoadError(null);
 
-    requestCategoryApi<{ categories: CategoryRecord[] }>(CATEGORIES_ENDPOINT, {
-      signal: controller.signal,
-    })
-      .then((payload) => {
-        if (!isActive) {
-          return;
-        }
-        setCategories(payload.categories);
-        setStatus('ready');
-      })
-      .catch((error: unknown) => {
-        if (!isActive || (error instanceof DOMException && error.name === 'AbortError')) {
-          return;
-        }
-        setLoadError(toErrorMessage(error));
-        setStatus('error');
+    try {
+      const payload = await requestJson<{ categories: CategoryRecord[] }>(CATEGORIES_ENDPOINT, {
+        signal: controller.signal,
       });
+      if (controller.signal.aborted) {
+        return;
+      }
+      setCategories(payload.categories);
+      setStatus('ready');
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+      setLoadError(toErrorMessage(error));
+      setStatus('error');
+    }
+  }, []);
 
-    return () => {
-      isActive = false;
-      controller.abort();
-    };
-  }, [reloadCount]);
+  useEffect(() => {
+    loadCategories();
+    return () => controllerRef.current?.abort();
+  }, [loadCategories]);
 
   const openCreateDialog = () => {
     setEditingCategory(null);
@@ -629,8 +573,10 @@ export default function CategoryManager() {
     const targetSlug = target?.slug ?? null;
 
     try {
-      const response = await requestCategoryApi<{ category: CategoryPayload }>(
-        targetSlug ? `${CATEGORIES_ENDPOINT}/${encodeURIComponent(targetSlug)}` : CATEGORIES_ENDPOINT,
+      const response = await requestJson<{ category: CategoryPayload }>(
+        targetSlug
+          ? `${CATEGORIES_ENDPOINT}/${encodeURIComponent(targetSlug)}`
+          : CATEGORIES_ENDPOINT,
         { method: targetSlug ? 'PUT' : 'POST', body: JSON.stringify(payload) },
       );
 
@@ -680,7 +626,7 @@ export default function CategoryManager() {
     setDeleteError(null);
 
     try {
-      await requestCategoryApi<{ slug: string; deleted: boolean }>(
+      await requestJson<{ slug: string; deleted: boolean }>(
         `${CATEGORIES_ENDPOINT}/${encodeURIComponent(target.slug)}`,
         { method: 'DELETE' },
       );
@@ -715,12 +661,7 @@ export default function CategoryManager() {
         <div className="flex flex-col items-start gap-3 px-6 py-12">
           <p className="text-sm font-medium text-foreground">Could not load categories.</p>
           <p className="max-w-prose text-sm text-muted-foreground">{loadError}</p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setReloadCount((count) => count + 1)}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => void loadCategories()}>
             <RefreshCwIcon />
             Retry
           </Button>
@@ -785,8 +726,6 @@ export default function CategoryManager() {
         onOpenChange={handleDeleteOpenChange}
         onConfirm={handleDelete}
       />
-
-      <Toaster position="top-right" />
     </div>
   );
 }

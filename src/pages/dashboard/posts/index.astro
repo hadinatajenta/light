@@ -1,0 +1,26 @@
+---
+import PostTable from '@/components/dashboard/post-table';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+
+const searchParams = Astro.url.searchParams;
+const statusParam = searchParams.get('status') ?? 'all';
+const initialStatus =
+  statusParam === 'draft' || statusParam === 'published' || statusParam === 'archived'
+    ? statusParam
+    : 'all';
+const initialCategory = searchParams.get('category') ?? '';
+const initialQuery = searchParams.get('q') ?? '';
+const initialPage = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1', 10) || 1);
+---
+
+<DashboardLayout title="Posts">
+  <PostTable
+    client:load
+    initialStatus={initialStatus}
+    initialCategory={initialCategory}
+    initialQuery={initialQuery}
+    initialPage={initialPage}
+  />
+</DashboardLayout>

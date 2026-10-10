@@ -1,5 +1,6 @@
 ---
 import ThemeToggle from '@/components/ThemeToggle.astro';
+import { Toaster } from '@/components/ui/sonner';
 import { SITE_LANGUAGE, SITE_TITLE, THEME_STORAGE_KEY } from '@/consts';
 import { DASHBOARD_NAVIGATION } from '@/lib/dashboard-nav';
 import '@/styles/global.css';
@@ -162,6 +163,8 @@ function isActive(href: string): boolean {
         </main>
       </div>
     </div>
+
+    <Toaster client:load position="top-right" />
 
     <script>
       const sidebar = document.getElementById('dashboard-sidebar');
