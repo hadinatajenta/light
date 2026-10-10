@@ -1,32 +1,23 @@
 ---
-import { Image } from 'astro:assets';
-import { type CollectionEntry, render } from 'astro:content';
+import AdSlot from '@/components/AdSlot.astro';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
 import { SITE_AUTHOR } from '@/consts';
+import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
 import { formatDate } from '@/utils/date';
-import { calculateReadingTimeMinutes } from '@/utils/readingTime';
-import {
-  buildArticleJsonLd,
-  buildBreadcrumbJsonLd,
-  buildCanonicalUrl,
-  buildFaqJsonLd,
-} from '@/utils/seo';
+import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildCanonicalUrl, buildFaqJsonLd } from '@/utils/seo';
 import { buildTableOfContents } from '@/utils/toc';
-import AdSlot from '@/components/AdSlot.astro';
 import BaseLayout from './BaseLayout.astro';
 
 interface Props {
-  post: CollectionEntry<'blog'>;
+  post: SitePost;
 }
 
 const { post } = Astro.props;
-const { title, description, pubDate, updatedDate, tags, affiliate, faq, cover, coverAlt } =
-  post.data;
 
-const { Content, headings } = await render(post);
-const readingMinutes = calculateReadingTimeMinutes(post.body ?? '');
-const tableOfContents = buildTableOfContents(headings);
-const primaryTag = tags[0] ?? 'guide';
+const html = renderMarkdown(post.body);
+const tableOfContents = buildTableOfContents(extractHeadings(post.body));
+const readingMinutes = formatReadingTime(post.body);
+const primaryTag = post.tags[0] ?? 'guide';
 const authorInitials = SITE_AUTHOR.split(' ')
   .map((word) => word.charAt(0))
   .slice(0, 2)
@@ -35,25 +26,32 @@ const authorInitials = SITE_AUTHOR.split(' ')
 
 const canonicalUrl =
   buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname) ?? Astro.url.pathname;
+const publishedDate = post.pubDate ? new Date(post.pubDate) : new Date();
 const jsonLd = [
   buildArticleJsonLd({
-    title,
-    description,
+    title: post.title,
+    description: post.description,
     url: canonicalUrl,
-    datePublished: pubDate,
-    dateModified: updatedDate,
+    datePublished: publishedDate,
     authorName: SITE_AUTHOR,
   }),
   buildBreadcrumbJsonLd([
     { name: 'Home', url: new URL('/', Astro.site ?? Astro.url.origin).href },
     { name: 'Guides', url: new URL('/blog/', Astro.site ?? Astro.url.origin).href },
-    { name: title, url: canonicalUrl },
+    { name: post.title, url: canonicalUrl },
   ]),
-  ...(faq.length > 0 ? [buildFaqJsonLd(faq)] : []),
+  ...(post.faq.length > 0 ? [buildFaqJsonLd(post.faq)] : []),
 ];
 ---
 
-<BaseLayout title={title} description={description} type="article" jsonLd={jsonLd} contained={false}>
+<BaseLayout
+  title={post.title}
+  description={post.description}
+  type="article"
+  noindex={post.noindex}
+  jsonLd={jsonLd}
+  contained={false}
+>
   <div id="progress"></div>
 
   <div class="read-shell">
@@ -110,22 +108,32 @@ const jsonLd = [
 
       <header class="post-head">
         <span class="label">Guide &middot; {primaryTag}</span>
-        <h1 class="post-title">{title}</h1>
-        <p class="post-standfirst">{description}</p>
+        <h1 class="post-title">{post.title}</h1>
+        <p class="post-standfirst">{post.description}</p>
         <div class="post-byline">
           <span class="avatar">{authorInitials}</span>
           <span><strong>{SITE_AUTHOR}</strong></span>
-          <span class="byline-dot" aria-hidden="true"></span>
-          <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+          {post.pubDate && <span class="byline-dot" aria-hidden="true"></span>}
+          {
+            post.pubDate && (
+              <time datetime={post.pubDate}>{formatDate(new Date(post.pubDate))}</time>
+            )
+          }
           <span class="byline-dot" aria-hidden="true"></span>
           <span>{readingMinutes} min read</span>
         </div>
       </header>
 
       {
-        cover && (
+        post.coverUrl && (
           <figure class="post-hero">
-            <Image src={cover} alt={coverAlt ?? title} class="post-hero-image" />
+            <img
+              src={post.coverUrl}
+              alt={post.coverAlt ?? post.title}
+              width="1280"
+              height="720"
+              class="post-hero-image"
+            />
           </figure>
         )
       }
@@ -133,17 +141,17 @@ const jsonLd = [
       <AdSlot slotId="in-article-top" format="leaderboard" />
 
       {
-        affiliate && <p class="post-disclosure">{DEFAULT_AFFILIATE_DISCLOSURE}</p>
+        post.affiliate && <p class="post-disclosure">{DEFAULT_AFFILIATE_DISCLOSURE}</p>
       }
 
       <article class="post-body">
-        <Content />
+        <Fragment set:html={html} />
         {
-          faq.length > 0 && (
+          post.faq.length > 0 && (
             <section class="post-faq">
               <h2>Frequently asked questions</h2>
               <dl>
-                {faq.map((entry) => (
+                {post.faq.map((entry) => (
                   <div>
                     <dt>{entry.question}</dt>
                     <dd>{entry.answer}</dd>
@@ -157,9 +165,9 @@ const jsonLd = [
 
       <footer class="post-foot">
         {
-          tags.length > 0 && (
+          post.tags.length > 0 && (
             <div class="tag-row">
-              {tags.map((tag) => (
+              {post.tags.map((tag) => (
                 <a class="topic" href={`/tag/${tag}/`}>
                   {tag}
                 </a>
@@ -188,7 +196,7 @@ const jsonLd = [
       </div>
       <div class="rail-ad tall">
         <span>Advertisement</span>
-        <small>300 x 600</small>
+        <span>300 x 600</span>
       </div>
     </aside>
   </div>

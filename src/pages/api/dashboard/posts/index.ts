@@ -1,9 +1,8 @@
 import { z } from 'astro/zod';
 import { withAdmin } from '@/lib/api/handler';
-import { getGithubConfig } from '@/lib/content/config';
 import { postFrontmatterSchema } from '@/lib/content/post-schema';
-import { createPost, listPosts, type PostSummary } from '@/lib/content/post-store';
-import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
+import { createPost, listPosts, type PostSummary } from '@/lib/content/store';
+import { jsonOk, readJsonBody } from '@/lib/http';
 
 export const prerender = false;
 
@@ -23,8 +22,6 @@ function sortPosts(posts: PostSummary[]): PostSummary[] {
 }
 
 export const GET = withAdmin(async ({ url }, requestId) => {
-  const config = getGithubConfig();
-
   const status = url.searchParams.get('status') ?? 'all';
   const category = url.searchParams.get('category');
   const query = (url.searchParams.get('q') ?? '').trim().toLowerCase();
@@ -34,7 +31,7 @@ export const GET = withAdmin(async ({ url }, requestId) => {
     Math.max(1, Number.parseInt(url.searchParams.get('per_page') ?? '20', 10) || 20),
   );
 
-  const allPosts = sortPosts(await listPosts(config));
+  const allPosts = sortPosts(await listPosts());
 
   const filtered = allPosts.filter((post) => {
     if (status !== 'all' && post.status !== status) {
@@ -67,23 +64,16 @@ export const GET = withAdmin(async ({ url }, requestId) => {
 });
 
 export const POST = withAdmin(async ({ request }, requestId) => {
-  const config = getGithubConfig();
   const payload = savePostRequestSchema.parse(await readJsonBody(request, 300_000));
 
-  const data: Record<string, unknown> = {
-    ...payload.frontmatter,
+  const post = await createPost({
     slug: payload.slug,
-    pubDate: payload.frontmatter.pubDate,
-    updatedDate: new Date(),
-  };
-
-  if (payload.frontmatter.status === 'published' && !payload.frontmatter.pubDate) {
-    throw new ApiError(422, 'PUBLISH_REQUIRES_DATE', 'A published post needs a publish date.');
-  }
-
-  const post = await createPost(config, {
-    slug: payload.slug,
-    data,
+    data: {
+      ...payload.frontmatter,
+      slug: payload.slug,
+      pubDate: payload.frontmatter.pubDate,
+      updatedDate: new Date(),
+    },
     body: payload.body,
     message: `feat(content): add ${payload.slug}`,
   });

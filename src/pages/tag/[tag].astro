@@ -1,29 +1,12 @@
 ---
-import type { CollectionEntry } from 'astro:content';
 import PostList from '@/components/PostList.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { getPublishedPosts } from '@/utils/content';
-import { collectTags } from '@/utils/posts';
+import { getPublishedPostSummaries } from '@/lib/content/public';
 
-export async function getStaticPaths() {
-  const posts = await getPublishedPosts();
-  const tags = collectTags(posts);
+export const prerender = false;
 
-  return tags.map((tag) => ({
-    params: { tag },
-    props: {
-      tag,
-      posts: posts.filter((post) => post.data.tags.includes(tag)),
-    },
-  }));
-}
-
-interface Props {
-  tag: string;
-  posts: CollectionEntry<'blog'>[];
-}
-
-const { tag, posts } = Astro.props;
+const tag = Astro.params.tag ?? '';
+const posts = (await getPublishedPostSummaries()).filter((post) => post.tags.includes(tag));
 ---
 
 <BaseLayout title={`Tag: ${tag}`} description={`Articles tagged with ${tag}.`}>

@@ -1,8 +1,7 @@
 import { z } from 'astro/zod';
 import { withAdmin } from '@/lib/api/handler';
-import { getGithubConfig } from '@/lib/content/config';
 import { postFrontmatterSchema } from '@/lib/content/post-schema';
-import { deletePost, getPost, updatePost } from '@/lib/content/post-store';
+import { deletePost, getPost, updatePost } from '@/lib/content/store';
 import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
 
 export const prerender = false;
@@ -23,17 +22,15 @@ function requireId(params: Record<string, string | undefined>): string {
 }
 
 export const GET = withAdmin(async ({ params }, requestId) => {
-  const config = getGithubConfig();
-  const post = await getPost(config, requireId(params));
+  const post = await getPost(requireId(params));
   return jsonOk({ id: post.id, sha: post.sha, frontmatter: post.data, body: post.body }, requestId);
 });
 
 export const PUT = withAdmin(async ({ params, request }, requestId) => {
-  const config = getGithubConfig();
   const id = requireId(params);
   const payload = savePostRequestSchema.parse(await readJsonBody(request, 300_000));
 
-  const post = await updatePost(config, id, {
+  const post = await updatePost(id, {
     slug: payload.slug,
     data: {
       ...payload.frontmatter,
@@ -50,8 +47,7 @@ export const PUT = withAdmin(async ({ params, request }, requestId) => {
 });
 
 export const DELETE = withAdmin(async ({ params }, requestId) => {
-  const config = getGithubConfig();
   const id = requireId(params);
-  await deletePost(config, id, `chore(content): delete ${id}`);
+  await deletePost(id);
   return jsonOk({ id, deleted: true }, requestId);
 });

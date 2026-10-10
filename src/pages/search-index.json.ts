@@ -1,17 +1,17 @@
 import type { APIRoute } from 'astro';
-import { getPublishedPosts } from '@/utils/content';
+import { getPublishedPostSummaries } from '@/lib/content/public';
+
+export const prerender = false;
 
 export const GET: APIRoute = async () => {
-  const posts = await getPublishedPosts();
-
-  const searchIndex = posts.map((post) => ({
-    title: post.data.title,
-    description: post.data.description,
-    tags: post.data.tags,
+  const posts = (await getPublishedPostSummaries()).map((post) => ({
+    title: post.title,
+    description: post.description,
+    tags: post.tags,
     url: `/blog/${post.id}/`,
   }));
 
-  return new Response(JSON.stringify(searchIndex), {
+  return new Response(JSON.stringify(posts), {
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
   });
 };

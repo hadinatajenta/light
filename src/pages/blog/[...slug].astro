@@ -1,22 +1,18 @@
 ---
-import type { CollectionEntry } from 'astro:content';
 import PostLayout from '@/layouts/PostLayout.astro';
-import { getPublishedPosts } from '@/utils/content';
+import { getPublishedPost } from '@/lib/content/public';
 
-export async function getStaticPaths() {
-  const posts = await getPublishedPosts();
+export const prerender = false;
 
-  return posts.map((post) => ({
-    params: { slug: post.id },
-    props: { post },
-  }));
+const slug = Astro.params.slug;
+const post = slug ? await getPublishedPost(slug) : null;
+
+if (!post) {
+  return new Response('Not Found', {
+    status: 404,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
 }
-
-interface Props {
-  post: CollectionEntry<'blog'>;
-}
-
-const { post } = Astro.props;
 ---
 
 <PostLayout post={post} />

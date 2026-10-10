@@ -3,10 +3,12 @@ import Pagination from '@/components/Pagination.astro';
 import PostList from '@/components/PostList.astro';
 import { POSTS_PER_PAGE } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { getPublishedPosts } from '@/utils/content';
+import { getPublishedPostSummaries } from '@/lib/content/public';
 import { paginateItems } from '@/utils/pagination';
 
-const posts = await getPublishedPosts();
+export const prerender = false;
+
+const posts = await getPublishedPostSummaries();
 const { pageItems, totalPages, currentPage } = paginateItems(posts, 1, POSTS_PER_PAGE);
 ---
 

@@ -14,17 +14,11 @@ slug: how-to-choose-a-monitor-arm
 updatedDate: 2026-10-10T14:07:42.730Z
 ---
 
-import AdSlot from '@/components/AdSlot.astro';
-import AffiliateLink from '@/components/AffiliateLink.astro';
-import ProductBox from '@/components/ProductBox.astro';
-
 A monitor arm looks like a small upgrade. On a narrow desk, it is often the difference between a setup that works and one you fight every day. The stand that ships with most monitors eats the most useful part of the desk, and it rarely puts the screen at the right height.
 
 ## Start with the desk, not the arm
 
 Before you compare arms, measure the desk. A clamp arm needs a flat edge and enough thickness for the clamp to bite. If the desk is hollow, made of thin veneer, or has a steel frame under the edge, a clamp can crush it or refuse to close. In that case you want a grommet mount, which passes through a hole in the desktop, or a wall mount.
-
-<AdSlot slotId="in-article-top" format="leaderboard" />
 
 Also check the depth. A short arm on a shallow desk holds the screen closer than you think, which is usually what you want, but only if the arm can fold back far enough when you are not working.
 
@@ -32,7 +26,7 @@ Also check the depth. A short arm on a shallow desk holds the screen closer than
 
 The most common mistake is buying an arm that is too strong for the monitor. A gas-spring arm has a weight range, something like two to nine kilograms. If your monitor sits at the very bottom of that range, the arm may float up on its own. At the top of the range, it sags over time.
 
-<AffiliateLink href="https://example.com/monitor-arms" label="a mid-range gas-spring arm" program="amazon" /> is usually the safer pick than a cheaper fixed arm if you move the screen often.
+[a mid-range gas-spring arm](https://example.com/monitor-arms) is usually the safer pick than a cheaper fixed arm if you move the screen often.
 
 ## Cable routing is the quiet dealbreaker
 
@@ -42,16 +36,7 @@ An arm only looks tidy if the cables disappear. Look for a channel that runs the
 
 If you never move the screen, a solid desk stand with height and tilt adjustment does the same job for less money and no clamp risk. An arm earns its price when you need reach, when two people share a desk, or when the desk is small.
 
-<ProductBox
-  title="Example affiliate card"
-  description="This is a sample product box showing how a recommended product and its price would appear inside an article."
-  href="https://example.com/monitor-arms"
-  priceLabel="$129"
-  ratingLabel="4.5 / 5"
-  program="amazon"
-/>
-
-<AdSlot slotId="in-article-bottom" format="rectangle" />
+> **Example affiliate card** — This is a sample product box showing how a recommended product and its price would appear inside an article. [View product · $129 · 4.5 / 5](https://example.com/monitor-arms)
 
 ## A short checklist
 

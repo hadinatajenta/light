@@ -4,10 +4,12 @@ import PostCard from '@/components/PostCard.astro';
 import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { getPublishedPosts } from '@/utils/content';
+import { getPublishedPostSummaries } from '@/lib/content/public';
 import { buildCanonicalUrl, buildWebsiteJsonLd } from '@/utils/seo';
 
-const posts = await getPublishedPosts();
+export const prerender = false;
+
+const posts = await getPublishedPostSummaries();
 const [featurePost, altPost, thirdPost, fourthPost, fifthPost, sixthPost, seventhPost] = posts;
 
 const siteUrl =

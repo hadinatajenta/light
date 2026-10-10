@@ -13,30 +13,12 @@ import {
 import { POST_STATUSES, type PostStatus } from './post-schema';
 import { toSlug } from './slug';
 
+import type { PostDocument, PostSummary, SavePostInput } from './types';
+
 const BLOG_DIRECTORY = 'src/content/blog';
 const MARKDOWN_EXTENSIONS = ['.md', '.mdx'];
 const POSTS_CACHE_KEY = 'posts:list';
 const POSTS_CACHE_TTL_MS = 15_000;
-
-export interface PostSummary {
-  id: string;
-  path: string;
-  sha: string;
-  title: string;
-  status: PostStatus;
-  category: string | null;
-  tags: string[];
-  pubDate: string | null;
-  updatedDate: string | null;
-}
-
-export interface PostDocument {
-  id: string;
-  path: string;
-  sha: string;
-  data: Record<string, unknown>;
-  body: string;
-}
 
 function idOf(path: string): string {
   return (
@@ -65,9 +47,12 @@ function toSummary(path: string, sha: string, data: Record<string, unknown>): Po
     path,
     sha,
     title: typeof data.title === 'string' ? data.title : idOf(path),
+    description: typeof data.description === 'string' ? data.description : '',
     status: readStatus(data.status),
     category: typeof data.category === 'string' ? data.category : null,
     tags: readStringArray(data.tags),
+    coverUrl: typeof data.coverUrl === 'string' ? data.coverUrl : null,
+    coverAlt: typeof data.coverAlt === 'string' ? data.coverAlt : null,
     pubDate: data.pubDate ? String(data.pubDate) : null,
     updatedDate: data.updatedDate ? String(data.updatedDate) : null,
   };
@@ -131,15 +116,6 @@ export async function getPost(config: GithubConfig, id: string): Promise<PostDoc
 
   const parsed = parseDocument(file.content);
   return { id, path, sha: file.sha, data: parsed.data, body: parsed.body };
-}
-
-export interface SavePostInput {
-  id?: string;
-  slug: string;
-  data: Record<string, unknown>;
-  body: string;
-  message: string;
-  expectedSha?: string;
 }
 
 function slugifiedId(slug: string): string {

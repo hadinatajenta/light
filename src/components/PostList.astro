@@ -1,9 +1,9 @@
 ---
-import type { CollectionEntry } from 'astro:content';
+import type { SitePostSummary } from '@/lib/content/public';
 import PostCard from './PostCard.astro';
 
 interface Props {
-  posts: CollectionEntry<'blog'>[];
+  posts: SitePostSummary[];
   emptyMessage?: string;
 }
 

@@ -1,7 +1,6 @@
 import { z } from 'astro/zod';
 import { withAdmin } from '@/lib/api/handler';
-import { getGithubConfig } from '@/lib/content/config';
-import { deletePost, getPost, setPostStatus } from '@/lib/content/post-store';
+import { deletePost, getPost, updatePost } from '@/lib/content/store';
 import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
 
 export const prerender = false;
@@ -19,7 +18,6 @@ interface BulkOutcome {
 }
 
 export const POST = withAdmin(async ({ request }, requestId) => {
-  const config = getGithubConfig();
   const payload = bulkRequestSchema.parse(await readJsonBody(request, 20_000));
 
   const outcomes: BulkOutcome[] = [];
@@ -27,17 +25,15 @@ export const POST = withAdmin(async ({ request }, requestId) => {
   for (const id of payload.ids) {
     try {
       if (payload.action === 'delete') {
-        await deletePost(config, id, `chore(content): delete ${id}`);
+        await deletePost(id);
       } else {
-        const post = await getPost(config, id);
-        await setPostStatus(
-          config,
-          id,
-          post.data,
-          post.body,
-          'archived',
-          `chore(content): archive ${id}`,
-        );
+        const post = await getPost(id);
+        await updatePost(id, {
+          slug: id,
+          data: { ...post.data, status: 'archived', updatedDate: new Date() },
+          body: post.body,
+          message: `chore(content): archive ${id}`,
+        });
       }
 
       outcomes.push({ id, ok: true });
