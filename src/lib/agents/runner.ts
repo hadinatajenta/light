@@ -403,7 +403,7 @@ export async function runAgent(
       effort: role.defaultEffort,
       userId: agent.id,
       jsonMode: true,
-      maxTokens: 16_000,
+      maxTokens: 32_000,
       signal,
     });
 
@@ -467,11 +467,17 @@ export async function runAgent(
     };
   } catch (error) {
     const baseMessage = error instanceof Error ? error.message : 'The run failed.';
-    const snippet =
+    const details =
       error instanceof ApiError && error.details && typeof error.details === 'object'
-        ? (error.details as { snippet?: string }).snippet
+        ? (error.details as { snippet?: string; length?: number })
         : undefined;
-    const message = snippet ? truncate(`${baseMessage} Received: ${snippet}`, 400) : baseMessage;
+    const message =
+      details && typeof details.length === 'number'
+        ? truncate(
+            `${baseMessage} Received ${details.length} characters: ${details.snippet ?? ''}`,
+            400,
+          )
+        : baseMessage;
 
     if (topic) {
       await releaseTopic(db, topic.id, message, releasedStatusFor(agent));
