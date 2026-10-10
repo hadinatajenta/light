@@ -2,5 +2,9 @@
   "name": "light",
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-10-01",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "https://nameless-tree-67b1.cloudflareaccess.com",
+    "ACCESS_AUD": "780ac9b13f44fd3ed1944d790f90882cbe714115f6f72c4ff74c9adc01498528"
+  }
 }
