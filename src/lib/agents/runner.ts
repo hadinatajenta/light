@@ -78,6 +78,28 @@ function readJsonArray(value: string): string[] {
   }
 }
 
+function readNeedsResearch(content: string): string | null {
+  const trimmed = content.trim();
+
+  if (NEEDS_RESEARCH_PATTERN.test(trimmed)) {
+    return truncate(trimmed, 500);
+  }
+
+  try {
+    const parsed = extractJsonObject(trimmed);
+    const title = readString(parsed.title);
+    const body = readString(parsed.body);
+
+    if (NEEDS_RESEARCH_PATTERN.test(title) || NEEDS_RESEARCH_PATTERN.test(body)) {
+      return truncate([title, body].filter(Boolean).join('\n\n'), 500);
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function buildSystemPrompt(agent: AgentRecord): string {
   const role = getRoleDefinition(agent.role);
   return `${role.defaultPrompt}\n\nAgent focus: ${agent.prompt}\n\nRespond with a single JSON object and nothing else.`;
@@ -306,18 +328,18 @@ export async function runAgent(
       signal,
     });
 
-    if (NEEDS_RESEARCH_PATTERN.test(response.content)) {
-      const note = truncate(response.content, 500);
+    const needsResearch = readNeedsResearch(response.content);
 
+    if (needsResearch) {
       if (topic) {
-        await blockTopic(db, topic.id, note);
+        await blockTopic(db, topic.id, needsResearch);
       }
 
       const summary = topic ? `Blocked topic "${topic.title}": needs research` : 'Needs research';
       await finishAgentRun(db, runId, {
         status: 'succeeded',
         summary,
-        output: note,
+        output: needsResearch,
         tokensIn: response.tokensIn,
         tokensOut: response.tokensOut,
       });
@@ -328,7 +350,7 @@ export async function runAgent(
         runId,
         status: 'succeeded',
         summary,
-        output: note,
+        output: needsResearch,
         tokensIn: response.tokensIn,
         tokensOut: response.tokensOut,
       };

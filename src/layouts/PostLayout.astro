@@ -176,6 +176,7 @@ const jsonLd = [
         {
           post.tags.length > 0 && (
             <div class="tag-row">
+              <span class="label">Filed under</span>
               {post.tags.map((tag) => (
                 <a class="topic" href={`/tag/${tag}/`}>
                   {tag}
