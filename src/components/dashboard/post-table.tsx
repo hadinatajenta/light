@@ -612,6 +612,8 @@ export default function PostTable({
 
     setBusyAction(action);
 
+    let failedCount = 0;
+
     try {
       if (confirmScope === 'row') {
         const target = confirmTargets[0];
@@ -630,14 +632,20 @@ export default function PostTable({
           });
         }
       } else {
-        await requestData('/api/dashboard/posts/bulk', {
+        const result = (await requestData('/api/dashboard/posts/bulk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action, ids: confirmTargets.map((target) => target.id) }),
-        });
+        })) as { failed?: unknown[] };
+
+        failedCount = Array.isArray(result.failed) ? result.failed.length : 0;
       }
 
-      toast.success(buildResultMessage(action, confirmTargets.length));
+      if (failedCount > 0) {
+        toast.error(`${failedCount} of ${confirmTargets.length} could not be updated. Try again.`);
+      } else {
+        toast.success(buildResultMessage(action, confirmTargets.length));
+      }
       setConfirmOpen(false);
       setSelected(new Map());
       void loadPosts();
