@@ -57,18 +57,25 @@ owner, `(dev)` is engineering work.
       `rel="sponsored nofollow noopener"` (dev)
 - [x] Affiliate disclosure gate: renders when a post has affiliate links, and
       the editor now has the affiliate toggle (was hardcoded to false) (dev)
-- [ ] Build the affiliate product catalog UI and the Monetization menu (dev)
-- [ ] Teach the writer agent to reference only catalog products (dev)
+- [x] Build the affiliate product catalog UI and the Monetization menu (dev)
+- [x] Teach the writer agent to reference only catalog products (dev)
+- [x] Monetization menu with programs, catalog, bulk import, ads, disclosure,
+      and a broken reference report (dev)
+- [ ] **Add real products to the catalog** so articles can carry affiliate
+      links (you)
 - [ ] Optional: register Impact or ShareASale for software and services (you)
 - [ ] Enable an ad network and set real slot ids (you, dev)
 - [ ] Replace the placeholder `ads.txt` (you)
-- [ ] Build the monetization dashboard (programs, catalog, ad slots, disclosure) (dev)
 
 ## Phase 4 - content engine
 
-- [ ] Keyword and topic plan, 50 to 100 titles for the first 90 days (you, dev)
-- [ ] Define the content brief format the scrapper consumes (dev)
-- [ ] Run the pipeline and review output quality (you)
+- [x] Topic queue in D1, FIFO claiming, requeue on failure (dev)
+- [x] Writer and reviewer wired to the catalog and the review gate (dev)
+- [x] Seed the first 40 topics (dev)
+- [x] Three agents created in production: Writer A, Writer B, Reviewer (dev)
+- [x] First six articles published (dev)
+- [ ] **Save the DeepSeek API key** so the agents can run (you)
+- [ ] Watch a full scrapper to writer to reviewer cycle on a real topic (you, dev)
 - [ ] Reach 30 published articles (you, dev)
 - [ ] Reach 100 published articles (you, dev)
 
@@ -86,15 +93,17 @@ Placeholder pages today: Media, Pages, Insights, Redirects, Monetization,
 Settings. Real pages today: Dashboard, Posts (plus the editor), Categories,
 Agents, Activity.
 
+- [x] Affiliate toggle in the post editor, so the disclosure can render (dev)
+- [x] Pages menu with full CRUD, and the six static pages moved to D1 (dev)
 - [ ] Media library UI: upload grid, alt text, delete, copy URL (dev)
-- [ ] Affiliate toggle in the post editor, so the disclosure can render (dev)
+- [ ] Topic queue UI, so topics can be managed without the API (dev)
 - [ ] Fix the category and tag URL mismatch: the category editor previews
       `/tag/<slug>/` but that route filters by post tags (dev)
 - [ ] Render the `in-article-mid` and `in-article-bottom` ad slots (dev)
-- [ ] Pages menu (currently a placeholder) (dev)
 - [ ] Redirects menu (currently a placeholder) (dev)
 - [ ] Settings menu (currently a placeholder) (dev)
 - [ ] Agent cost and token reporting (dev)
+- [ ] Split `src/lib/affiliate/store.ts`, which is 650 lines (dev)
 - [ ] Refresh the stale root `README.md` (it still describes a static site) (dev)
 
 ## Infrastructure backlog
@@ -111,7 +120,8 @@ Agents, Activity.
 
 | Item | Blocked by |
 | --- | --- |
-| Affiliate links in articles | No affiliate program registered yet |
+| Agents producing content | DeepSeek API key not saved yet |
+| Affiliate links in articles | Product catalog is empty |
 | Ads on the site | No ad network configured yet |
 | Insights page with real data | No Search Console API credentials yet |
 | Admin on `admin.lightscripts.com` | No Access app for that host yet |

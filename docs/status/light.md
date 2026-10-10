@@ -153,6 +153,13 @@ What is missing to close this loop:
 - [x] **Activity log** for users and agents, with per-actor filtering
 - [x] **Agents**: CRUD, four roles, encrypted DeepSeek key, manual run,
       review gate, scheduled cron Worker
+- [x] **Topic queue**: agents claim the oldest queued topic, and an empty queue
+      exits without calling the model. 40 topics seeded.
+- [x] **Monetization menu**: programs, product catalog with a live link preview,
+      bulk import, ads and disclosure settings, and a broken reference report
+- [x] **Pages CRUD**: the six static pages now live in D1 with a full editor,
+      rendered by a public `[slug]` route
+- [x] **Legal text** written and published: privacy, terms, cookies, disclosure
 - [x] D1 to markdown **backup** job (GitHub Actions, daily)
 - [x] Sitemap with `lastmod` and tag pages, plus robots.txt
 - [x] Search Console property verified (via Cloudflare)
@@ -167,14 +174,15 @@ What is missing to close this loop:
       category.
 - [ ] **Ad slots beyond `in-article-top`.** `in-article-mid` and
       `in-article-bottom` are configured but rendered nowhere.
-- [ ] **Affiliate catalog UI** and the Monetization menu. The tables and the
-      link rewriting exist, but products must currently be inserted with SQL.
-- [ ] **Writer agent uses the catalog.** The agent cannot reference products
-      yet, so it does not emit affiliate links.
+- [ ] **Affiliate catalog is empty.** The menu and the link rewriting are
+      built, but no real products exist, so articles carry no affiliate links.
+      Product data cannot be invented, so this needs real entries.
+- [ ] **DeepSeek API key is not saved.** The three agents are enabled and the
+      queue has 34 topics, but every run fails until the key is added.
 - [ ] **AdSense** (or another network) enabled with real slot ids
 - [ ] Real `ads.txt`
-- [ ] **Content volume**: only 7 published articles exist
-- [ ] Keyword and topic plan for the next 90 days
+- [ ] **Content volume**: 13 published articles exist
+- [ ] Keyword and topic plan beyond the first 40 topics
 - [ ] Search Console sitemap accepted (needs a re-submit)
 - [ ] `admin.lightscripts.com` Access app, then remove `admin.hadinata.me`
 - [ ] Pages menu (still a placeholder)
@@ -198,7 +206,7 @@ What is missing to close this loop:
 | D1 tables | `posts`, `categories`, `media`, `actors`, `activity`, `agents`, `agent_runs`, `settings` |
 | Amazon Associates tracking id | `lightscripts-20` (program `amazon`, status approved) |
 | Public host | `https://lightscripts.com` |
-| Content today | 7 published, 1 archived |
+| Content today | 13 published, 1 archived |
 
 ## 8. Decisions log
 

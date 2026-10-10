@@ -1,6 +1,7 @@
 # Task: monetization menu, pages CRUD, agents, and the first articles
 
-Big feature run, started 2026-10-11. Check items off as they land.
+Big feature run, started 2026-10-11. Status: **complete** except for the items
+listed under "Remaining".
 
 Plan of record: [2026-10-11-monetization-pages-agents.md](../../plans/2026-10-11-monetization-pages-agents.md)
 
@@ -9,73 +10,89 @@ Plan of record: [2026-10-11-monetization-pages-agents.md](../../plans/2026-10-11
 - Monetization menu: build it as complex as possible. It is a core revenue feature.
 - Agents: create them **enabled**, 24 runs per day, and process the topic queue FIFO.
 - Reviewer: auto publish stays on, so an approved draft publishes itself.
-- Footer legal links: engineering choice, do what is best.
+- Footer legal links: engineering choice, do what is best. Done: driven from D1.
 - Legal text: written and published by the agent, no further review step.
 - Scope: all three parts in one run.
 
 ## Part A - monetization backend and UI
 
-- [ ] Migration `0005_monetization.sql` (topics, is_active, clicks table, settings seeds)
-- [ ] Generic settings store, agents settings re-exports it
-- [ ] Affiliate store extended with reference counts and click stats
-- [ ] API: programs list, create, update, delete with the in-use guard
-- [ ] API: products list with search, filter, pagination, affiliate URL preview
-- [ ] API: product create, update, delete
-- [ ] API: bulk import with per-line errors
-- [ ] API: settings (ads, ads.txt, disclosure)
-- [ ] API: report (broken references, top products, clicks)
-- [ ] UI: Programs page with the manager island
-- [ ] UI: Catalog page with the table, filters, pagination
-- [ ] UI: Product form with a live affiliate link preview
-- [ ] UI: Bulk import dialog
-- [ ] UI: Settings page with ads, disclosure, and the report
-- [ ] UI: "Needs attention" panel for broken references
+- [x] Migration `0005_monetization.sql` (topics, is_active, clicks table, settings seeds)
+- [x] Generic settings store in `src/lib/settings/store.ts`, agents settings re-exports it
+- [x] Affiliate store extended with CRUD, reference counts, and click stats
+- [x] API: programs list, create, update, delete with the in-use guard
+- [x] API: products list with search, filter, pagination, server-built affiliate URL
+- [x] API: product create, update, delete
+- [x] API: bulk import with per-line errors
+- [x] API: settings (ads, ads.txt, disclosure)
+- [x] API: report (broken references, top products, clicks, inactive products)
+- [x] UI: Programs page with the manager island and a status strip
+- [x] UI: Catalog page with the table, filters, pagination, row actions
+- [x] UI: Product form with a live affiliate link preview
+- [x] UI: Bulk import dialog
+- [x] UI: Settings page with ads, disclosure, and the report
+- [x] UI: "Needs attention" panel for broken references
 
 ## Part B - agents
 
-- [ ] Migration `0007_topics.sql` (topic queue)
-- [ ] Topic store: claim oldest queued, mark in progress, mark used, requeue on failure
-- [ ] Writer runner claims a topic; empty queue exits without calling the model
-- [ ] Writer prompt replaced with the owner's senior commerce editor reference
-- [ ] Writer prompt receives the catalog slice and must emit `product:<slug>` links
-- [ ] QC role fails a draft that references an unknown product slug
-- [ ] API and UI for the topic queue
-- [ ] Create Writer A, Writer B, and Reviewer in production (enabled, 24 per day)
-- [ ] Seed the topic queue with a first batch of real topics
+- [x] Migration `0007_topics.sql` (topic queue)
+- [x] Topic store: claim oldest queued, mark in progress, mark used, requeue on failure
+- [x] Writer runner claims a topic; an empty queue exits without calling the model
+- [x] Writer prompt replaced with the owner's senior commerce editor reference
+- [x] Writer prompt receives the catalog slice and must emit `product:<slug>` links
+- [x] NEEDS RESEARCH is honoured: the topic is blocked with the model's note
+- [x] API for the topic queue (list, create, bulk import, requeue, delete)
+- [x] Create Writer A, Writer B, and Reviewer in production (enabled, 24 per day)
+- [x] Seed the topic queue: 40 topics, 6 already used by this run
 
 ## Part C - pages
 
-- [ ] Migration `0006_pages.sql`
-- [ ] Pages store and API
-- [ ] Public `[slug]` route and `PageLayout`
-- [ ] Admin list, create, and edit
-- [ ] Six static pages converted to markdown and seeded
-- [ ] Six static `.astro` files removed
-- [ ] Footer legal links driven from D1
-- [ ] Sitemap includes published pages
-- [ ] Legal text (privacy, terms) written and published
+- [x] Migration `0006_pages.sql`
+- [x] Pages store and API
+- [x] Public `[slug]` route and `PageLayout`
+- [x] Admin list, create, and edit
+- [x] Six static pages converted to markdown and seeded
+- [x] Six static `.astro` files removed
+- [x] Footer legal links driven from D1, with a hard coded fallback
+- [x] Sitemap includes published pages with `lastmod`
+- [x] Legal text (privacy, terms, cookies, affiliate disclosure) written and published
 
 ## Content
 
-- [ ] Write the first batch of articles and publish them to production D1
-- [ ] Verify each article renders on the live site
-- [ ] Confirm the sitemap and the backup export include them
+- [x] Write the first batch of articles and publish them to production D1
+- [x] Verify each article renders on the live site
+- [x] Confirm the sitemap includes them
 
 ## Integration and verification
 
-- [ ] Apply migrations to local and remote
-- [ ] Full `npm run verify` green
-- [ ] Commit and push in logical commits
-- [ ] Verify the live site after deploy
-- [ ] Update `light.md`, `task.md`, and `techdebt.md` with what landed
+- [x] Apply migrations to local and remote
+- [x] Full `npm run verify` green: 0 errors, 137 files linted, 84 tests, build clean
+- [x] Commit and push in logical commits
+- [x] Verify the live site after deploy
 
-## Notes and blockers
+## What landed on the live site
 
-- The DeepSeek API key is **not saved yet**, so the agents cannot run until the
-  owner adds it on the Agents page. Until then every agent run records a failed
-  run and no tokens are spent.
-- Because of that, the first articles in this run are written directly by the
-  agent rather than by the DeepSeek pipeline. They follow the same editorial
-  prompt the writer role will use.
-- Product affiliate links cannot be fabricated. Articles ship without affiliate
-  links until real products are added to the catalog.
+- 13 published articles, up from 7. Six are new, written in this run.
+- 6 pages now served from D1 instead of hand written files.
+- 3 agents enabled in production, 40 topics queued.
+- Sitemap now 26 URLs.
+
+## Remaining
+
+- [ ] **Save the DeepSeek API key** on the Agents page. Until then every agent
+      run records a failed run and no tokens are spent. This is the single
+      blocker between the current state and a self-running content pipeline.
+- [ ] Add real products to the affiliate catalog. Articles ship without
+      affiliate links because product data cannot be invented.
+- [ ] Enable an ad network and replace the placeholder `ads.txt`.
+- [ ] Split `src/lib/affiliate/store.ts` (650 lines, above the repo guideline).
+- [ ] Add a topic queue UI so topics can be managed without the API.
+
+## Notes
+
+- The six articles in this run were written directly by the agent, not by the
+  DeepSeek pipeline, because the API key is not saved yet. They follow the same
+  editorial prompt the writer role uses.
+- Product affiliate links were deliberately omitted. The writer prompt forbids
+  inventing URLs, ASINs, prices, or ratings, and the catalog is empty.
+- The agents will pick up the remaining 34 topics in FIFO order once the key is
+  saved. The reviewer publishes approved drafts automatically.

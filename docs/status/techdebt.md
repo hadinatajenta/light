@@ -87,6 +87,24 @@ therefore has no working listing page, even though the editor implies it does.
 Trigger: decide the model. Either give categories their own route
 (`/category/<slug>/`) or make the tag route also match the category.
 
+### The affiliate store is 650 lines
+
+`src/lib/affiliate/store.ts` holds schemas, program CRUD, product CRUD, counts,
+reference scanning, and report primitives. The repo guideline is roughly 300
+lines per file.
+
+Trigger: split into `schema.ts`, `products.ts`, and `references.ts` the next
+time that module is opened.
+
+### The monetization UI mirrors the affiliate URL builder
+
+`product-form.tsx` reimplements the link preview so the user sees the URL before
+saving. It mirrors the gates in `buildAffiliateUrl` (status, tracking id,
+template, safe target). Two implementations of one rule drift.
+
+Trigger: expose the preview builder from the API (already returned as
+`affiliateUrl` on the list) and use that in the form instead of a local copy.
+
 ### The media library has no UI
 
 The Media page is a placeholder. The API (`/api/dashboard/media`) and the R2
@@ -149,6 +167,31 @@ Research notes produced by the scrapper role are stored only inside the
 consume them automatically.
 
 Trigger: build a `sources` table when the scrapper to writer handoff is wired.
+
+### The agent runner reads the affiliate tables directly
+
+`src/lib/agents/runner.ts` builds the writer's catalog slice with its own SQL
+against `affiliate_products` and `affiliate_programs`, instead of going through
+`src/lib/affiliate/store.ts`. It is consistent with the schema, but it is a
+second reader of the same tables.
+
+Trigger: move the catalog slice query into the affiliate store when that module
+is next opened.
+
+### The pages seed script is one-shot
+
+`scripts/seed-pages.ts` reads the six `.astro` files that were deleted in the
+same change, so it cannot be re-run. It served its purpose once.
+
+Trigger: none, unless the pages need reseeding. Use the dashboard instead.
+
+### The topic queue has no UI
+
+Topics can only be created and managed through the API, so seeding the queue
+means SQL or curl.
+
+Trigger: build `/dashboard/agents/topics` when the content pipeline is actually
+running and the queue needs daily attention.
 
 ### Two ad slots are defined but never rendered
 
