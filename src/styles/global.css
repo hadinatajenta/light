@@ -232,6 +232,9 @@
 .topic-mobile-links {
   @apply hidden;
 }
+.topic-close {
+  @apply hidden font-sans text-xs tracking-[0.06em] uppercase text-ink-55;
+}
 
 .search-overlay {
   @apply fixed inset-0 z-[200] hidden px-6 pt-[12vh] pb-6;
@@ -778,28 +781,43 @@
 
 @media (max-width: 860px) {
   .nav-inner {
-    padding: 0 16px;
-    gap: 16px;
+    @apply gap-4 px-4;
   }
   .nav-links {
-    display: none;
+    @apply hidden;
   }
   .menu-btn {
-    display: grid;
+    @apply grid;
+  }
+
+  .topic-panel.open {
+    max-height: none;
+    height: calc(100dvh - var(--nav-h));
+    bottom: 0;
+    overflow-y: auto;
+  }
+  .topic-inner {
+    @apply flex min-h-full flex-col p-5;
+  }
+  .topic-head {
+    @apply pb-4;
+  }
+  .topic-count {
+    @apply hidden;
+  }
+  .topic-close {
+    @apply inline-flex;
   }
   .topic-mobile-links {
-    display: block;
-    margin-top: 26px;
-    padding-top: 22px;
-    border-top: 1px solid var(--ink-12);
+    order: 1;
+    @apply mb-5 block border-b border-ink-12 px-0 pt-0 pb-2;
   }
   .topic-mobile-links a {
-    display: block;
-    font-family: var(--font-sans);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--ink);
-    padding: 10px 0;
+    @apply block py-3.5 font-sans text-xl font-semibold text-ink;
+  }
+  .topic-grid {
+    order: 2;
+    @apply grid-cols-1;
   }
 }
 

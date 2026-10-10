@@ -6,7 +6,10 @@ import { PRIMARY_NAVIGATION, TOPICS } from '@/consts';
   <div class="topic-inner">
     <div class="topic-head">
       <span class="label">All topics</span>
-      <span class="label">{TOPICS.length} topics</span>
+      <span class="label topic-count">{TOPICS.length} topics</span>
+      <button type="button" class="topic-close" data-topics-trigger aria-label="Close menu">
+        Close
+      </button>
     </div>
     <div class="topic-grid">
       {
@@ -33,19 +36,35 @@ import { PRIMARY_NAVIGATION, TOPICS } from '@/consts';
 <script>
   const panel = document.getElementById('topic-panel');
   const triggers = Array.from(document.querySelectorAll('[data-topics-trigger]'));
+  const mobileQuery = window.matchMedia('(max-width: 860px)');
 
   if (panel && triggers.length > 0) {
+    let lastTrigger: HTMLElement | null = null;
+
     const setOpen = (isOpen: boolean): void => {
       panel.classList.toggle('open', isOpen);
       for (const trigger of triggers) {
         trigger.setAttribute('aria-expanded', String(isOpen));
       }
+      document.body.style.overflow = isOpen && mobileQuery.matches ? 'hidden' : '';
     };
 
     for (const trigger of triggers) {
       trigger.addEventListener('click', (event) => {
         event.stopPropagation();
-        setOpen(!panel.classList.contains('open'));
+        const willOpen = !panel.classList.contains('open');
+
+        if (willOpen) {
+          lastTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+        }
+
+        setOpen(willOpen);
+
+        if (willOpen && mobileQuery.matches) {
+          document.querySelector<HTMLElement>('.topic-close')?.focus();
+        } else if (!willOpen && lastTrigger) {
+          lastTrigger.focus();
+        }
       });
     }
 
@@ -69,6 +88,10 @@ import { PRIMARY_NAVIGATION, TOPICS } from '@/consts';
       if (event.key === 'Escape') {
         setOpen(false);
       }
+    });
+
+    mobileQuery.addEventListener('change', () => {
+      document.body.style.overflow = '';
     });
   }
 </script>

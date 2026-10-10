@@ -194,6 +194,11 @@ const jsonLd = [
   </div>
 
   <script>
+    const tocDetails = document.querySelector<HTMLDetailsElement>('.toc-details');
+    if (tocDetails && window.matchMedia('(max-width: 999px)').matches) {
+      tocDetails.open = false;
+    }
+
     const progressBar = document.getElementById('progress');
     const tocPercent = document.getElementById('toc-progress');
     const article = document.querySelector<HTMLElement>('.post-body');
