@@ -1,0 +1,13 @@
+{
+  "name": "light-agents",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  },
+  "vars": {
+    "AGENT_RUN_URL": "https://lightscripts.com/api/agents/run-due"
+  }
+}

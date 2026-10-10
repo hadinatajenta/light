@@ -23,6 +23,9 @@
     "db:export": "tsx scripts/export-d1.ts",
     "cf:db:migrate": "wrangler d1 migrations apply light-content --remote",
     "cf:deploy": "wrangler deploy",
+    "agents:deploy": "wrangler deploy --config workers/agents/wrangler.jsonc",
+    "agents:secret": "wrangler secret put AGENT_CRON_TOKEN --config workers/agents/wrangler.jsonc",
+    "agents:tail": "wrangler tail --config workers/agents/wrangler.jsonc",
     "verify": "npm run validate:content && npm run check && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
