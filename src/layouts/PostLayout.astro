@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import { type CollectionEntry, render } from 'astro:content';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
 import { SITE_AUTHOR } from '@/consts';
@@ -11,6 +12,7 @@ import {
   buildFaqJsonLd,
 } from '@/utils/seo';
 import { buildTableOfContents } from '@/utils/toc';
+import AdSlot from '@/components/AdSlot.astro';
 import BaseLayout from './BaseLayout.astro';
 
 interface Props {
@@ -18,7 +20,8 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { title, description, pubDate, updatedDate, tags, affiliate, faq } = post.data;
+const { title, description, pubDate, updatedDate, tags, affiliate, faq, cover, coverAlt } =
+  post.data;
 
 const { Content, headings } = await render(post);
 const readingMinutes = calculateReadingTimeMinutes(post.body ?? '');
@@ -118,6 +121,16 @@ const jsonLd = [
           <span>{readingMinutes} min read</span>
         </div>
       </header>
+
+      {
+        cover && (
+          <figure class="post-hero">
+            <Image src={cover} alt={coverAlt ?? title} class="post-hero-image" />
+          </figure>
+        )
+      }
+
+      <AdSlot slotId="in-article-top" format="leaderboard" />
 
       {
         affiliate && <p class="post-disclosure">{DEFAULT_AFFILIATE_DISCLOSURE}</p>

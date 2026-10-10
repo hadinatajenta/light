@@ -1,4 +1,5 @@
 ---
+import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import { formatDate } from '@/utils/date';
 
@@ -9,7 +10,7 @@ interface Props {
 }
 
 const { post, variant = 'default', symbol } = Astro.props;
-const { title, description, pubDate, tags } = post.data;
+const { title, description, pubDate, tags, cover } = post.data;
 
 const isTextOnly = variant === 'text';
 const cardClass = ['m-card', variant === 'feature' ? 'm-card-feature' : '', isTextOnly ? 'm-card-text' : '']
@@ -25,7 +26,11 @@ const postHref = `/blog/${post.id}/`;
   {
     !isTextOnly && (
       <div class={mediaClass} aria-hidden="true">
-        <span class={glyphClass}>{glyph}</span>
+        {cover ? (
+          <Image src={cover} alt="" loading="lazy" class="m-card-image" />
+        ) : (
+          <span class={glyphClass}>{glyph}</span>
+        )}
       </div>
     )
   }

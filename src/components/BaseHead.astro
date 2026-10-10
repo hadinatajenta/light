@@ -1,4 +1,5 @@
 ---
+import { AD_CONFIG } from '@/config/monetization';
 import { DEFAULT_OG_IMAGE, SITE_DESCRIPTION, SITE_LOCALE, SITE_TITLE } from '@/consts';
 import { buildCanonicalUrl, serializeJsonLd } from '@/utils/seo';
 
@@ -50,4 +51,14 @@ const jsonLdBlocks = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
   jsonLdBlocks.map((block) => (
     <script type="application/ld+json" set:html={serializeJsonLd(block)} />
   ))
+}
+{
+  AD_CONFIG.network === 'adsense' && AD_CONFIG.adsenseClientId && (
+    <script
+      is:inline
+      async
+      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${AD_CONFIG.adsenseClientId}`}
+      crossorigin="anonymous"
+    />
+  )
 }
