@@ -1,0 +1,45 @@
+---
+interface Props {
+  values: number[];
+  width?: number;
+  height?: number;
+  label: string;
+}
+
+const { values, width = 240, height = 56, label } = Astro.props;
+
+const series = values.length > 1 ? values : values.length === 1 ? [values[0], values[0]] : [0, 0];
+const maxValue = Math.max(1, ...series);
+const step = width / (series.length - 1);
+const verticalPadding = 4;
+const plotHeight = height - verticalPadding * 2;
+
+const coordinates = series.map((value, index) => ({
+  x: index * step,
+  y: height - verticalPadding - (value / maxValue) * plotHeight,
+}));
+
+const linePoints = coordinates
+  .map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`)
+  .join(' ');
+const areaPoints = `${linePoints} ${width},${height} 0,${height}`;
+---
+
+<svg
+  viewBox={`0 0 ${width} ${height}`}
+  preserveAspectRatio="none"
+  class="block h-14 w-full text-chart-2"
+  role="img"
+  aria-label={label}
+>
+  <polygon points={areaPoints} fill="currentColor" opacity="0.1"></polygon>
+  <polyline
+    points={linePoints}
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    vector-effect="non-scaling-stroke"
+  ></polyline>
+</svg>

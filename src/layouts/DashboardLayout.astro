@@ -81,6 +81,26 @@ function isActive(href: string): boolean {
           <span class="text-xs text-muted-foreground">admin</span>
         </div>
 
+        <div class="p-3 pb-1">
+          <a
+            href="/dashboard/posts/new"
+            class="flex items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              class="size-4 shrink-0"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            New post
+          </a>
+        </div>
+
         <nav aria-label="Dashboard" class="flex-1 overflow-y-auto p-2">
           <ul class="flex flex-col gap-0.5">
             {
