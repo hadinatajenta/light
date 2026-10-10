@@ -11,38 +11,53 @@ const bulkRequestSchema = z.object({
   ids: z.array(z.string().min(1).max(120)).min(1).max(100),
 });
 
+interface BulkOutcome {
+  id: string;
+  ok: boolean;
+  code?: string;
+  message?: string;
+}
+
 export const POST = withAdmin(async ({ request }, requestId) => {
   const config = getGithubConfig();
   const payload = bulkRequestSchema.parse(await readJsonBody(request, 20_000));
 
-  if (payload.action === 'delete') {
-    await Promise.all(
-      payload.ids.map((id) => deletePost(config, id, `chore(content): delete ${id}`)),
-    );
-    return jsonOk({ action: 'delete', affected: payload.ids.length }, requestId);
-  }
+  const outcomes: BulkOutcome[] = [];
 
   for (const id of payload.ids) {
-    const post = await getPost(config, id);
+    try {
+      if (payload.action === 'delete') {
+        await deletePost(config, id, `chore(content): delete ${id}`);
+      } else {
+        const post = await getPost(config, id);
+        await setPostStatus(
+          config,
+          id,
+          post.data,
+          post.body,
+          'archived',
+          `chore(content): archive ${id}`,
+        );
+      }
 
-    if (post.data.status === 'archived') {
-      throw new ApiError(409, 'ALREADY_ARCHIVED', `The post ${id} is already archived.`);
+      outcomes.push({ id, ok: true });
+    } catch (error) {
+      if (error instanceof ApiError) {
+        outcomes.push({ id, ok: false, code: error.code, message: error.message });
+      } else {
+        outcomes.push({ id, ok: false, code: 'UNKNOWN', message: 'The action failed.' });
+      }
     }
   }
 
-  await Promise.all(
-    payload.ids.map(async (id) => {
-      const post = await getPost(config, id);
-      await setPostStatus(
-        config,
-        id,
-        post.data,
-        post.body,
-        'archived',
-        `chore(content): archive ${id}`,
-      );
-    }),
-  );
+  const failed = outcomes.filter((outcome) => !outcome.ok);
 
-  return jsonOk({ action: 'archive', affected: payload.ids.length }, requestId);
+  return jsonOk(
+    {
+      action: payload.action,
+      affected: outcomes.length - failed.length,
+      failed,
+    },
+    requestId,
+  );
 });

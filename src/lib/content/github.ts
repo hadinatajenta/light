@@ -170,6 +170,10 @@ export async function deleteFile(
     return;
   }
 
+  if (response.status === 409 || response.status === 422) {
+    throw new ApiError(409, 'REVISION_CONFLICT', 'The file changed elsewhere. Reload and retry.');
+  }
+
   if (!response.ok) {
     throw new ApiError(502, 'GITHUB_ERROR', 'Failed to delete from the repository.');
   }
