@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import YAML from 'yaml';
 
 const BLOG_DIRECTORY = 'src/content/blog';
+const CATEGORIES_PATH = 'src/data/categories.json';
 const OUTPUT_FILE = 'migrations/seed.sql';
 
 interface Frontmatter {
@@ -22,6 +23,12 @@ interface Frontmatter {
   faq?: Array<{ question: string; answer: string }>;
   pubDate?: string;
   updatedDate?: string;
+}
+
+interface CategoryRecord {
+  slug: string;
+  label: string;
+  description?: string;
 }
 
 function sqlValue(value: unknown): string {
@@ -52,7 +59,14 @@ function resolveCoverUrl(data: Frontmatter): string | null {
   return null;
 }
 
-async function main(): Promise<void> {
+function buildCategoryStatements(categories: CategoryRecord[]): string[] {
+  return categories.map(
+    (category) =>
+      `INSERT OR REPLACE INTO categories (slug, label, description) VALUES (${sqlValue(category.slug)}, ${sqlValue(category.label)}, ${sqlValue(category.description ?? '')});`,
+  );
+}
+
+async function buildPostStatements(): Promise<string[]> {
   const names = await readdir(BLOG_DIRECTORY);
   const statements: string[] = [];
 
@@ -121,8 +135,17 @@ async function main(): Promise<void> {
     );
   }
 
+  return statements;
+}
+
+async function main(): Promise<void> {
+  const categories = JSON.parse(await readFile(CATEGORIES_PATH, 'utf8')) as CategoryRecord[];
+  const statements = [...buildCategoryStatements(categories), ...(await buildPostStatements())];
+
   await writeFile(OUTPUT_FILE, `${statements.join('\n')}\n`);
-  console.log(`Wrote ${statements.length} post(s) to ${OUTPUT_FILE}`);
+  console.log(
+    `Wrote ${categories.length} categor(ies) and ${statements.length - categories.length} post(s) to ${OUTPUT_FILE}`,
+  );
 }
 
 await main();

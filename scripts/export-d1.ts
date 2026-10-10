@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import YAML from 'yaml';
 
 const BLOG_DIRECTORY = 'src/content/blog';
+const CATEGORIES_PATH = 'src/data/categories.json';
 const DATABASE_NAME = 'light-content';
 
 interface PostRow {
@@ -26,23 +27,20 @@ interface PostRow {
   updated_date: string | null;
 }
 
-function fetchPostRows(): PostRow[] {
+interface CategoryRow {
+  slug: string;
+  label: string;
+  description: string;
+}
+
+function queryRows<T>(command: string): T[] {
   const output = execFileSync(
     'npx',
-    [
-      'wrangler',
-      'd1',
-      'execute',
-      DATABASE_NAME,
-      '--remote',
-      '--json',
-      '--command',
-      'SELECT * FROM posts ORDER BY id',
-    ],
+    ['wrangler', 'd1', 'execute', DATABASE_NAME, '--remote', '--json', '--command', command],
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
   );
 
-  const parsed = JSON.parse(output) as Array<{ results?: PostRow[] }>;
+  const parsed = JSON.parse(output) as Array<{ results?: T[] }>;
   return parsed[0]?.results ?? [];
 }
 
@@ -108,23 +106,8 @@ async function writeIfChanged(path: string, next: string): Promise<boolean> {
   return true;
 }
 
-async function removeDeletedPosts(expected: Set<string>): Promise<number> {
-  let removed = 0;
-
-  for (const name of await readdir(BLOG_DIRECTORY)) {
-    if (!/\.mdx?$/.test(name) || expected.has(name)) {
-      continue;
-    }
-
-    await rm(join(BLOG_DIRECTORY, name));
-    removed += 1;
-  }
-
-  return removed;
-}
-
-async function main(): Promise<void> {
-  const rows = fetchPostRows();
+async function exportPosts(): Promise<number> {
+  const rows = queryRows<PostRow>('SELECT * FROM posts ORDER BY id');
   const expected = new Set(rows.map((row) => `${row.id}.md`));
   let changed = 0;
 
@@ -135,8 +118,40 @@ async function main(): Promise<void> {
     }
   }
 
-  changed += await removeDeletedPosts(expected);
-  console.log(`Exported ${rows.length} post(s); ${changed} file(s) changed.`);
+  for (const name of await readdir(BLOG_DIRECTORY)) {
+    if (!/\.mdx?$/.test(name) || expected.has(name)) {
+      continue;
+    }
+
+    await rm(join(BLOG_DIRECTORY, name));
+    changed += 1;
+  }
+
+  return changed;
+}
+
+async function exportCategories(): Promise<number> {
+  const rows = queryRows<CategoryRow>(
+    'SELECT slug, label, description FROM categories ORDER BY rowid',
+  );
+  const categories = rows.map((row) => ({
+    slug: row.slug,
+    label: row.label,
+    description: row.description,
+  }));
+
+  const changed = await writeIfChanged(CATEGORIES_PATH, `${JSON.stringify(categories, null, 2)}\n`);
+
+  return changed ? 1 : 0;
+}
+
+async function main(): Promise<void> {
+  const postChanges = await exportPosts();
+  const categoryChanges = await exportCategories();
+
+  console.log(
+    `Exported posts (${postChanges} file(s) changed) and categories (${categoryChanges} file(s) changed).`,
+  );
 }
 
 await main();
