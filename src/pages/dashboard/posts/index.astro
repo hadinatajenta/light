@@ -7,7 +7,10 @@ export const prerender = false;
 const searchParams = Astro.url.searchParams;
 const statusParam = searchParams.get('status') ?? 'all';
 const initialStatus =
-  statusParam === 'draft' || statusParam === 'published' || statusParam === 'archived'
+  statusParam === 'draft' ||
+  statusParam === 'published' ||
+  statusParam === 'archived' ||
+  statusParam === 'scheduled'
     ? statusParam
     : 'all';
 const initialCategory = searchParams.get('category') ?? '';

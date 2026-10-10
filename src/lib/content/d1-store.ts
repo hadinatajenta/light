@@ -94,6 +94,23 @@ function readBool(value: unknown): number {
   return value === true ? 1 : 0;
 }
 
+function toIsoOrNull(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+  }
+
+  return null;
+}
+
 export function createD1Store(db: D1Database) {
   async function requireRow(id: string): Promise<PostRow> {
     const row = await db.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first<PostRow>();
@@ -159,8 +176,8 @@ export function createD1Store(db: D1Database) {
           data.focusKeyword ? String(data.focusKeyword) : null,
           readBool(data.affiliate),
           JSON.stringify(Array.isArray(data.faq) ? data.faq : []),
-          data.pubDate ? String(data.pubDate) : null,
-          data.updatedDate ? String(data.updatedDate) : null,
+          toIsoOrNull(data.pubDate),
+          toIsoOrNull(data.updatedDate),
           now,
           now,
         )
@@ -205,8 +222,8 @@ export function createD1Store(db: D1Database) {
           data.focusKeyword ? String(data.focusKeyword) : null,
           readBool(data.affiliate),
           JSON.stringify(Array.isArray(data.faq) ? data.faq : []),
-          data.pubDate ? String(data.pubDate) : null,
-          data.updatedDate ? String(data.updatedDate) : now,
+          toIsoOrNull(data.pubDate),
+          toIsoOrNull(data.updatedDate) ?? now,
           now,
           id,
         )
