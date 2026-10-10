@@ -5,10 +5,12 @@ import TagInput from '@/components/dashboard/tag-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { requestJson, toErrorMessage } from './api-client';
 import { DialogSurface } from './dialog-surface';
 import type { AffiliateNetwork, ProgramRecord } from './program-manager';
 import { describeAffiliateFailure } from './program-manager';
 
+const PRODUCTS_ENDPOINT = '/api/dashboard/monetization/products';
 const PRODUCT_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const PRODUCT_SLUG_MESSAGE =
   'Use lowercase letters, numbers, and single hyphens, for example desk-lamp-xl.';
@@ -230,6 +232,7 @@ export default function ProductForm({
   const [errors, setErrors] = useState<ProductFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSlugEdited, setIsSlugEdited] = useState(false);
+  const [resolveNote, setResolveNote] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   const slugRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -299,6 +302,39 @@ export default function ProductForm({
     ? TARGET_HINT[activeProgram.network]
     : 'Choose a program first, then enter its target.';
   const isPendingEdit = product !== null;
+
+  const handleTargetResolve = async (rawTarget: string): Promise<void> => {
+    const candidate = rawTarget.trim();
+
+    if (!activeProgram || activeProgram.network !== 'amazon' || !candidate.includes('://')) {
+      return;
+    }
+
+    try {
+      const resolved = await requestJson<{
+        target: string;
+        name: string | null;
+        slug: string | null;
+      }>(`${PRODUCTS_ENDPOINT}/resolve`, {
+        method: 'POST',
+        body: JSON.stringify({ programId: activeProgram.id, target: candidate }),
+      });
+
+      setValues((current) => ({
+        ...current,
+        target: resolved.target,
+        name: current.name.trim().length > 0 ? current.name : (resolved.name ?? current.name),
+        slug: isSlugEdited ? current.slug : (resolved.slug ?? current.slug),
+      }));
+      setResolveNote(
+        resolved.target === candidate
+          ? null
+          : 'Read the ASIN and the name from the URL. Check the name before saving.',
+      );
+    } catch (error) {
+      setResolveNote(toErrorMessage(error));
+    }
+  };
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -500,10 +536,22 @@ export default function ProductForm({
             onChange={(event) =>
               setValues((current) => ({ ...current, target: event.target.value }))
             }
+            onPaste={(event) => {
+              const pasted = event.clipboardData.getData('text');
+              if (pasted.includes('://')) {
+                void handleTargetResolve(pasted);
+              }
+            }}
+            onBlur={(event) => void handleTargetResolve(event.target.value)}
           />
           <p id="product-target-help" className="text-xs text-muted-foreground">
             {targetHint}
           </p>
+          {resolveNote ? (
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {resolveNote}
+            </p>
+          ) : null}
           {errors.target ? (
             <p id="product-target-error" className="text-sm text-destructive">
               {errors.target}

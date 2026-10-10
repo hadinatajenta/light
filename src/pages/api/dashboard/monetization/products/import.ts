@@ -8,6 +8,11 @@ import {
   getProgram,
   listProductSlugs,
 } from '@/lib/affiliate/store';
+import {
+  AMAZON_ASIN_PATTERN,
+  deriveNameFromAmazonUrl,
+  extractAmazonAsin,
+} from '@/lib/affiliate/targets';
 import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
 import { toSlug } from '@/lib/content/slug';
@@ -16,7 +21,6 @@ import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
 export const prerender = false;
 
 const MAX_IMPORT_LINES = 200;
-const AMAZON_ASIN_PATTERN = /^[A-Za-z0-9]{10}$/;
 
 const importRequestSchema = z.object({
   programId: z
@@ -41,46 +45,6 @@ type ImportLineResult = { ok: true; value: ImportedProductLine } | { ok: false; 
 
 function isBareImportTarget(target: string): boolean {
   return target.includes('://') || AMAZON_ASIN_PATTERN.test(target);
-}
-
-const AMAZON_URL_ASIN_PATTERNS = [
-  /\/dp\/([A-Za-z0-9]{10})(?:[/?]|$)/,
-  /\/gp\/product\/([A-Za-z0-9]{10})(?:[/?]|$)/,
-  /\/product\/([A-Za-z0-9]{10})(?:[/?]|$)/,
-  /[?&]asin=([A-Za-z0-9]{10})(?:&|$)/i,
-];
-
-export function extractAmazonAsin(value: string): string | null {
-  if (!value.includes('://')) {
-    return null;
-  }
-
-  for (const pattern of AMAZON_URL_ASIN_PATTERNS) {
-    const match = value.match(pattern);
-    if (match) {
-      return match[1].toUpperCase();
-    }
-  }
-
-  return null;
-}
-
-export function deriveNameFromAmazonUrl(value: string): string | null {
-  if (!value.includes('://')) {
-    return null;
-  }
-
-  const match =
-    value.match(/amazon\.[a-z.]+\/([^/?#]+)\/dp\//i) ??
-    value.match(/amazon\.[a-z.]+\/([^/?#]+)\/gp\/product\//i);
-
-  if (!match) {
-    return null;
-  }
-
-  const name = decodeURIComponent(match[1]).replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
-
-  return name.length >= 2 ? name : null;
 }
 
 function resolveImportTarget(

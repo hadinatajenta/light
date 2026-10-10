@@ -3,11 +3,13 @@ import { buildAffiliateUrl } from '@/lib/affiliate/links';
 import {
   countProductReferences,
   createProduct,
+  getProgram,
   listProducts,
   listPrograms,
   type ProductCatalogEntry,
   productInputSchema,
 } from '@/lib/affiliate/store';
+import { resolveAffiliateTarget } from '@/lib/affiliate/targets';
 import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
 import { jsonOk, readJsonBody } from '@/lib/http';
@@ -99,7 +101,9 @@ export const GET = withAdmin(async ({ url }, requestId) => {
 export const POST = withAdmin(async ({ request }, requestId, user) => {
   const database = await requireContentDatabase();
   const payload = productInputSchema.parse(await readJsonBody(request, 30_000));
-  const product = await createProduct(database, payload);
+  const program = await getProgram(database, payload.programId);
+  const resolved = resolveAffiliateTarget(payload.target, program.network === 'amazon');
+  const product = await createProduct(database, { ...payload, target: resolved.target });
 
   await recordActivity({
     ...toUserActor(user),

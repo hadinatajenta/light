@@ -1,5 +1,11 @@
 import { recordActivity, toUserActor } from '@/lib/activity/record';
-import { deleteProduct, productInputSchema, updateProduct } from '@/lib/affiliate/store';
+import {
+  deleteProduct,
+  getProgram,
+  productInputSchema,
+  updateProduct,
+} from '@/lib/affiliate/store';
+import { resolveAffiliateTarget } from '@/lib/affiliate/targets';
 import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
 import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
@@ -19,7 +25,9 @@ export const PUT = withAdmin(async ({ params, request }, requestId, user) => {
   const database = await requireContentDatabase();
   const id = requireId(params);
   const payload = productInputSchema.parse(await readJsonBody(request, 30_000));
-  const product = await updateProduct(database, id, payload);
+  const program = await getProgram(database, payload.programId);
+  const resolved = resolveAffiliateTarget(payload.target, program.network === 'amazon');
+  const product = await updateProduct(database, id, { ...payload, target: resolved.target });
 
   await recordActivity({
     ...toUserActor(user),
