@@ -67,3 +67,9 @@ own sake, it is the thing that makes the desk easy to use every day.
 Plan for a workspace that can absorb one more screen and one more device without a rebuild, and you
 will spend far less over the next few years than someone chasing a new desk every time their job
 changes.
+
+## Related guides
+
+- [How to choose a desk lamp for long working hours](/blog/how-to-choose-a-desk-lamp-for-long-working-hours/)
+- [How to choose a standing desk for a small home office](/blog/how-to-choose-a-standing-desk-for-a-small-home-office/)
+- [Cable management for a small desk: what to plan before you buy](/blog/cable-management-for-a-small-desk/)

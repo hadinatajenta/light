@@ -62,3 +62,9 @@ Write your two or three needs, list only the specifications that serve them, and
 else. Ask what each number measures and under what conditions. Look for what is missing. Then check
 long-term owner reports. This method turns a confusing sheet into a clear decision, and it works for
 monitors, laptops, storage, and almost anything else you will buy again.
+
+## Related guides
+
+- [Sizing an office chair: what the standards actually require](/blog/chair-seat-depth-and-height-office-chair-sizing/)
+- [How to choose a desk lamp for long working hours](/blog/how-to-choose-a-desk-lamp-for-long-working-hours/)
+- [How to choose a monitor for a home office](/blog/how-to-choose-a-monitor-for-a-home-office/)

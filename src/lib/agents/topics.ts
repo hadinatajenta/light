@@ -206,13 +206,18 @@ export async function markTopicUsed(db: D1Database, id: string, postId: string):
     .run();
 }
 
-export async function releaseTopic(db: D1Database, id: string, note?: string): Promise<void> {
+export async function releaseTopic(
+  db: D1Database,
+  id: string,
+  note?: string,
+  status: TopicStatus = 'queued',
+): Promise<void> {
   await db
     .prepare(
-      `UPDATE topics SET status = 'queued', assigned_agent_id = NULL, note = ?, updated_at = ?
+      `UPDATE topics SET status = ?, assigned_agent_id = NULL, note = ?, updated_at = ?
        WHERE id = ?`,
     )
-    .bind(note ?? null, new Date().toISOString(), id)
+    .bind(status, note ?? null, new Date().toISOString(), id)
     .run();
 }
 

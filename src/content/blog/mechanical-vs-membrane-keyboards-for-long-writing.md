@@ -66,3 +66,9 @@ Set your keyboard so your elbows rest near ninety degrees and your wrists stay s
 rest only if it supports the palm without bending the wrist upward. Then choose the switch feel that
 lets you type for an hour without thinking about your hands. That single test is worth more than any
 specification list.
+
+## Related guides
+
+- [Sizing an office chair: what the standards actually require](/blog/chair-seat-depth-and-height-office-chair-sizing/)
+- [How to choose a desk lamp for long working hours](/blog/how-to-choose-a-desk-lamp-for-long-working-hours/)
+- [How to choose a monitor for a home office](/blog/how-to-choose-a-monitor-for-a-home-office/)

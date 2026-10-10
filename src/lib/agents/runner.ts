@@ -338,6 +338,10 @@ async function recordAgentActivity(agent: AgentRecord, summary: string): Promise
   });
 }
 
+function releasedStatusFor(agent: AgentRecord): 'queued' | 'researched' {
+  return agent.role === 'writer' ? 'researched' : 'queued';
+}
+
 export async function runAgent(
   db: D1Database,
   agent: AgentRecord,
@@ -378,7 +382,7 @@ export async function runAgent(
 
     if (!userMessage) {
       if (topic) {
-        await releaseTopic(db, topic.id, 'No pending draft to process');
+        await releaseTopic(db, topic.id, 'No pending draft to process', releasedStatusFor(agent));
       }
       const summary = 'No pending draft to process';
       await finishAgentRun(db, runId, { status: 'succeeded', summary });
@@ -399,6 +403,7 @@ export async function runAgent(
       effort: role.defaultEffort,
       userId: agent.id,
       jsonMode: true,
+      maxTokens: agent.role === 'writer' || agent.role === 'scrapper' ? 16_000 : 8_192,
       signal,
     });
 
@@ -438,7 +443,7 @@ export async function runAgent(
       } else if (applied.postId) {
         await markTopicUsed(db, topic.id, applied.postId);
       } else {
-        await releaseTopic(db, topic.id, applied.summary);
+        await releaseTopic(db, topic.id, applied.summary, releasedStatusFor(agent));
       }
     }
 
@@ -461,10 +466,15 @@ export async function runAgent(
       tokensOut: response.tokensOut,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'The run failed.';
+    const baseMessage = error instanceof Error ? error.message : 'The run failed.';
+    const snippet =
+      error instanceof ApiError && error.details && typeof error.details === 'object'
+        ? (error.details as { snippet?: string }).snippet
+        : undefined;
+    const message = snippet ? truncate(`${baseMessage} Received: ${snippet}`, 400) : baseMessage;
 
     if (topic) {
-      await releaseTopic(db, topic.id, message);
+      await releaseTopic(db, topic.id, message, releasedStatusFor(agent));
     }
 
     await finishAgentRun(db, runId, {

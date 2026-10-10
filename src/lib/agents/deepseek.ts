@@ -177,14 +177,21 @@ export function extractJsonObject(content: string): Record<string, unknown> {
   const trimmed = content.trim();
   const start = trimmed.indexOf('{');
   const end = trimmed.lastIndexOf('}');
+  const snippet = trimmed.slice(0, 200);
 
   if (start < 0 || end <= start) {
-    throw new ApiError(502, 'MODEL_OUTPUT_INVALID', 'The model did not return a JSON object.');
+    throw new ApiError(502, 'MODEL_OUTPUT_INVALID', 'The model did not return a JSON object.', {
+      snippet,
+      length: trimmed.length,
+    });
   }
 
   try {
     return JSON.parse(trimmed.slice(start, end + 1)) as Record<string, unknown>;
   } catch {
-    throw new ApiError(502, 'MODEL_OUTPUT_INVALID', 'The model returned invalid JSON.');
+    throw new ApiError(502, 'MODEL_OUTPUT_INVALID', 'The model returned invalid JSON.', {
+      snippet,
+      length: trimmed.length,
+    });
   }
 }
