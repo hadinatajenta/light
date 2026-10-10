@@ -90,6 +90,18 @@ export function createR2MediaStore(db: D1Database, bucket: R2Bucket): MediaStore
       return item;
     },
 
+    async updateAlt(id: string, alt: string): Promise<MediaItem> {
+      const row = await db.prepare('SELECT * FROM media WHERE id = ?').bind(id).first<MediaRow>();
+
+      if (!row) {
+        throw new ApiError(404, 'MEDIA_NOT_FOUND', 'That media item does not exist.');
+      }
+
+      await db.prepare('UPDATE media SET alt = ? WHERE id = ?').bind(alt, id).run();
+
+      return toItem({ ...row, alt });
+    },
+
     async remove(id: string): Promise<void> {
       const row = await db.prepare('SELECT * FROM media WHERE id = ?').bind(id).first<MediaRow>();
 

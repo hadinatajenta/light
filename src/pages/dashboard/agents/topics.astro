@@ -1,0 +1,17 @@
+---
+import TopicManager from '@/components/dashboard/topic-manager';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+
+const TOPIC_STATUS_FILTERS = ['queued', 'researched', 'in_progress', 'used', 'blocked'] as const;
+const statusParam = Astro.url.searchParams.get('status') ?? '';
+const initialStatus =
+  statusParam !== '' && (TOPIC_STATUS_FILTERS as readonly string[]).includes(statusParam)
+    ? (statusParam as (typeof TOPIC_STATUS_FILTERS)[number])
+    : 'all';
+---
+
+<DashboardLayout title="Topics">
+  <TopicManager client:load initialStatus={initialStatus} />
+</DashboardLayout>

@@ -1,5 +1,5 @@
 import { CircleCheckIcon, CircleIcon } from 'lucide-react';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -38,6 +38,7 @@ interface SeoPanelProps {
   effectiveSlug: string;
   descriptionError?: string;
   slugError?: string;
+  coverAction?: ReactNode;
   onChange: (patch: Partial<SeoPanelFrontmatter>) => void;
 }
 
@@ -142,6 +143,7 @@ export default function SeoPanel({
   effectiveSlug,
   descriptionError,
   slugError,
+  coverAction,
   onChange,
 }: SeoPanelProps) {
   const strippedBody = useMemo(() => stripMarkdown(body), [body]);
@@ -325,7 +327,10 @@ export default function SeoPanel({
         <span className={SECTION_LABEL_CLASS_NAME}>Cover, sharing, and indexing</span>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="post-cover-url">Cover image URL</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="post-cover-url">Cover image URL</Label>
+            {coverAction}
+          </div>
           <Input
             id="post-cover-url"
             value={frontmatter.coverUrl}

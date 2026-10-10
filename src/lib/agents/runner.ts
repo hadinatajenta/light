@@ -11,10 +11,14 @@ import {
 } from './review';
 import { getRoleDefinition } from './roles';
 import { requireDeepseekKey } from './settings';
+import { createSource, listSources, renderSourcesForPrompt, SOURCE_KINDS } from './sources';
 import { type AgentRecord, createAgentRun, finishAgentRun, markAgentRun } from './store';
 import {
   blockTopic,
-  claimNextTopic,
+  claimTopicForScrapper,
+  claimTopicForWriter,
+  findTopicByPost,
+  markTopicResearched,
   markTopicUsed,
   releaseTopic,
   type TopicRecord,
@@ -143,14 +147,23 @@ async function buildUserMessage(
       return '';
     }
 
-    const catalog = await loadCatalogSlice(db, topic);
-    const titles = await listRecentPublishedTitles(db, 12);
+    const [catalog, sources, titles] = await Promise.all([
+      loadCatalogSlice(db, topic),
+      listSources(db, topic.id),
+      listRecentPublishedTitles(db, 12),
+    ]);
+
+    const research = renderSourcesForPrompt(sources);
+    const researchBlock = research
+      ? `\n\nResearch notes gathered for this topic. Stay within them and do not go beyond what they support:\n${research}`
+      : '\n\nNo research notes were gathered for this topic. If the article cannot be written accurately without specific facts, return NEEDS RESEARCH instead of writing it.';
+
     const avoid =
       titles.length > 0 ? `\n\nAlready published, do not duplicate:\n- ${titles.join('\n- ')}` : '';
     const keywords = topic.keywords.length > 0 ? `\nKeywords: ${topic.keywords.join(', ')}` : '';
     const category = topic.category ? `\nCategory: ${topic.category}` : '';
 
-    return `Topic: ${topic.title}${category}${keywords}
+    return `Topic: ${topic.title}${category}${keywords}${researchBlock}
 
 Available products (use only these slugs, linked as [text](product:slug)):
 ${catalog}
@@ -159,7 +172,18 @@ Return JSON with keys: title (string, 10 to 70 characters), description (string,
   }
 
   if (agent.role === 'scrapper') {
-    return 'Return JSON with keys: notes (array of objects with keys heading and detail).';
+    if (!topic) {
+      return '';
+    }
+
+    const keywords = topic.keywords.length > 0 ? `\nKeywords: ${topic.keywords.join(', ')}` : '';
+    const category = topic.category ? `\nCategory: ${topic.category}` : '';
+
+    return `Research the topic below for a buying guide. Gather what a buyer must verify before purchasing: the specifications that actually matter, the compatibility traps, the materials and durability signals, and the marketing claims that mislead. Cite a named standard or a manufacturer document when a claim depends on one. Never invent specifications, prices, ratings, or test results. If a fact cannot be established, leave it out rather than guessing.
+
+Topic: ${topic.title}${category}${keywords}
+
+Return JSON with keys: notes (array of objects with keys heading (string), detail (string), kind (one of note, spec, claim, source), reference (string or null)).`;
   }
 
   const target = await findPendingDraft(db);
@@ -173,7 +197,14 @@ Return JSON with keys: title (string, 10 to 70 characters), description (string,
     return `Return JSON with keys: decision ("approve" or "changes_requested"), notes (string), revisedBody (string, the full revised markdown, or an empty string when approving).\n\nDraft:\n${draft}`;
   }
 
-  return `Return JSON with keys: passed (boolean), issues (array of strings).\n\nDraft:\n${draft}`;
+  const topicForDraft = await findTopicByPost(db, target.id);
+  const sources = topicForDraft ? await listSources(db, topicForDraft.id) : [];
+  const research = renderSourcesForPrompt(sources);
+  const researchBlock = research
+    ? `\n\nResearch notes the draft was supposed to be based on:\n${research}`
+    : '\n\nNo research notes are linked to this draft.';
+
+  return `Return JSON with keys: passed (boolean), issues (array of strings).\n\nDraft:\n${draft}${researchBlock}`;
 }
 
 async function applyResult(
@@ -184,9 +215,40 @@ async function applyResult(
 ): Promise<AppliedResult> {
   if (agent.role === 'scrapper') {
     const parsed = extractJsonObject(content);
-    const notes = Array.isArray(parsed.notes) ? parsed.notes : [];
+    const rawNotes = Array.isArray(parsed.notes) ? parsed.notes : [];
+    let saved = 0;
+
+    for (const entry of rawNotes.slice(0, 24)) {
+      if (typeof entry !== 'object' || entry === null) {
+        continue;
+      }
+
+      const note = entry as Record<string, unknown>;
+      const heading = readString(note.heading);
+      const detail = readString(note.detail);
+
+      if (!heading || !detail) {
+        continue;
+      }
+
+      const kind = readString(note.kind);
+      const reference = readString(note.reference);
+
+      await createSource(db, {
+        topicId: topic?.id ?? '',
+        agentId: agent.id,
+        kind: (SOURCE_KINDS as readonly string[]).includes(kind)
+          ? (kind as (typeof SOURCE_KINDS)[number])
+          : 'note',
+        heading,
+        detail,
+        reference: reference || null,
+      });
+      saved += 1;
+    }
+
     return {
-      summary: `Collected ${notes.length} research note(s)`,
+      summary: `Collected ${saved} research note(s)`,
       output: truncate(content, MAX_OUTPUT_CHARS),
     };
   }
@@ -289,7 +351,19 @@ export async function runAgent(
     const role = getRoleDefinition(agent.role);
 
     if (agent.role === 'writer') {
-      topic = await claimNextTopic(db, agent.id);
+      topic = await claimTopicForWriter(db, agent.id);
+
+      if (!topic) {
+        const summary = 'No topic queued';
+        await finishAgentRun(db, runId, { status: 'succeeded', summary });
+        await markAgentRun(db, agent.id, agent.runsPerDay);
+        await recordAgentActivity(agent, summary);
+        return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
+      }
+    }
+
+    if (agent.role === 'scrapper') {
+      topic = await claimTopicForScrapper(db, agent.id);
 
       if (!topic) {
         const summary = 'No topic queued';
@@ -359,7 +433,9 @@ export async function runAgent(
     const applied = await applyResult(db, agent, response.content, topic);
 
     if (topic) {
-      if (applied.postId) {
+      if (agent.role === 'scrapper') {
+        await markTopicResearched(db, topic.id);
+      } else if (applied.postId) {
         await markTopicUsed(db, topic.id, applied.postId);
       } else {
         await releaseTopic(db, topic.id, applied.summary);

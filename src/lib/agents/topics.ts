@@ -1,6 +1,6 @@
 import { ApiError } from '../errors';
 
-export const TOPIC_STATUSES = ['queued', 'in_progress', 'used', 'blocked'] as const;
+export const TOPIC_STATUSES = ['queued', 'researched', 'in_progress', 'used', 'blocked'] as const;
 
 export type TopicStatus = (typeof TOPIC_STATUSES)[number];
 
@@ -25,6 +25,7 @@ export interface TopicInput {
 
 export interface TopicCounts {
   queued: number;
+  researched: number;
   inProgress: number;
   used: number;
   blocked: number;
@@ -93,11 +94,13 @@ export async function countTopics(db: D1Database): Promise<TopicCounts> {
     .prepare('SELECT status, COUNT(*) AS total FROM topics GROUP BY status')
     .all<{ status: string; total: number }>();
 
-  const counts: TopicCounts = { queued: 0, inProgress: 0, used: 0, blocked: 0 };
+  const counts: TopicCounts = { queued: 0, researched: 0, inProgress: 0, used: 0, blocked: 0 };
 
   for (const row of result.results ?? []) {
     if (row.status === 'queued') {
       counts.queued = row.total;
+    } else if (row.status === 'researched') {
+      counts.researched = row.total;
     } else if (row.status === 'in_progress') {
       counts.inProgress = row.total;
     } else if (row.status === 'used') {
@@ -134,10 +137,18 @@ export async function getTopic(db: D1Database, id: string): Promise<TopicRecord>
   return toTopic(row);
 }
 
-export async function claimNextTopic(db: D1Database, agentId: string): Promise<TopicRecord | null> {
+async function claimTopicWithStatus(
+  db: D1Database,
+  agentId: string,
+  statuses: TopicStatus[],
+): Promise<TopicRecord | null> {
+  const placeholders = statuses.map(() => '?').join(', ');
   const candidate = await db
-    .prepare("SELECT id FROM topics WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1")
-    .first<{ id: string }>();
+    .prepare(
+      `SELECT id, status FROM topics WHERE status IN (${placeholders}) ORDER BY created_at ASC LIMIT 1`,
+    )
+    .bind(...statuses)
+    .first<{ id: string; status: string }>();
 
   if (!candidate) {
     return null;
@@ -146,9 +157,9 @@ export async function claimNextTopic(db: D1Database, agentId: string): Promise<T
   const result = await db
     .prepare(
       `UPDATE topics SET status = 'in_progress', assigned_agent_id = ?, updated_at = ?
-       WHERE id = ? AND status = 'queued'`,
+       WHERE id = ? AND status = ?`,
     )
-    .bind(agentId, new Date().toISOString(), candidate.id)
+    .bind(agentId, new Date().toISOString(), candidate.id, candidate.status)
     .run();
 
   const changed = (result.meta as { changes?: number } | undefined)?.changes ?? 0;
@@ -157,6 +168,35 @@ export async function claimNextTopic(db: D1Database, agentId: string): Promise<T
   }
 
   return getTopic(db, candidate.id);
+}
+
+export function claimTopicForScrapper(
+  db: D1Database,
+  agentId: string,
+): Promise<TopicRecord | null> {
+  return claimTopicWithStatus(db, agentId, ['queued']);
+}
+
+export function claimTopicForWriter(db: D1Database, agentId: string): Promise<TopicRecord | null> {
+  return claimTopicWithStatus(db, agentId, ['researched']);
+}
+
+export async function markTopicResearched(db: D1Database, id: string): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE topics SET status = 'researched', assigned_agent_id = NULL, updated_at = ? WHERE id = ?",
+    )
+    .bind(new Date().toISOString(), id)
+    .run();
+}
+
+export async function findTopicByPost(db: D1Database, postId: string): Promise<TopicRecord | null> {
+  const row = await db
+    .prepare('SELECT * FROM topics WHERE used_post_id = ? LIMIT 1')
+    .bind(postId)
+    .first<TopicRow>();
+
+  return row ? toTopic(row) : null;
 }
 
 export async function markTopicUsed(db: D1Database, id: string, postId: string): Promise<void> {

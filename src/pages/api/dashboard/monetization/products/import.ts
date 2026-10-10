@@ -43,6 +43,48 @@ function isBareImportTarget(target: string): boolean {
   return target.includes('://') || AMAZON_ASIN_PATTERN.test(target);
 }
 
+const AMAZON_URL_ASIN_PATTERNS = [
+  /\/dp\/([A-Za-z0-9]{10})(?:[/?]|$)/,
+  /\/gp\/product\/([A-Za-z0-9]{10})(?:[/?]|$)/,
+  /\/product\/([A-Za-z0-9]{10})(?:[/?]|$)/,
+  /[?&]asin=([A-Za-z0-9]{10})(?:&|$)/i,
+];
+
+export function extractAmazonAsin(value: string): string | null {
+  if (!value.includes('://')) {
+    return null;
+  }
+
+  for (const pattern of AMAZON_URL_ASIN_PATTERNS) {
+    const match = value.match(pattern);
+    if (match) {
+      return match[1].toUpperCase();
+    }
+  }
+
+  return null;
+}
+
+function resolveImportTarget(
+  target: string,
+  program: AffiliateProgram,
+): { ok: true; value: string } | { ok: false; reason: string } {
+  if (program.network !== 'amazon' || !target.includes('://')) {
+    return { ok: true, value: target };
+  }
+
+  const asin = extractAmazonAsin(target);
+  if (!asin) {
+    return {
+      ok: false,
+      reason:
+        'Could not find an ASIN in that Amazon URL. Paste the product page URL or the ASIN itself.',
+    };
+  }
+
+  return { ok: true, value: asin };
+}
+
 export function parseImportLine(rawLine: string, program: AffiliateProgram): ImportLineResult {
   const parts = rawLine.split('|').map((part) => part.trim());
 
@@ -51,7 +93,14 @@ export function parseImportLine(rawLine: string, program: AffiliateProgram): Imp
   }
 
   if (parts.length === 1) {
-    const target = parts[0];
+    const raw = parts[0];
+    const resolved = resolveImportTarget(raw, program);
+
+    if (!resolved.ok) {
+      return { ok: false, reason: resolved.reason };
+    }
+
+    const target = resolved.value;
 
     if (program.network !== 'amazon' || !AMAZON_ASIN_PATTERN.test(target)) {
       return { ok: false, reason: 'Use slug | name | target.' };
@@ -61,21 +110,27 @@ export function parseImportLine(rawLine: string, program: AffiliateProgram): Imp
   }
 
   if (parts.length === 2) {
-    const [name, target] = parts;
+    const [name, rawTarget] = parts;
     const slug = toSlug(name).slice(0, 60).replace(/-+$/, '');
 
     if (name.length < 2 || slug.length === 0) {
       return { ok: false, reason: 'Use slug | name | target.' };
     }
 
-    if (!isSafeTarget(target) || !isBareImportTarget(target)) {
+    const resolved = resolveImportTarget(rawTarget, program);
+
+    if (!resolved.ok) {
+      return { ok: false, reason: resolved.reason };
+    }
+
+    if (!isSafeTarget(resolved.value) || !isBareImportTarget(resolved.value)) {
       return { ok: false, reason: 'Use slug | name | target.' };
     }
 
-    return { ok: true, value: { slug, name, target } };
+    return { ok: true, value: { slug, name, target: resolved.value } };
   }
 
-  const [slug, name, target] = parts;
+  const [slug, name, rawTarget] = parts;
 
   if (!AFFILIATE_SLUG_PATTERN.test(slug) || slug.length > 60) {
     return {
@@ -88,11 +143,17 @@ export function parseImportLine(rawLine: string, program: AffiliateProgram): Imp
     return { ok: false, reason: 'A name is required.' };
   }
 
-  if (!isSafeTarget(target)) {
+  if (!isSafeTarget(rawTarget)) {
     return { ok: false, reason: 'The target contains unsupported characters.' };
   }
 
-  return { ok: true, value: { slug, name, target } };
+  const resolved = resolveImportTarget(rawTarget, program);
+
+  if (!resolved.ok) {
+    return { ok: false, reason: resolved.reason };
+  }
+
+  return { ok: true, value: { slug, name, target: resolved.value } };
 }
 
 function normalizeLines(input: string | string[]): string[] {

@@ -5,7 +5,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "vars": {
     "ACCESS_TEAM_DOMAIN": "https://nameless-tree-67b1.cloudflareaccess.com",
-    "ACCESS_AUD": "780ac9b13f44fd3ed1944d790f90882cbe714115f6f72c4ff74c9adc01498528",
+    "ACCESS_AUD": "780ac9b13f44fd3ed1944d790f90882cbe714115f6f72c4ff74c9adc01498528,29af12b43df9f59cfa775caf3965c3d4f80eb66e6c49f73d609f22b6a180099d",
     "GITHUB_REPO": "hadinatajenta/light",
     "GITHUB_BRANCH": "main"
   },

@@ -12,11 +12,15 @@ export interface CloudflareAccessConfig {
 export function createCloudflareAccessProvider(config: CloudflareAccessConfig): AuthProvider {
   const { teamDomain, audience, adminEmails } = config;
   const issuer = teamDomain?.trim().replace(/\/+$/, '');
+  const audiences = (audience ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
   const jwks = issuer ? createRemoteJWKSet(new URL(`${issuer}/cdn-cgi/access/certs`)) : null;
 
   return {
     async getCurrentUser(request: Request): Promise<AuthenticatedUser | null> {
-      if (!jwks || !issuer || !audience) {
+      if (!jwks || !issuer || audiences.length === 0) {
         return null;
       }
 
@@ -26,7 +30,7 @@ export function createCloudflareAccessProvider(config: CloudflareAccessConfig): 
       }
 
       try {
-        const { payload } = await jwtVerify(token, jwks, { issuer, audience });
+        const { payload } = await jwtVerify(token, jwks, { issuer, audience: audiences });
         const email = typeof payload.email === 'string' ? payload.email : null;
         if (!email) {
           return null;

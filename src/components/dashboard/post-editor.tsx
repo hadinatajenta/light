@@ -29,6 +29,7 @@ import {
   ArrowLeftIcon,
   EyeOffIcon,
   GlobeIcon,
+  ImagesIcon,
   Loader2Icon,
   MonitorPlayIcon,
   RefreshCwIcon,
@@ -37,6 +38,7 @@ import {
 import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import CategorySelect from '@/components/dashboard/category-select';
+import MediaPicker from '@/components/dashboard/media-picker';
 import SeoPanel, { type SeoPanelFrontmatter } from '@/components/dashboard/seo-panel';
 import TagInput from '@/components/dashboard/tag-input';
 import { Badge } from '@/components/ui/badge';
@@ -348,6 +350,7 @@ export default function PostEditor({ postId }: PostEditorProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');
+  const [isCoverPickerOpen, setIsCoverPickerOpen] = useState(false);
   const editorRef = useRef<MDXEditorMethods>(null);
   const requestRef = useRef<AbortController | null>(null);
   const isDirtyRef = useRef(false);
@@ -483,6 +486,13 @@ export default function PostEditor({ postId }: PostEditorProps) {
       markDirty(true);
     },
     [markDirty],
+  );
+
+  const handleCoverSelect = useCallback(
+    (url: string, alt: string) => {
+      handleSeoChange({ coverUrl: url, coverAlt: alt });
+    },
+    [handleSeoChange],
   );
 
   const handleBodyChange = useCallback(
@@ -836,10 +846,29 @@ export default function PostEditor({ postId }: PostEditorProps) {
             effectiveSlug={effectiveSlug}
             descriptionError={fieldErrors.description}
             slugError={fieldErrors.slug}
+            coverAction={
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="whitespace-nowrap"
+                disabled={isBusy}
+                onClick={() => setIsCoverPickerOpen(true)}
+              >
+                <ImagesIcon />
+                Choose from library
+              </Button>
+            }
             onChange={handleSeoChange}
           />
         </aside>
       </div>
+
+      <MediaPicker
+        open={isCoverPickerOpen}
+        onOpenChange={setIsCoverPickerOpen}
+        onSelect={handleCoverSelect}
+      />
     </div>
   );
 }

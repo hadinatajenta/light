@@ -20,6 +20,7 @@ export type MediaItem = z.infer<typeof mediaItemSchema>;
 export interface MediaStore {
   list(): Promise<MediaItem[]>;
   put(input: { bytes: Uint8Array; originalName: string }): Promise<MediaItem>;
+  updateAlt(id: string, alt: string): Promise<MediaItem>;
   remove(id: string): Promise<void>;
 }
 
@@ -27,6 +28,8 @@ const MEDIA_INDEX_PATH = 'src/data/media.json';
 const MEDIA_DIRECTORY = 'public/media';
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_ITEMS = 500;
+
+export const MEDIA_ALT_MAX_LENGTH = 200;
 
 function toBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -113,6 +116,26 @@ export function createGitMediaStore(config: GithubConfig): MediaStore {
       await writeIndex(config, [item, ...items], sha, `chore(media): index ${fileName}`);
 
       return item;
+    },
+
+    async updateAlt(id: string, alt: string): Promise<MediaItem> {
+      const { items, sha } = await readIndex(config);
+      const item = items.find((entry) => entry.id === id);
+
+      if (!item) {
+        throw new ApiError(404, 'MEDIA_NOT_FOUND', 'That media item does not exist.');
+      }
+
+      const updated: MediaItem = { ...item, alt };
+
+      await writeIndex(
+        config,
+        items.map((entry) => (entry.id === id ? updated : entry)),
+        sha,
+        `chore(media): update alt for ${item.path}`,
+      );
+
+      return updated;
     },
 
     async remove(id: string): Promise<void> {
