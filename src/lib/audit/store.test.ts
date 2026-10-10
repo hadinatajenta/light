@@ -75,7 +75,10 @@ describe('evaluatePost', () => {
 
 describe('title-length', () => {
   it('flags a title of 9 characters as high', () => {
-    const result = findingOf(evaluatePost(makePost({ title: 'Espresso!' }), makeContext()), 'title-length');
+    const result = findingOf(
+      evaluatePost(makePost({ title: 'Espresso!' }), makeContext()),
+      'title-length',
+    );
 
     expect(result?.severity).toBe('high');
     expect(result?.message).toBe('Title is 9 characters; the range is 10 to 70.');
@@ -142,7 +145,10 @@ describe('thin-content', () => {
 
 describe('missing-cover', () => {
   it('flags a null cover as medium', () => {
-    const result = findingOf(evaluatePost(makePost({ coverUrl: null }), makeContext()), 'missing-cover');
+    const result = findingOf(
+      evaluatePost(makePost({ coverUrl: null }), makeContext()),
+      'missing-cover',
+    );
 
     expect(result?.severity).toBe('medium');
   });

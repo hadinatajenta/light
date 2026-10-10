@@ -306,7 +306,7 @@ export default function ProductForm({
   const handleTargetResolve = async (rawTarget: string): Promise<void> => {
     const candidate = rawTarget.trim();
 
-    if (!activeProgram || activeProgram.network !== 'amazon' || !candidate.includes('://')) {
+    if (activeProgram?.network !== 'amazon' || !candidate.includes('://')) {
       return;
     }
 

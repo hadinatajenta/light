@@ -37,7 +37,7 @@ export async function findClickTarget(db: D1Database, slug: string): Promise<Cli
     .bind(slug)
     .first<{ id: string; target: string; program_id: string; is_active: number }>();
 
-  if (!row || row.is_active !== 1) {
+  if (row?.is_active !== 1) {
     return null;
   }
 

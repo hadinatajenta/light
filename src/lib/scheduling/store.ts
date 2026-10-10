@@ -13,9 +13,12 @@ interface PostScheduleRow {
   pub_date: string | null;
 }
 
-interface ScheduledPostRow extends PostScheduleRow {
-  pub_date: string;
+interface ScheduledCandidate {
+  post: ScheduledPost;
+  timestamp: number;
 }
+
+type TimestampResolver = (status: string, pubDate: string | null, now: Date) => number | null;
 
 const DUE_LIMIT = 20;
 const PUB_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -42,71 +45,94 @@ function parsePubDate(pubDate: string | null | undefined): number | null {
   return Number.isNaN(timestamp) ? null : timestamp;
 }
 
+function scheduledTimestamp(status: string, pubDate: string | null, now: Date): number | null {
+  if (status !== 'draft') {
+    return null;
+  }
+
+  const timestamp = parsePubDate(pubDate);
+  return timestamp !== null && timestamp > now.getTime() ? timestamp : null;
+}
+
+function dueTimestamp(status: string, pubDate: string | null, now: Date): number | null {
+  if (status !== 'draft') {
+    return null;
+  }
+
+  const timestamp = parsePubDate(pubDate);
+  return timestamp !== null && timestamp <= now.getTime() ? timestamp : null;
+}
+
 export function isScheduled(
   status: string,
   pubDate: string | null | undefined,
   now: Date,
 ): boolean {
-  if (status !== 'draft') {
-    return false;
-  }
-
-  const timestamp = parsePubDate(pubDate);
-  return timestamp !== null && timestamp > now.getTime();
+  return scheduledTimestamp(status, pubDate ?? null, now) !== null;
 }
 
 export function isDue(status: string, pubDate: string | null | undefined, now: Date): boolean {
-  if (status !== 'draft') {
-    return false;
-  }
-
-  const timestamp = parsePubDate(pubDate);
-  return timestamp !== null && timestamp <= now.getTime();
+  return dueTimestamp(status, pubDate ?? null, now) !== null;
 }
 
-function toScheduledPost(row: ScheduledPostRow): ScheduledPost {
-  return { id: row.id, title: row.title, pubDate: row.pub_date };
+async function listDraftRows(db: D1Database): Promise<PostScheduleRow[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, title, status, pub_date FROM posts
+       WHERE status = 'draft' AND pub_date IS NOT NULL
+       ORDER BY pub_date ASC`,
+    )
+    .all<PostScheduleRow>();
+
+  return result.results ?? [];
+}
+
+function selectCandidates(
+  rows: PostScheduleRow[],
+  resolveTimestamp: TimestampResolver,
+  now: Date,
+): ScheduledCandidate[] {
+  const candidates: ScheduledCandidate[] = [];
+
+  for (const row of rows) {
+    const pubDate = row.pub_date;
+    if (pubDate === null) {
+      continue;
+    }
+
+    const timestamp = resolveTimestamp(row.status, pubDate, now);
+    if (timestamp === null) {
+      continue;
+    }
+
+    candidates.push({
+      post: { id: row.id, title: row.title, pubDate },
+      timestamp,
+    });
+  }
+
+  return candidates.sort((first, second) => first.timestamp - second.timestamp);
+}
+
+function toScheduledPosts(candidates: ScheduledCandidate[], limit: number | null): ScheduledPost[] {
+  const posts = candidates.map((candidate) => candidate.post);
+  return limit === null ? posts : posts.slice(0, limit);
 }
 
 export async function listScheduledPosts(
   db: D1Database,
   now: Date = new Date(),
 ): Promise<ScheduledPost[]> {
-  const result = await db
-    .prepare(
-      `SELECT id, title, status, pub_date FROM posts
-       WHERE status = 'draft'
-         AND pub_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
-         AND pub_date > ?
-       ORDER BY pub_date ASC`,
-    )
-    .bind(now.toISOString())
-    .all<PostScheduleRow>();
-
-  return (result.results ?? [])
-    .filter((row): row is ScheduledPostRow => isScheduled(row.status, row.pub_date, now))
-    .map(toScheduledPost);
+  const rows = await listDraftRows(db);
+  return toScheduledPosts(selectCandidates(rows, scheduledTimestamp, now), null);
 }
 
 export async function listDueScheduledPosts(
   db: D1Database,
   now: Date = new Date(),
 ): Promise<ScheduledPost[]> {
-  const result = await db
-    .prepare(
-      `SELECT id, title, status, pub_date FROM posts
-       WHERE status = 'draft'
-         AND pub_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
-         AND pub_date <= ?
-       ORDER BY pub_date ASC
-       LIMIT ?`,
-    )
-    .bind(now.toISOString(), DUE_LIMIT)
-    .all<PostScheduleRow>();
-
-  return (result.results ?? [])
-    .filter((row): row is ScheduledPostRow => isDue(row.status, row.pub_date, now))
-    .map(toScheduledPost);
+  const rows = await listDraftRows(db);
+  return toScheduledPosts(selectCandidates(rows, dueTimestamp, now), DUE_LIMIT);
 }
 
 async function recordPublishActivity(db: D1Database, post: ScheduledPost): Promise<void> {

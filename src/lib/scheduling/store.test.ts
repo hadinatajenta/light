@@ -10,6 +10,8 @@ import {
 const NOW = new Date('2026-10-11T12:00:00.000Z');
 const FUTURE_PUB_DATE = '2026-10-12T09:00:00.000Z';
 const PAST_PUB_DATE = '2026-10-10T09:00:00.000Z';
+const FUTURE_STORED_PUB_DATE = 'Mon Oct 12 2026 09:00:00 GMT+0000 (Coordinated Universal Time)';
+const PAST_STORED_PUB_DATE = 'Sat Oct 10 2026 09:00:00 GMT+0000 (Coordinated Universal Time)';
 
 interface FakePostRow {
   id: string;
@@ -84,6 +86,11 @@ describe('isScheduled', () => {
     expect(isScheduled('draft', '2026-10-11', NOW)).toBe(false);
   });
 
+  it('parses the date format the content store writes for dashboard and agent posts', () => {
+    expect(isScheduled('draft', FUTURE_STORED_PUB_DATE, NOW)).toBe(true);
+    expect(isDue('draft', PAST_STORED_PUB_DATE, NOW)).toBe(true);
+  });
+
   it('ignores invalid publication dates', () => {
     expect(isScheduled('draft', 'tomorrow', NOW)).toBe(false);
     expect(isDue('draft', 'tomorrow', NOW)).toBe(false);
@@ -119,9 +126,10 @@ describe('isDue', () => {
 });
 
 describe('listScheduledPosts', () => {
-  it('maps only drafts whose publication date is in the future', async () => {
+  it('maps drafts with a future publication date in ascending order', async () => {
     const { database } = createFakeDatabase({
       rows: [
+        postRow('later', 'draft', '2026-10-14T09:00:00.000Z', 'Later post'),
         postRow('upcoming', 'draft', FUTURE_PUB_DATE, 'Upcoming post'),
         postRow('ready', 'draft', PAST_PUB_DATE, 'Ready post'),
         postRow('live', 'published', FUTURE_PUB_DATE, 'Live post'),
@@ -131,15 +139,17 @@ describe('listScheduledPosts', () => {
 
     await expect(listScheduledPosts(database, NOW)).resolves.toEqual([
       { id: 'upcoming', title: 'Upcoming post', pubDate: FUTURE_PUB_DATE },
+      { id: 'later', title: 'Later post', pubDate: '2026-10-14T09:00:00.000Z' },
     ]);
   });
 });
 
 describe('listDueScheduledPosts', () => {
-  it('maps only drafts whose publication date has arrived', async () => {
+  it('maps drafts whose publication date has arrived in ascending order', async () => {
     const { database } = createFakeDatabase({
       rows: [
-        postRow('ready', 'draft', PAST_PUB_DATE, 'Ready post'),
+        postRow('second', 'draft', '2026-10-11T11:00:00.000Z', 'Second post'),
+        postRow('first', 'draft', PAST_PUB_DATE, 'First post'),
         postRow('upcoming', 'draft', FUTURE_PUB_DATE, 'Upcoming post'),
         postRow('gone', 'archived', PAST_PUB_DATE, 'Gone post'),
       ],
@@ -147,7 +157,8 @@ describe('listDueScheduledPosts', () => {
     });
 
     await expect(listDueScheduledPosts(database, NOW)).resolves.toEqual([
-      { id: 'ready', title: 'Ready post', pubDate: PAST_PUB_DATE },
+      { id: 'first', title: 'First post', pubDate: PAST_PUB_DATE },
+      { id: 'second', title: 'Second post', pubDate: '2026-10-11T11:00:00.000Z' },
     ]);
   });
 });
@@ -156,8 +167,8 @@ describe('publishDuePosts', () => {
   it('publishes due drafts in publication order with the guarded update', async () => {
     const { database, writeLog } = createFakeDatabase({
       rows: [
-        postRow('first', 'draft', PAST_PUB_DATE, 'First post'),
         postRow('second', 'draft', '2026-10-11T11:00:00.000Z', 'Second post'),
+        postRow('first', 'draft', PAST_PUB_DATE, 'First post'),
       ],
       updateChanges: [1, 1],
     });

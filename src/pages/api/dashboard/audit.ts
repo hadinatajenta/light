@@ -1,5 +1,5 @@
-import { scanContentAudit } from '@/lib/audit/store';
 import { withAdmin } from '@/lib/api/handler';
+import { scanContentAudit } from '@/lib/audit/store';
 import { requireContentDatabase } from '@/lib/content/database';
 import { jsonOk } from '@/lib/http';
 
