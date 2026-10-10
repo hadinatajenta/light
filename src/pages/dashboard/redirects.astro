@@ -1,0 +1,14 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Redirects">
+  <div class="rounded-lg border border-border bg-card p-6">
+    <h2 class="text-base font-medium">Redirects</h2>
+    <p class="mt-2 max-w-prose text-sm text-muted-foreground">
+      Keep 301 redirects for changed slugs, so old links never break.
+    </p>
+  </div>
+</DashboardLayout>

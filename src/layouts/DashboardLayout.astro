@@ -1,0 +1,192 @@
+---
+import ThemeToggle from '@/components/ThemeToggle.astro';
+import { SITE_LANGUAGE, SITE_TITLE, THEME_STORAGE_KEY } from '@/consts';
+import { DASHBOARD_NAVIGATION } from '@/lib/dashboard-nav';
+import '@/styles/global.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const currentPath = Astro.url.pathname;
+const user = Astro.locals.user;
+
+const ICONS: Record<string, string> = {
+  dashboard:
+    '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  posts:
+    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h6"/>',
+  categories:
+    '<path d="M20.6 13.4 12.6 21.4a2 2 0 0 1-2.8 0L3 14.6V5a2 2 0 0 1 2-2h9.6l6 6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1"/>',
+  pages:
+    '<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  media:
+    '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
+  insights:
+    '<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/>',
+  redirects:
+    '<path d="M15 14l5-5-5-5"/><path d="M20 9H9a4 4 0 0 0-4 4v6"/>',
+  monetization:
+    '<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 9h18"/><path d="M16 14h.01"/>',
+  settings:
+    '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3"/><path d="M1 14h6M9 8h6M17 16h6"/>',
+};
+
+function isActive(href: string): boolean {
+  if (href === '/dashboard') {
+    return currentPath === '/dashboard';
+  }
+
+  return currentPath.startsWith(href);
+}
+---
+
+<!doctype html>
+<html lang={SITE_LANGUAGE} data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} | {SITE_TITLE} dashboard</title>
+    <script is:inline define:vars={{ storageKey: THEME_STORAGE_KEY }}>
+      (() => {
+        const stored = localStorage.getItem(storageKey);
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute(
+          'data-theme',
+          stored || (prefersDark ? 'dark' : 'light'),
+        );
+      })();
+    </script>
+  </head>
+  <body class="bg-background pt-0 text-foreground">
+    <div
+      id="dashboard-backdrop"
+      class="fixed inset-0 z-30 hidden bg-black/40 md:hidden"
+      aria-hidden="true"
+    >
+    </div>
+
+    <div class="flex min-h-[100dvh]">
+      <aside
+        id="dashboard-sidebar"
+        class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-out md:static md:translate-x-0"
+      >
+        <div class="flex h-14 items-center gap-2 border-b border-border px-4">
+          <a href="/dashboard" class="font-display text-lg font-black tracking-[-0.04em]">
+            {SITE_TITLE}<span class="opacity-50">.</span>
+          </a>
+          <span class="text-xs text-muted-foreground">admin</span>
+        </div>
+
+        <nav aria-label="Dashboard" class="flex-1 overflow-y-auto p-2">
+          <ul class="flex flex-col gap-0.5">
+            {
+              DASHBOARD_NAVIGATION.map((item) => (
+                <li>
+                  <a
+                    href={item.href}
+                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    class:list={[
+                      'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                      isActive(item.href)
+                        ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                        : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                    ]}
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="size-4 shrink-0"
+                      aria-hidden="true"
+                      set:html={ICONS[item.icon]}
+                    />
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+
+        <div class="border-t border-border p-3 text-xs text-muted-foreground">
+          {user?.email ?? 'unknown'}
+        </div>
+      </aside>
+
+      <div class="flex min-w-0 flex-1 flex-col">
+        <header
+          class="flex h-14 items-center gap-3 border-b border-border bg-background px-4 md:px-6"
+        >
+          <button
+            type="button"
+            id="dashboard-sidebar-toggle"
+            class="grid size-9 place-items-center rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground md:hidden"
+            aria-label="Toggle menu"
+            aria-controls="dashboard-sidebar"
+            aria-expanded="false"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+              class="size-5"
+              aria-hidden="true"
+            >
+              <path d="M4 7h16M4 12h16M4 17h16"></path>
+            </svg>
+          </button>
+
+          <h1 class="text-sm font-medium">{title}</h1>
+
+          <div class="ml-auto flex items-center gap-1">
+            <a
+              href="/"
+              class="hidden rounded-md px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground sm:inline-block"
+            >
+              View site
+            </a>
+            <ThemeToggle />
+          </div>
+        </header>
+
+        <main class="flex-1 p-4 md:p-6">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <script>
+      const sidebar = document.getElementById('dashboard-sidebar');
+      const backdrop = document.getElementById('dashboard-backdrop');
+      const toggle = document.getElementById('dashboard-sidebar-toggle');
+
+      if (sidebar && backdrop && toggle) {
+        const setOpen = (isOpen: boolean): void => {
+          sidebar.classList.toggle('-translate-x-full', !isOpen);
+          backdrop.classList.toggle('hidden', !isOpen);
+          toggle.setAttribute('aria-expanded', String(isOpen));
+        };
+
+        toggle.addEventListener('click', () => {
+          setOpen(sidebar.classList.contains('-translate-x-full'));
+        });
+
+        backdrop.addEventListener('click', () => setOpen(false));
+
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            setOpen(false);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

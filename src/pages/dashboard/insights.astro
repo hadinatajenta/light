@@ -1,0 +1,14 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Insights">
+  <div class="rounded-lg border border-border bg-card p-6">
+    <h2 class="text-base font-medium">Insights</h2>
+    <p class="mt-2 max-w-prose text-sm text-muted-foreground">
+      Traffic from Cloudflare Web Analytics and queries from Search Console.
+    </p>
+  </div>
+</DashboardLayout>

@@ -1,0 +1,34 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+
+const summaryCards = [
+  { label: 'Published', value: '8' },
+  { label: 'Drafts', value: '0' },
+  { label: 'Scheduled', value: '0' },
+  { label: 'Media items', value: '1' },
+];
+---
+
+<DashboardLayout title="Dashboard">
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    {
+      summaryCards.map((card) => (
+        <div class="rounded-lg border border-border bg-card p-4">
+          <p class="text-xs uppercase tracking-wider text-muted-foreground">{card.label}</p>
+          <p class="numeric mt-2 text-2xl font-semibold">{card.value}</p>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="mt-6 rounded-lg border border-border bg-card p-6">
+    <h2 class="font-display text-xl font-bold tracking-tight">Welcome</h2>
+    <p class="mt-2 max-w-prose text-sm text-muted-foreground">
+      This is the dashboard shell. Each section is protected by the admin gate and will be built
+      out phase by phase: posts and the editor, media, categories, pages, insights, redirects,
+      monetization, and settings.
+    </p>
+  </div>
+</DashboardLayout>
