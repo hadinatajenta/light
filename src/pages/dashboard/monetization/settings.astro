@@ -1,0 +1,29 @@
+---
+import MonetizationSettings from '@/components/dashboard/monetization-settings';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Monetization settings">
+  <div class="flex flex-col gap-6">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+          Settings
+        </h2>
+        <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+          Ads, the global affiliate disclosure, and the click report.
+        </p>
+      </div>
+      <a
+        href="/dashboard/monetization"
+        class="whitespace-nowrap rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      >
+        Back to programs
+      </a>
+    </div>
+
+    <MonetizationSettings client:load />
+  </div>
+</DashboardLayout>

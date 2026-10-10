@@ -2,6 +2,7 @@ import type { AffiliateProgram } from '@/config/monetization';
 
 const SAFE_TARGET = /^[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]+$/;
 const SAFE_TRACKING_ID = /^[A-Za-z0-9_-]+$/;
+const SAFE_LINK_TEMPLATE = /^https?:\/\/[^\s"'<>]+$/;
 
 const PRODUCT_LINK_PATTERN = /<a href="product:([^"]+)"([^>]*)>([\s\S]*?)<\/a>/g;
 const ATTRIBUTE_PATTERN = /\s(?:href|rel|target)="[^"]*"/g;
@@ -12,12 +13,28 @@ export interface AffiliateResolution {
   unresolvedSlugs: string[];
 }
 
+export function isSafeTarget(target: string): boolean {
+  return SAFE_TARGET.test(target);
+}
+
+export function isSafeTrackingId(trackingId: string): boolean {
+  return SAFE_TRACKING_ID.test(trackingId);
+}
+
+export function isSafeLinkTemplate(template: string): boolean {
+  return (
+    SAFE_LINK_TEMPLATE.test(template) &&
+    template.includes('{target}') &&
+    template.includes('{trackingId}')
+  );
+}
+
 export function buildAffiliateUrl(program: AffiliateProgram, target: string): string | null {
   if (program.status !== 'approved' || !program.trackingId || !program.linkTemplate) {
     return null;
   }
 
-  if (!SAFE_TARGET.test(target) || !SAFE_TRACKING_ID.test(program.trackingId)) {
+  if (!isSafeTarget(target) || !isSafeTrackingId(program.trackingId)) {
     return null;
   }
 

@@ -1,14 +1,10 @@
 ---
+import ProgramManager from '@/components/dashboard/program-manager';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
 export const prerender = false;
 ---
 
 <DashboardLayout title="Monetization">
-  <div class="rounded-lg border border-border bg-card p-6">
-    <h2 class="text-base font-medium">Monetization</h2>
-    <p class="mt-2 max-w-prose text-sm text-muted-foreground">
-      Affiliate programs, generated /go links with click counts, and ad settings.
-    </p>
-  </div>
+  <ProgramManager client:load />
 </DashboardLayout>
