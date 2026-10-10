@@ -44,7 +44,15 @@ The cron trigger runs every 15 minutes. Each run calls
 schedule is due. The main endpoint enforces its own time budget and stops before
 that budget is exhausted, so the cron call can take up to about 110 seconds.
 
-A manual trigger is available at `POST /run` on the cron Worker.
+The cron Worker has no public URL: `workers_dev` is disabled so only the cron
+trigger can reach it. To exercise the manual `POST /run` handler, run it locally
+with `npx wrangler dev --config workers/agents/wrangler.jsonc`.
+
+## DeepSeek key
+
+The DeepSeek API key is entered in the dashboard, on the Agents page. It is
+stored encrypted in D1 with AES-GCM, using the `AGENT_SECRET_KEY` Worker secret,
+and it is never returned to the browser.
 
 ## Roles
 

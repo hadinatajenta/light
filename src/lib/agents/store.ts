@@ -156,7 +156,7 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
       input.runsPerDay,
       input.enabled ? 1 : 0,
       input.autoPublish ? 1 : 0,
-      computeNextRunAt(input.runsPerDay, now),
+      now.toISOString(),
       now.toISOString(),
       now.toISOString(),
     )
