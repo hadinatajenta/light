@@ -1,4 +1,6 @@
 ---
+import { buildChartPoints, toPolylinePoints } from '@/lib/chart';
+
 interface Props {
   values: number[];
   width?: number;
@@ -8,20 +10,8 @@ interface Props {
 
 const { values, width = 240, height = 56, label } = Astro.props;
 
-const series = values.length > 1 ? values : values.length === 1 ? [values[0], values[0]] : [0, 0];
-const maxValue = Math.max(1, ...series);
-const step = width / (series.length - 1);
-const verticalPadding = 4;
-const plotHeight = height - verticalPadding * 2;
-
-const coordinates = series.map((value, index) => ({
-  x: index * step,
-  y: height - verticalPadding - (value / maxValue) * plotHeight,
-}));
-
-const linePoints = coordinates
-  .map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`)
-  .join(' ');
+const points = buildChartPoints(values, width, height);
+const linePoints = toPolylinePoints(points);
 const areaPoints = `${linePoints} ${width},${height} 0,${height}`;
 ---
 
