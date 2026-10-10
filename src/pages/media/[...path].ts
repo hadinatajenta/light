@@ -7,24 +7,19 @@ const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 export const GET: APIRoute = async ({ request }) => {
   const key = new URL(request.url).pathname.replace(/^\/+/, '');
 
+  if (!key.startsWith('media/') || key.includes('..')) {
+    return new Response('Not Found', { status: 404 });
+  }
+
   const { env } = await import('cloudflare:workers');
   const bucket = (env as unknown as { MEDIA_BUCKET?: R2Bucket }).MEDIA_BUCKET;
-
-  const diagnostics = new Headers({
-    'X-Media-Key': key,
-    'X-Media-Bucket': bucket ? 'present' : 'missing',
-  });
-
   if (!bucket) {
-    return new Response('Not Found', { status: 404, headers: diagnostics });
+    return new Response('Not Found', { status: 404 });
   }
 
   const object = await bucket.get(key);
   if (!object) {
-    const listed = await bucket.list({ prefix: 'media/' });
-    diagnostics.set('X-Media-Objects', String(listed.objects.length));
-    diagnostics.set('X-Media-First', listed.objects[0]?.key ?? 'none');
-    return new Response('Not Found', { status: 404, headers: diagnostics });
+    return new Response('Not Found', { status: 404 });
   }
 
   const headers = new Headers({
