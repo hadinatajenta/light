@@ -3,6 +3,7 @@ import { runAgent } from '@/lib/agents/runner';
 import { listDueAgents } from '@/lib/agents/store';
 import { requireContentDatabase } from '@/lib/content/database';
 import { ApiError, createRequestContext, jsonOk, toErrorResponse } from '@/lib/http';
+import { publishDuePosts } from '@/lib/scheduling/store';
 
 export const prerender = false;
 
@@ -75,6 +76,7 @@ export const POST = async (context: APIContext): Promise<Response> => {
     }
 
     const database = await requireContentDatabase();
+    const schedule = await publishDuePosts(database);
     const due = await listDueAgents(database, new Date().toISOString());
 
     const startedAt = Date.now();
@@ -91,7 +93,10 @@ export const POST = async (context: APIContext): Promise<Response> => {
       processed += 1;
     }
 
-    return jsonOk({ processed, remaining: due.length - processed, results }, requestId);
+    return jsonOk(
+      { published: schedule.published, processed, remaining: due.length - processed, results },
+      requestId,
+    );
   } catch (error) {
     return toErrorResponse(error, requestId);
   }

@@ -1,0 +1,247 @@
+---
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { type AuditSeverity, scanContentAudit } from '@/lib/audit/store';
+import { requireContentDatabase } from '@/lib/content/database';
+import { formatRelativeTime } from '@/utils/date';
+
+export const prerender = false;
+
+const database = await requireContentDatabase();
+const report = await scanContentAudit(database);
+
+const SEVERITY_ORDER: AuditSeverity[] = ['high', 'medium', 'low'];
+
+const SEVERITY_PILL: Record<AuditSeverity, string> = {
+  high: 'border-transparent bg-destructive text-destructive-foreground',
+  medium: 'border-border bg-secondary text-secondary-foreground',
+  low: 'border-border bg-transparent text-foreground',
+};
+
+const RULE_LABELS: Record<string, string> = {
+  'title-length': 'Title length',
+  'description-length': 'Description length',
+  'thin-content': 'Thin content',
+  'missing-cover': 'Missing cover image',
+  'no-affiliate-link': 'No affiliate link',
+  'broken-product-reference': 'Broken product reference',
+  'no-internal-links': 'No internal links',
+  'heading-structure': 'Heading structure',
+  stale: 'Stale article',
+  'duplicate-title': 'Duplicate title',
+  'keyword-not-in-title': 'Focus keyword missing from title',
+};
+
+const summary = [
+  { label: 'Posts scanned', value: report.totals.posts },
+  { label: 'Clean posts', value: report.totals.clean },
+  { label: 'With high findings', value: report.totals.withHigh },
+  { label: 'Average score', value: report.totals.averageScore },
+];
+
+const totalFindings = report.byRule.reduce((sum, entry) => sum + entry.count, 0);
+const ruleMax = Math.max(1, ...report.byRule.map((entry) => entry.count));
+
+const postRows = report.posts.map((post) => ({
+  id: post.id,
+  title: post.title,
+  score: post.score,
+  findingCount: post.findings.length,
+  groups: SEVERITY_ORDER.map((severity) => ({
+    severity,
+    findings: post.findings.filter((finding) => finding.severity === severity),
+  })).filter((group) => group.findings.length > 0),
+}));
+
+const isEveryPostClean = report.totals.posts > 0 && report.totals.clean === report.totals.posts;
+
+function scoreBarClass(score: number): string {
+  if (score >= 80) {
+    return 'bg-primary';
+  }
+
+  if (score >= 50) {
+    return 'bg-chart-3';
+  }
+
+  return 'bg-destructive';
+}
+---
+
+<DashboardLayout title="Content audit">
+  <div class="flex flex-col gap-6">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <div>
+        <h2 class="text-lg font-semibold tracking-tight">Content audit</h2>
+        <p class="mt-0.5 max-w-2xl text-xs text-muted-foreground">
+          Scanned {formatRelativeTime(report.generatedAt)}. Every published article is checked for
+          title and description length, thin content, cover images, product and internal links,
+          heading structure, staleness, duplicate titles, and focus keyword placement.
+        </p>
+      </div>
+      <a
+        href="/dashboard/posts?status=published"
+        class="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Open published posts
+      </a>
+    </div>
+
+    {
+      report.totals.posts === 0 ? (
+        <section class="rounded-xl border border-border bg-card p-6">
+          <h3 class="text-sm font-medium">No published articles yet</h3>
+          <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
+            The audit scans every published article and scores it out of 100. Publish one and its
+            findings appear here automatically, no manual checklist needed.
+          </p>
+          <a
+            href="/dashboard/posts/new"
+            class="mt-4 inline-flex items-center whitespace-nowrap rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Write the first article
+          </a>
+        </section>
+      ) : (
+        <>
+          <dl class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {summary.map((metric) => (
+              <div class="rounded-xl border border-border bg-card p-4">
+                <dt class="text-xs tracking-wider text-muted-foreground uppercase">{metric.label}</dt>
+                <dd class="mt-1 text-2xl font-semibold tabular-nums">{metric.value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {isEveryPostClean && (
+            <section class="rounded-xl border border-border bg-card p-6">
+              <h3 class="text-sm font-medium">Every published article passes every check</h3>
+              <p class="mt-1 max-w-2xl text-sm text-muted-foreground">
+                {report.totals.posts} articles scanned with an average score of{' '}
+                {report.totals.averageScore}. Nothing needs a manual pass right now.
+              </p>
+            </section>
+          )}
+
+          <section aria-label="Findings by rule" class="rounded-xl border border-border bg-card p-6">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 class="text-sm font-medium">Findings by rule</h3>
+              <p class="text-xs text-muted-foreground tabular-nums">
+                {totalFindings} findings across {report.totals.posts} articles
+              </p>
+            </div>
+
+            {report.byRule.length === 0 ? (
+              <p class="mt-4 text-sm text-muted-foreground">
+                No findings. Every check passed on every article.
+              </p>
+            ) : (
+              <ul class="mt-4 flex flex-col gap-3">
+                {report.byRule.map((entry) => (
+                  <li class="flex items-center gap-3 text-sm">
+                    <span
+                      class:list={[
+                        'inline-flex w-16 shrink-0 justify-center rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium tracking-wider uppercase',
+                        SEVERITY_PILL[entry.severity],
+                      ]}
+                    >
+                      {entry.severity}
+                    </span>
+                    <span class="w-56 shrink-0 truncate" title={entry.rule}>
+                      {RULE_LABELS[entry.rule] ?? entry.rule}
+                    </span>
+                    <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                      <span
+                        class="block h-full rounded-full bg-primary/70"
+                        style={`width: ${Math.round((entry.count / ruleMax) * 100)}%`}
+                      />
+                    </span>
+                    <span class="w-8 shrink-0 text-right text-muted-foreground tabular-nums">
+                      {entry.count}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section aria-label="Article scores" class="rounded-xl border border-border bg-card p-6">
+            <div class="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 class="text-sm font-medium">Articles, worst first</h3>
+              <p class="text-xs text-muted-foreground">
+                Open an article to fix its findings in the editor.
+              </p>
+            </div>
+
+            <div class="mt-4 overflow-x-auto">
+              <table class="w-full min-w-[52rem] text-sm">
+                <caption class="sr-only">
+                  Published articles ordered by audit score, worst first
+                </caption>
+                <thead>
+                  <tr class="border-b border-border text-left text-xs tracking-wider text-muted-foreground uppercase">
+                    <th scope="col" class="py-2 pr-4 font-medium">Score</th>
+                    <th scope="col" class="py-2 pr-4 font-medium">Article</th>
+                    <th scope="col" class="py-2 font-medium">Findings</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {postRows.map((post) => (
+                    <tr class="border-b border-border/60 align-top last:border-0">
+                      <td class="py-3 pr-4">
+                        <div class="flex items-center gap-2">
+                          <span class="w-7 text-right font-medium tabular-nums">{post.score}</span>
+                          <span class="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-muted">
+                            <span
+                              class:list={['block h-full rounded-full', scoreBarClass(post.score)]}
+                              style={`width: ${post.score}%`}
+                            />
+                          </span>
+                        </div>
+                      </td>
+                      <th scope="row" class="py-3 pr-4 text-left font-normal">
+                        <a
+                          href={`/dashboard/posts/${post.id}/edit`}
+                          class="font-medium underline-offset-4 hover:underline"
+                        >
+                          {post.title}
+                        </a>
+                        <span class="mt-0.5 block text-xs text-muted-foreground tabular-nums">
+                          {post.findingCount === 1 ? '1 finding' : `${post.findingCount} findings`}
+                        </span>
+                      </th>
+                      <td class="py-3">
+                        {post.groups.length === 0 ? (
+                          <span class="text-xs text-muted-foreground">No findings</span>
+                        ) : (
+                          <div class="flex flex-col gap-2">
+                            {post.groups.map((group) => (
+                              <div>
+                                <span
+                                  class:list={[
+                                    'inline-flex rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium tracking-wider uppercase',
+                                    SEVERITY_PILL[group.severity],
+                                  ]}
+                                >
+                                  {group.severity}
+                                </span>
+                                <ul class="mt-1 flex flex-col gap-1">
+                                  {group.findings.map((finding) => (
+                                    <li class="max-w-prose text-xs">{finding.message}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )
+    }
+  </div>
+</DashboardLayout>
