@@ -77,6 +77,7 @@ owner, `(dev)` is engineering work.
 - [ ] **Save the DeepSeek API key** so the agents can run (you)
 - [ ] Watch a full scrapper to writer to reviewer cycle on a real topic (you, dev)
 - [ ] Reach 30 published articles (you, dev)
+- [x] First article written end to end by the agents: researcher notes, writer draft, reviewer decision (dev)
 - [ ] Reach 100 published articles (you, dev)
 
 ## Phase 5 - growth and measurement
@@ -87,8 +88,8 @@ owner, `(dev)` is engineering work.
 - [x] **Insights rebuilt**: content performance, agent operations with token and cost estimates, affiliate readiness, automation health (dev)
 - [x] **Sidebar redesigned**: grouped navigation, collapsible rail with the choice remembered, email moved out of the sidebar into a header account menu (dev)
 - [x] **Scrapper wired to the pipeline**: the researcher collects notes into `sources` and the writer only claims researched topics (dev)
-- [ ] **Content audit**: automated SEO and quality scan with an actionable report (dev)
-- [ ] **Scheduled publishing**: a future publication date keeps a post as a draft until the cron publishes it (dev)
+- [x] **Content audit**: automated SEO and quality scan with an actionable report (dev)
+- [x] **Scheduled publishing**: a future publication date keeps a post as a draft until the cron publishes it, and only an approved draft is ever auto-published (dev)
 - [ ] Re-submit the sitemap in Search Console (you)
 - [ ] Request indexing for the current articles (you)
 - [ ] Build the Insights page on the Search Console API (dev)
