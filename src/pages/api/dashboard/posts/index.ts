@@ -4,6 +4,7 @@ import { withAdmin } from '@/lib/api/handler';
 import { postFrontmatterSchema } from '@/lib/content/post-schema';
 import { createPost, listPosts, type PostSummary } from '@/lib/content/store';
 import { jsonOk, readJsonBody } from '@/lib/http';
+import { isScheduled } from '@/lib/scheduling/store';
 
 export const prerender = false;
 
@@ -33,9 +34,14 @@ export const GET = withAdmin(async ({ url }, requestId) => {
   );
 
   const allPosts = sortPosts(await listPosts());
+  const now = new Date();
 
   const filtered = allPosts.filter((post) => {
-    if (status !== 'all' && post.status !== status) {
+    if (status === 'scheduled') {
+      if (!isScheduled(post.status, post.pubDate, now)) {
+        return false;
+      }
+    } else if (status !== 'all' && post.status !== status) {
       return false;
     }
     if (category && post.category !== category) {

@@ -861,6 +861,9 @@ export default function PostEditor({ postId }: PostEditorProps) {
             }
             onChange={handleSeoChange}
           />
+          <p className="text-xs text-muted-foreground">
+            A future publish date keeps this post as a scheduled draft until that moment.
+          </p>
         </aside>
       </div>
 

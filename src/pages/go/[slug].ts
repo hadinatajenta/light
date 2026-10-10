@@ -47,6 +47,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     headers: {
       Location: target.url,
       'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex, nofollow',
     },
   });
 };

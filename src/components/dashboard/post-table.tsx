@@ -36,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { isScheduled } from '@/lib/scheduling/store';
 import { formatDate } from '@/utils/date';
 import { DialogSurface } from './dialog-surface';
 
@@ -55,7 +56,8 @@ const SELECT_CLASS =
   'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
 
 type PostStatus = 'draft' | 'published' | 'archived';
-type StatusFilter = 'all' | PostStatus;
+type PostDisplayStatus = PostStatus | 'scheduled';
+type StatusFilter = 'all' | PostDisplayStatus;
 type BulkAction = 'archive' | 'delete';
 
 interface PostSummary {
@@ -109,14 +111,16 @@ interface PostTableProps {
   initialPage: number;
 }
 
-const STATUS_LABEL: Record<PostStatus, string> = {
+const STATUS_LABEL: Record<PostDisplayStatus, string> = {
   draft: 'Draft',
+  scheduled: 'Scheduled',
   published: 'Published',
   archived: 'Archived',
 };
 
-const STATUS_VARIANT: Record<PostStatus, 'default' | 'outline' | 'secondary'> = {
+const STATUS_VARIANT: Record<PostDisplayStatus, 'default' | 'outline' | 'secondary'> = {
   draft: 'outline',
+  scheduled: 'secondary',
   published: 'default',
   archived: 'secondary',
 };
@@ -124,6 +128,7 @@ const STATUS_VARIANT: Record<PostStatus, 'default' | 'outline' | 'secondary'> = 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All statuses' },
   { value: 'draft', label: 'Draft' },
+  { value: 'scheduled', label: 'Scheduled' },
   { value: 'published', label: 'Published' },
   { value: 'archived', label: 'Archived' },
 ];
@@ -210,8 +215,17 @@ function buildResultMessage(action: BulkAction, count: number): string {
   return action === 'archive' ? `Archived ${count} ${noun}.` : `Deleted ${count} ${noun}.`;
 }
 
-function StatusBadge({ status }: { status: PostStatus }) {
-  return <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>;
+function StatusBadge({
+  status,
+  pubDate,
+  now,
+}: {
+  status: PostStatus;
+  pubDate: string | null;
+  now: Date;
+}) {
+  const displayStatus: PostDisplayStatus = isScheduled(status, pubDate, now) ? 'scheduled' : status;
+  return <Badge variant={STATUS_VARIANT[displayStatus]}>{STATUS_LABEL[displayStatus]}</Badge>;
 }
 
 function TagList({ tags }: { tags: string[] }) {
@@ -531,6 +545,7 @@ export default function PostTable({
   const isMutating = busyAction !== null;
   const hasActiveFilters = status !== 'all' || category !== '' || searchInput.trim() !== '';
   const isPaginationDisabled = isFetching || isMutating;
+  const scheduleNow = new Date();
 
   const rangeStart = postsPage.total === 0 ? 0 : (postsPage.page - 1) * postsPage.perPage + 1;
   const rangeEnd =
@@ -932,7 +947,11 @@ export default function PostTable({
                         {post.title}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={post.status} />
+                        <StatusBadge
+                          status={post.status}
+                          pubDate={post.pubDate}
+                          now={scheduleNow}
+                        />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {resolveCategoryLabel(post.category)}

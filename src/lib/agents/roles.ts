@@ -12,7 +12,7 @@ export const MAX_AGENTS = 6;
 
 export const MIN_RUNS_PER_DAY = 1;
 
-export const MAX_RUNS_PER_DAY = 24;
+export const MAX_RUNS_PER_DAY = 96;
 
 export interface AgentRoleDefinition {
   id: AgentRole;
