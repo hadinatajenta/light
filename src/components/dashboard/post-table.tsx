@@ -605,29 +605,61 @@ export default function PostTable({
     setConfirmOpen(true);
   };
 
+  const applyOptimisticStatus = (ids: string[], status: PostSummary['status']) => {
+    const target = new Set(ids);
+    setPostsPage((previous) => ({
+      ...previous,
+      posts: previous.posts.map((post) => (target.has(post.id) ? { ...post, status } : post)),
+    }));
+  };
+
+  const applyOptimisticDelete = (ids: string[]) => {
+    const target = new Set(ids);
+    setPostsPage((previous) => {
+      const remaining = previous.posts.filter((post) => !target.has(post.id));
+      return {
+        ...previous,
+        posts: remaining,
+        total: Math.max(0, previous.total - (previous.posts.length - remaining.length)),
+      };
+    });
+  };
+
   const executeConfirmed = async (action: BulkAction) => {
     if (isMutating || confirmTargets.length === 0) {
       return;
     }
 
+    const ids = confirmTargets.map((target) => target.id);
+    const total = ids.length;
+
+    if (action === 'delete') {
+      applyOptimisticDelete(ids);
+    } else {
+      applyOptimisticStatus(ids, 'archived');
+    }
+
+    setConfirmOpen(false);
+    setSelected(new Map());
     setBusyAction(action);
 
     let failedCount = 0;
 
     try {
       if (confirmScope === 'row') {
-        const target = confirmTargets[0];
+        const target = ids[0];
         if (!target) {
           return;
         }
+
         if (action === 'archive') {
-          await requestData(`/api/dashboard/posts/${encodeURIComponent(target.id)}/status`, {
+          await requestData(`/api/dashboard/posts/${encodeURIComponent(target)}/status`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'archived' }),
           });
         } else {
-          await requestData(`/api/dashboard/posts/${encodeURIComponent(target.id)}`, {
+          await requestData(`/api/dashboard/posts/${encodeURIComponent(target)}`, {
             method: 'DELETE',
           });
         }
@@ -635,24 +667,22 @@ export default function PostTable({
         const result = (await requestData('/api/dashboard/posts/bulk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, ids: confirmTargets.map((target) => target.id) }),
+          body: JSON.stringify({ action, ids }),
         })) as { failed?: unknown[] };
 
         failedCount = Array.isArray(result.failed) ? result.failed.length : 0;
       }
 
       if (failedCount > 0) {
-        toast.error(`${failedCount} of ${confirmTargets.length} could not be updated. Try again.`);
+        toast.error(`${failedCount} of ${total} could not be updated. Try again.`);
       } else {
-        toast.success(buildResultMessage(action, confirmTargets.length));
+        toast.success(buildResultMessage(action, total));
       }
-      setConfirmOpen(false);
-      setSelected(new Map());
-      void loadPosts();
     } catch (error) {
       toast.error(resolveErrorMessage(error));
     } finally {
       setBusyAction(null);
+      void loadPosts();
     }
   };
 

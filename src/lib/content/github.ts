@@ -56,6 +56,85 @@ async function githubRequest(
   });
 }
 
+export interface BlogFile {
+  name: string;
+  path: string;
+  sha: string;
+  text: string;
+}
+
+const BLOG_TREE_QUERY = `
+query ($owner: String!, $name: String!, $expression: String!) {
+  repository(owner: $owner, name: $name) {
+    object(expression: $expression) {
+      ... on Tree {
+        entries {
+          name
+          path
+          oid
+          object {
+            ... on Blob {
+              text
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+export async function listBlogFiles(
+  config: GithubConfig,
+  directory: string,
+): Promise<BlogFile[] | null> {
+  const [owner, name] = config.repo.split('/');
+  if (!owner || !name) {
+    return null;
+  }
+
+  const response = await fetch(`${API_BASE}/graphql`, {
+    method: 'POST',
+    headers: buildHeaders(config),
+    body: JSON.stringify({
+      query: BLOG_TREE_QUERY,
+      variables: { owner, name, expression: `${config.branch}:${directory}` },
+    }),
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as {
+    data?: {
+      repository?: {
+        object?: {
+          entries?: Array<{
+            name: string;
+            path: string;
+            oid: string;
+            object?: { text?: string | null } | null;
+          }>;
+        } | null;
+      };
+    };
+  };
+
+  const entries = payload.data?.repository?.object?.entries;
+  if (!Array.isArray(entries)) {
+    return null;
+  }
+
+  return entries
+    .filter((entry) => entry.object?.text != null)
+    .map((entry) => ({
+      name: entry.name,
+      path: entry.path,
+      sha: entry.oid,
+      text: entry.object?.text ?? '',
+    }));
+}
+
 export async function getFile(config: GithubConfig, path: string): Promise<GithubFile | null> {
   const response = await githubRequest(config, `${path}?ref=${encodeURIComponent(config.branch)}`);
 

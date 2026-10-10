@@ -1,11 +1,22 @@
 import { ApiError } from '../http';
+import { invalidateCache, readCache, writeCache } from './cache';
 import { parseDocument, serializeDocument } from './frontmatter';
-import { deleteFile, type GithubConfig, getFile, listDirectory, putFile } from './github';
+import {
+  type BlogFile,
+  deleteFile,
+  type GithubConfig,
+  getFile,
+  listBlogFiles,
+  listDirectory,
+  putFile,
+} from './github';
 import { POST_STATUSES, type PostStatus } from './post-schema';
 import { toSlug } from './slug';
 
 const BLOG_DIRECTORY = 'src/content/blog';
 const MARKDOWN_EXTENSIONS = ['.md', '.mdx'];
+const POSTS_CACHE_KEY = 'posts:list';
+const POSTS_CACHE_TTL_MS = 15_000;
 
 export interface PostSummary {
   id: string;
@@ -62,24 +73,43 @@ function toSummary(path: string, sha: string, data: Record<string, unknown>): Po
   };
 }
 
-export async function listPosts(config: GithubConfig): Promise<PostSummary[]> {
+async function loadMarkdownFiles(config: GithubConfig): Promise<BlogFile[]> {
+  const batch = await listBlogFiles(config, BLOG_DIRECTORY);
+  if (batch) {
+    return batch.filter((file) => MARKDOWN_EXTENSIONS.some((ext) => file.path.endsWith(ext)));
+  }
+
   const entries = await listDirectory(config, BLOG_DIRECTORY);
   const markdown = entries.filter((entry) =>
     MARKDOWN_EXTENSIONS.some((ext) => entry.path.endsWith(ext)),
   );
 
-  const summaries = await Promise.all(
+  const files = await Promise.all(
     markdown.map(async (entry) => {
       const file = await getFile(config, entry.path);
       if (!file) {
         return null;
       }
-
-      return toSummary(entry.path, file.sha, parseDocument(file.content).data);
+      return { name: entry.name, path: entry.path, sha: file.sha, text: file.content };
     }),
   );
 
-  return summaries.filter((summary): summary is PostSummary => summary !== null);
+  return files.filter((file): file is BlogFile => file !== null);
+}
+
+export async function listPosts(config: GithubConfig): Promise<PostSummary[]> {
+  const cached = readCache<PostSummary[]>(POSTS_CACHE_KEY);
+  if (cached) {
+    return cached;
+  }
+
+  const files = await loadMarkdownFiles(config);
+  const summaries = files.map((file) =>
+    toSummary(file.path, file.sha, parseDocument(file.text).data),
+  );
+
+  writeCache(POSTS_CACHE_KEY, summaries, POSTS_CACHE_TTL_MS);
+  return summaries;
 }
 
 async function findPathForId(config: GithubConfig, id: string): Promise<string | null> {
@@ -134,6 +164,8 @@ export async function createPost(
 
   const content = serializeDocument(input.data, input.body);
   const result = await putFile(config, path, content, input.message);
+  invalidateCache(POSTS_CACHE_KEY);
+
   return { id, path, sha: result.sha, data: input.data, body: input.body };
 }
 
@@ -158,6 +190,8 @@ export async function updatePost(
 
   const content = serializeDocument(input.data, input.body);
   const result = await putFile(config, path, content, input.message, file.sha);
+  invalidateCache(POSTS_CACHE_KEY);
+
   return { id, path, sha: result.sha, data: input.data, body: input.body };
 }
 
@@ -191,4 +225,5 @@ export async function deletePost(config: GithubConfig, id: string, message: stri
   }
 
   await deleteFile(config, path, message, file.sha);
+  invalidateCache(POSTS_CACHE_KEY);
 }
