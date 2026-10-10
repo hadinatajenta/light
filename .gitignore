@@ -25,3 +25,4 @@ pnpm-debug.log*
 # local design workspace (not published)
 UML/
 .wrangler/
+.dev.vars

@@ -16,6 +16,7 @@ export default defineConfig({
         optional: true,
       }),
       ACCESS_AUD: envField.string({ context: 'server', access: 'secret', optional: true }),
+      DEV_ADMIN_EMAIL: envField.string({ context: 'server', access: 'secret', optional: true }),
     },
   },
   integrations: [mdx(), sitemap(), react()],
