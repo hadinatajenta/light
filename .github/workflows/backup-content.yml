@@ -31,5 +31,6 @@ jobs:
             echo "No content changes to back up"
           else
             git commit -m "chore(content): sync markdown backup from d1"
+            git pull --rebase origin main
             git push
           fi
