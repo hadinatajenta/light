@@ -2,12 +2,12 @@ import type { APIRoute } from 'astro';
 
 export const prerender = false;
 
-const KEY_PREFIX = 'media/';
 const IMMUTABLE_CACHE_CONTROL = 'public, max-age=31536000, immutable';
 
-export const GET: APIRoute = async ({ params, request }) => {
-  const file = params.path;
-  if (!file) {
+export const GET: APIRoute = async ({ request }) => {
+  const key = new URL(request.url).pathname.replace(/^\/+/, '');
+
+  if (!key.startsWith('media/') || key.includes('..')) {
     return new Response('Not Found', { status: 404 });
   }
 
@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     return new Response('Not Found', { status: 404 });
   }
 
-  const object = await bucket.get(`${KEY_PREFIX}${file}`);
+  const object = await bucket.get(key);
   if (!object) {
     return new Response('Not Found', { status: 404 });
   }
