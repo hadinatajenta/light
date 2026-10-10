@@ -81,10 +81,17 @@ owner, `(dev)` is engineering work.
 
 ## Phase 5 - growth and measurement
 
+- [x] **Click tracking**: every `product:<slug>` link renders as `/go/<slug>`, the redirect records the click and forwards to the affiliate URL with the tracking id (dev)
+- [x] **Analytics snapshot**: one endpoint covering content, pipeline, agents, affiliate, activity, and media (dev)
+- [x] **Dashboard rebuilt** from real data: hero metrics, publishing cadence chart, content mix, pipeline funnel, agents, affiliate, activity (dev)
+- [x] **Insights rebuilt**: content performance, agent operations with token and cost estimates, affiliate readiness, automation health (dev)
+- [x] **Sidebar redesigned**: grouped navigation, collapsible rail with the choice remembered, email moved out of the sidebar into a header account menu (dev)
+- [x] **Scrapper wired to the pipeline**: the researcher collects notes into `sources` and the writer only claims researched topics (dev)
+- [ ] **Content audit**: automated SEO and quality scan with an actionable report (dev)
+- [ ] **Scheduled publishing**: a future publication date keeps a post as a draft until the cron publishes it (dev)
 - [ ] Re-submit the sitemap in Search Console (you)
 - [ ] Request indexing for the current articles (you)
 - [ ] Build the Insights page on the Search Console API (dev)
-- [ ] Set up click tracking on affiliate links (dev)
 - [ ] Review Search Console data weekly and prune or expand topics (you)
 
 ## Phase 6 - admin polish

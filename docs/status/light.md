@@ -151,6 +151,9 @@ What is missing to close this loop:
 - [x] Sidebar "New post" action
 - [x] Dashboard overview with real data (hero metric plus sparkline plus chart)
 - [x] **Activity log** for users and agents, with per-actor filtering
+- [x] **Click tracking**: `/go/<slug>` records the click then forwards to the affiliate URL with the tracking id
+- [x] **Analytics snapshot** and rebuilt **Dashboard** and **Insights** screens driven by real data
+- [x] **Collapsible grouped sidebar**, with the account identity moved out of the sidebar into the header
 - [x] **Agents**: CRUD, four roles, encrypted DeepSeek key, manual run,
       review gate, scheduled cron Worker
 - [x] **Topic queue**: agents claim the oldest queued topic, and an empty queue
