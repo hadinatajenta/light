@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://light.hadinatajenta122.workers.dev/sitemap-index.xml
+Sitemap: https://light.hadinata.me/sitemap-index.xml
