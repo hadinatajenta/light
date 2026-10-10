@@ -12,6 +12,13 @@ import {
 import { getRoleDefinition } from './roles';
 import { requireDeepseekKey } from './settings';
 import { type AgentRecord, createAgentRun, finishAgentRun, markAgentRun } from './store';
+import {
+  blockTopic,
+  claimNextTopic,
+  markTopicUsed,
+  releaseTopic,
+  type TopicRecord,
+} from './topics';
 
 export interface RunAgentResult {
   runId: string;
@@ -23,8 +30,28 @@ export interface RunAgentResult {
   error?: string;
 }
 
+interface AppliedResult {
+  summary: string;
+  output: string;
+  postId?: string;
+}
+
+interface CatalogRow {
+  slug: string;
+  name: string;
+  target: string;
+  topics: string;
+  tracking_id: string | null;
+  link_template: string | null;
+  status: string;
+  network: string;
+  disclosure: string;
+}
+
 const MAX_OUTPUT_CHARS = 200_000;
 const MAX_DRAFT_CHARS = 40_000;
+const MAX_CATALOG_ITEMS = 12;
+const NEEDS_RESEARCH_PATTERN = /^\s*NEEDS RESEARCH/i;
 
 function truncate(value: string, limit: number): string {
   return value.length <= limit ? value : `${value.slice(0, limit)}\n\n[truncated]`;
@@ -40,18 +67,73 @@ function readStringArray(value: unknown, limit: number): string[] {
     : [];
 }
 
-function buildSystemPrompt(agent: AgentRecord): string {
-  const role = getRoleDefinition(agent.role);
-  return `${role.defaultPrompt}${agent.prompt}\n\nRespond with a single JSON object and nothing else.`;
+function readJsonArray(value: string): string[] {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is string => typeof entry === 'string')
+      : [];
+  } catch {
+    return [];
+  }
 }
 
-async function buildUserMessage(db: D1Database, agent: AgentRecord): Promise<string> {
+function buildSystemPrompt(agent: AgentRecord): string {
+  const role = getRoleDefinition(agent.role);
+  return `${role.defaultPrompt}\n\nAgent focus: ${agent.prompt}\n\nRespond with a single JSON object and nothing else.`;
+}
+
+async function loadCatalogSlice(db: D1Database, topic: TopicRecord): Promise<string> {
+  const result = await db
+    .prepare(
+      `SELECT p.slug, p.name, p.target, p.topics,
+              pr.tracking_id, pr.link_template, pr.status, pr.network, pr.disclosure
+       FROM affiliate_products p
+       JOIN affiliate_programs pr ON pr.id = p.program_id
+       WHERE p.is_active = 1 AND pr.status = 'approved'
+       ORDER BY p.name ASC`,
+    )
+    .all<CatalogRow>();
+
+  const usable = (result.results ?? []).filter(
+    (row) => row.tracking_id && row.link_template && row.target,
+  );
+
+  if (usable.length === 0) {
+    return 'The product catalog is empty. Write the guide without product links and say nothing about missing links.';
+  }
+
+  const matching = topic.category
+    ? usable.filter((row) => readJsonArray(row.topics).includes(topic.category ?? ''))
+    : [];
+  const selected = (matching.length > 0 ? matching : usable).slice(0, MAX_CATALOG_ITEMS);
+
+  return selected.map((row) => `- ${row.slug} | ${row.name}`).join('\n');
+}
+
+async function buildUserMessage(
+  db: D1Database,
+  agent: AgentRecord,
+  topic: TopicRecord | null,
+): Promise<string> {
   if (agent.role === 'writer') {
+    if (!topic) {
+      return '';
+    }
+
+    const catalog = await loadCatalogSlice(db, topic);
     const titles = await listRecentPublishedTitles(db, 12);
     const avoid =
       titles.length > 0 ? `\n\nAlready published, do not duplicate:\n- ${titles.join('\n- ')}` : '';
+    const keywords = topic.keywords.length > 0 ? `\nKeywords: ${topic.keywords.join(', ')}` : '';
+    const category = topic.category ? `\nCategory: ${topic.category}` : '';
 
-    return `Write the guide now. Return JSON with keys: title (string), description (string, 50 to 160 characters), tags (array of 2 to 4 lowercase slugs), body (markdown string).${avoid}`;
+    return `Topic: ${topic.title}${category}${keywords}
+
+Available products (use only these slugs, linked as [text](product:slug)):
+${catalog}
+
+Return JSON with keys: title (string, 10 to 70 characters), description (string, 50 to 160 characters), tags (array of 2 to 4 lowercase slugs), body (markdown string, no H1), editorNotes (string).${avoid}`;
   }
 
   if (agent.role === 'scrapper') {
@@ -76,7 +158,8 @@ async function applyResult(
   db: D1Database,
   agent: AgentRecord,
   content: string,
-): Promise<{ summary: string; output: string }> {
+  topic: TopicRecord | null,
+): Promise<AppliedResult> {
   if (agent.role === 'scrapper') {
     const parsed = extractJsonObject(content);
     const notes = Array.isArray(parsed.notes) ? parsed.notes : [];
@@ -92,13 +175,25 @@ async function applyResult(
     const description = readString(parsed.description);
     const body = readString(parsed.body);
     const tags = readStringArray(parsed.tags, 6);
+    const editorNotes = readString(parsed.editorNotes);
 
     if (!title || !body) {
       throw new ApiError(502, 'MODEL_OUTPUT_INVALID', 'The writer did not return a usable draft.');
     }
 
-    await createDraftPost(db, agent, { title, description, tags, body });
-    return { summary: `Drafted "${title}"`, output: truncate(content, MAX_OUTPUT_CHARS) };
+    const postId = await createDraftPost(db, agent, {
+      title,
+      description,
+      tags,
+      body,
+      category: topic?.category ?? null,
+    });
+
+    return {
+      summary: `Drafted "${title}"`,
+      output: truncate(editorNotes ? `${editorNotes}\n\n${content}` : content, MAX_OUTPUT_CHARS),
+      postId,
+    };
   }
 
   const target = await findPendingDraft(db);
@@ -165,13 +260,30 @@ export async function runAgent(
   signal?: AbortSignal,
 ): Promise<RunAgentResult> {
   const runId = await createAgentRun(db, agent.id);
+  let topic: TopicRecord | null = null;
 
   try {
     const apiKey = await requireDeepseekKey(db);
     const role = getRoleDefinition(agent.role);
-    const userMessage = await buildUserMessage(db, agent);
+
+    if (agent.role === 'writer') {
+      topic = await claimNextTopic(db, agent.id);
+
+      if (!topic) {
+        const summary = 'No topic queued';
+        await finishAgentRun(db, runId, { status: 'succeeded', summary });
+        await markAgentRun(db, agent.id, agent.runsPerDay);
+        await recordAgentActivity(agent, summary);
+        return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
+      }
+    }
+
+    const userMessage = await buildUserMessage(db, agent, topic);
 
     if (!userMessage) {
+      if (topic) {
+        await releaseTopic(db, topic.id, 'No pending draft to process');
+      }
       const summary = 'No pending draft to process';
       await finishAgentRun(db, runId, { status: 'succeeded', summary });
       await markAgentRun(db, agent.id, agent.runsPerDay);
@@ -194,7 +306,43 @@ export async function runAgent(
       signal,
     });
 
-    const applied = await applyResult(db, agent, response.content);
+    if (NEEDS_RESEARCH_PATTERN.test(response.content)) {
+      const note = truncate(response.content, 500);
+
+      if (topic) {
+        await blockTopic(db, topic.id, note);
+      }
+
+      const summary = topic ? `Blocked topic "${topic.title}": needs research` : 'Needs research';
+      await finishAgentRun(db, runId, {
+        status: 'succeeded',
+        summary,
+        output: note,
+        tokensIn: response.tokensIn,
+        tokensOut: response.tokensOut,
+      });
+      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await recordAgentActivity(agent, summary);
+
+      return {
+        runId,
+        status: 'succeeded',
+        summary,
+        output: note,
+        tokensIn: response.tokensIn,
+        tokensOut: response.tokensOut,
+      };
+    }
+
+    const applied = await applyResult(db, agent, response.content, topic);
+
+    if (topic) {
+      if (applied.postId) {
+        await markTopicUsed(db, topic.id, applied.postId);
+      } else {
+        await releaseTopic(db, topic.id, applied.summary);
+      }
+    }
 
     await finishAgentRun(db, runId, {
       status: 'succeeded',
@@ -216,6 +364,10 @@ export async function runAgent(
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The run failed.';
+
+    if (topic) {
+      await releaseTopic(db, topic.id, message);
+    }
 
     await finishAgentRun(db, runId, {
       status: 'failed',

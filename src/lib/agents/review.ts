@@ -117,22 +117,34 @@ export async function updateDraftBody(
 export async function createDraftPost(
   db: D1Database,
   agent: AgentRecord,
-  input: { title: string; description: string; tags: string[]; body: string },
+  input: {
+    title: string;
+    description: string;
+    tags: string[];
+    body: string;
+    category?: string | null;
+  },
 ): Promise<string> {
   const slug = await buildUniqueSlug(db, input.title);
 
+  const data: Record<string, unknown> = {
+    title: input.title,
+    description: input.description,
+    status: 'draft',
+    tags: input.tags,
+    pubDate: new Date(),
+    noindex: false,
+    affiliate: false,
+    faq: [],
+  };
+
+  if (input.category) {
+    data.category = input.category;
+  }
+
   const document = await createPost({
     slug,
-    data: {
-      title: input.title,
-      description: input.description,
-      status: 'draft',
-      tags: input.tags,
-      pubDate: new Date(),
-      noindex: false,
-      affiliate: false,
-      faq: [],
-    },
+    data,
     body: input.body,
     message: `feat(content): draft ${slug}`,
   });
