@@ -1,0 +1,20 @@
+---
+import PageLayout from '@/layouts/PageLayout.astro';
+import { resolveContentDatabase } from '@/lib/content/database';
+import { getPublishedPage } from '@/lib/pages/store';
+
+export const prerender = false;
+
+const slug = Astro.params.slug;
+const database = await resolveContentDatabase();
+const page = slug && database ? await getPublishedPage(database, slug) : null;
+
+if (!page) {
+  return new Response('Not Found', {
+    status: 404,
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
+---
+
+<PageLayout page={page} />

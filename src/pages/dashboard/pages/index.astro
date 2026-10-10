@@ -1,0 +1,10 @@
+---
+import PageManager from '@/components/dashboard/page-manager';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Pages">
+  <PageManager client:load />
+</DashboardLayout>

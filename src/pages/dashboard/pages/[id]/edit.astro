@@ -1,0 +1,12 @@
+---
+import PageForm from '@/components/dashboard/page-form';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+
+const pageId = Astro.params.id ?? '';
+---
+
+<DashboardLayout title="Edit page">
+  <PageForm client:load mode="edit" pageId={pageId} />
+</DashboardLayout>

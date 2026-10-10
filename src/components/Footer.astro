@@ -1,7 +1,28 @@
 ---
 import { FOOTER_SECTIONS, SITE_AUTHOR, SITE_TAGLINE, SITE_TITLE } from '@/consts';
+import { resolveContentDatabase } from '@/lib/content/database';
+import { listFooterPages } from '@/lib/pages/store';
 
 const currentYear = new Date().getFullYear();
+const fallbackLegalLinks = FOOTER_SECTIONS.find((section) => section.title === 'Legal')?.links ?? [];
+
+let legalLinks = fallbackLegalLinks;
+const database = await resolveContentDatabase();
+
+if (database) {
+  try {
+    const footerPages = await listFooterPages(database);
+    if (footerPages.length > 0) {
+      legalLinks = footerPages.map((page) => ({ label: page.title, href: `/${page.id}/` }));
+    }
+  } catch (error) {
+    console.error('Failed to load footer pages', error);
+  }
+}
+
+const footerSections = FOOTER_SECTIONS.map((section) =>
+  section.title === 'Legal' ? { ...section, links: legalLinks } : section,
+);
 ---
 
 <footer class="foot">
@@ -11,7 +32,7 @@ const currentYear = new Date().getFullYear();
       <p>{SITE_TAGLINE}</p>
     </div>
     {
-      FOOTER_SECTIONS.map((section) => (
+      footerSections.map((section) => (
         <div class="foot-col">
           <h5>{section.title}</h5>
           {section.links.map((link) => (

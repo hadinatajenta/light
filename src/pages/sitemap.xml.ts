@@ -1,18 +1,11 @@
 import type { APIRoute } from 'astro';
 import { POSTS_PER_PAGE } from '@/consts';
+import { resolveContentDatabase } from '@/lib/content/database';
 import { getPublishedPostSummaries } from '@/lib/content/public';
+import { listPublishedPages } from '@/lib/pages/store';
 import { collectPaginationPaths, collectTagPaths, toLastModified } from '@/utils/sitemap';
 
-const STATIC_PATHS = [
-  '/',
-  '/blog/',
-  '/about/',
-  '/contact/',
-  '/affiliate-disclosure/',
-  '/privacy-policy/',
-  '/cookie-policy/',
-  '/terms/',
-];
+const STATIC_PATHS = ['/', '/blog/'];
 
 const MINIMUM_TAG_POSTS = 2;
 
@@ -35,10 +28,18 @@ export const prerender = false;
 
 export const GET: APIRoute = async (context) => {
   const origin = context.site ?? new URL(context.url.origin);
-  const posts = await getPublishedPostSummaries();
+  const database = await resolveContentDatabase();
+  const [posts, pages] = await Promise.all([
+    getPublishedPostSummaries(),
+    database ? listPublishedPages(database) : Promise.resolve([]),
+  ]);
 
   const entries: SitemapEntry[] = [
     ...STATIC_PATHS.map((path) => ({ path })),
+    ...pages.map((page) => ({
+      path: `/${page.id}/`,
+      lastModified: toLastModified(page.updatedAt),
+    })),
     ...posts.map((post) => ({
       path: `/blog/${post.id}/`,
       lastModified: toLastModified(post.updatedDate ?? post.pubDate),

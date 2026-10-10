@@ -1,0 +1,10 @@
+---
+import PageForm from '@/components/dashboard/page-form';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="New page">
+  <PageForm client:load mode="create" />
+</DashboardLayout>

@@ -1,0 +1,50 @@
+---
+import { renderMarkdown } from '@/lib/content/public';
+import type { PageRecord } from '@/lib/pages/store';
+import { buildBreadcrumbJsonLd, buildCanonicalUrl } from '@/utils/seo';
+import BaseLayout from './BaseLayout.astro';
+
+interface Props {
+  page: PageRecord;
+}
+
+const { page } = Astro.props;
+
+const { html } = renderMarkdown(page.body);
+const canonicalUrl = page.canonical ?? buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname);
+const jsonLd = buildBreadcrumbJsonLd([
+  { name: 'Home', url: new URL('/', Astro.site ?? Astro.url.origin).href },
+  { name: page.title, url: canonicalUrl ?? Astro.url.href },
+]);
+---
+
+<BaseLayout
+  title={page.seoTitle ?? page.title}
+  description={page.description}
+  noindex={page.noindex}
+  canonical={canonicalUrl}
+  jsonLd={jsonLd}
+  contained={false}
+>
+  <div class="page-shell">
+    <article>
+      <header class="post-head">
+        <span class="label">Page</span>
+        <h1 class="post-title">{page.title}</h1>
+        {page.description && <p class="post-standfirst">{page.description}</p>}
+      </header>
+
+      <div class="post-body">
+        <Fragment set:html={html} />
+      </div>
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .page-shell {
+    max-width: 688px;
+    margin: 0 auto;
+    padding: 64px 24px 0;
+  }
+</style>
