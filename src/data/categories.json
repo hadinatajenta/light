@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "monitors",
+    "label": "Monitors",
+    "description": "Choosing a monitor for a home office, from panel type to the stand."
+  },
+  {
+    "slug": "keyboards",
+    "label": "Keyboards",
+    "description": "Keyboards for long writing sessions, switches, and layouts."
+  },
+  {
+    "slug": "audio",
+    "label": "Audio",
+    "description": "Headphones and speakers, and what actually improves the listening."
+  },
+  {
+    "slug": "desk-setup",
+    "label": "Desk Setup",
+    "description": "Building a desk that still works in three years."
+  },
+  {
+    "slug": "chairs",
+    "label": "Chairs",
+    "description": "Office chair features that are worth paying for."
+  },
+  {
+    "slug": "buying-basics",
+    "label": "Buying Basics",
+    "description": "How to read a spec sheet without being fooled."
+  }
+]

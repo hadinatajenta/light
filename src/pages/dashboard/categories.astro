@@ -1,14 +1,10 @@
 ---
+import CategoryManager from '@/components/dashboard/category-manager';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
 export const prerender = false;
 ---
 
 <DashboardLayout title="Categories">
-  <div class="rounded-lg border border-border bg-card p-6">
-    <h2 class="text-base font-medium">Categories</h2>
-    <p class="mt-2 max-w-prose text-sm text-muted-foreground">
-      Manage the topics used across the site, and detect tags with no posts.
-    </p>
-  </div>
+  <CategoryManager client:load />
 </DashboardLayout>
