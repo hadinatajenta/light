@@ -1,10 +1,10 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import YAML from 'yaml';
 
 const BLOG_DIRECTORY = 'src/content/blog';
 const CATEGORIES_PATH = 'src/data/categories.json';
-const OUTPUT_FILE = 'migrations/seed.sql';
+const OUTPUT_FILE = 'dist/seed.sql';
 
 interface Frontmatter {
   title?: string;
@@ -142,6 +142,7 @@ async function main(): Promise<void> {
   const categories = JSON.parse(await readFile(CATEGORIES_PATH, 'utf8')) as CategoryRecord[];
   const statements = [...buildCategoryStatements(categories), ...(await buildPostStatements())];
 
+  await mkdir(dirname(OUTPUT_FILE), { recursive: true });
   await writeFile(OUTPUT_FILE, `${statements.join('\n')}\n`);
   console.log(
     `Wrote ${categories.length} categor(ies) and ${statements.length - categories.length} post(s) to ${OUTPUT_FILE}`,
