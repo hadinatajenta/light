@@ -59,9 +59,6 @@ const mediaSize =
   media.totalBytes >= 1024 * 1024
     ? `${(media.totalBytes / (1024 * 1024)).toFixed(1)} MB`
     : `${Math.round(media.totalBytes / 1024)} KB`;
-
-const agentFailureRate =
-  agents.runsTotal > 0 ? Math.round((agents.failedTotal / agents.runsTotal) * 100) : 0;
 ---
 
 <DashboardLayout title="Dashboard">
