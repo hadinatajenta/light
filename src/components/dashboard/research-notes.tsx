@@ -66,12 +66,18 @@ export function TopicStatusBadge({ status }: { status: TopicStatus }) {
   );
 }
 
+function toTimestamp(value: string): number {
+  const normalized = value.includes(' ') ? `${value.replace(' ', 'T')}Z` : value;
+  const timestamp = new Date(normalized).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
 export function formatRelativeTime(value: string | null): string {
   if (!value) {
     return 'Unknown time';
   }
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) {
+  const timestamp = toTimestamp(value);
+  if (timestamp === 0) {
     return 'Unknown time';
   }
   const difference = Date.now() - timestamp;
@@ -92,11 +98,14 @@ export function formatRelativeTime(value: string | null): string {
 }
 
 export function formatAbsoluteTime(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+  const timestamp = toTimestamp(value);
+  if (timestamp === 0) {
     return 'Unknown time';
   }
-  return parsed.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(timestamp).toLocaleString('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 }
 
 export interface NoteRecord {
@@ -147,11 +156,6 @@ function toKindLabel(kind: string): string {
     return 'Other';
   }
   return words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-}
-
-function toTimestamp(value: string): number {
-  const timestamp = new Date(value).getTime();
-  return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function groupNotesByKind(notes: NoteRecord[]): NoteGroup[] {

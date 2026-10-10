@@ -65,6 +65,24 @@ export function extractAmazonAsin(value: string): string | null {
   return null;
 }
 
+export function deriveNameFromAmazonUrl(value: string): string | null {
+  if (!value.includes('://')) {
+    return null;
+  }
+
+  const match =
+    value.match(/amazon\.[a-z.]+\/([^/?#]+)\/dp\//i) ??
+    value.match(/amazon\.[a-z.]+\/([^/?#]+)\/gp\/product\//i);
+
+  if (!match) {
+    return null;
+  }
+
+  const name = decodeURIComponent(match[1]).replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  return name.length >= 2 ? name : null;
+}
+
 function resolveImportTarget(
   target: string,
   program: AffiliateProgram,
@@ -104,6 +122,16 @@ export function parseImportLine(rawLine: string, program: AffiliateProgram): Imp
 
     if (program.network !== 'amazon' || !AMAZON_ASIN_PATTERN.test(target)) {
       return { ok: false, reason: 'Use slug | name | target.' };
+    }
+
+    const derivedName = deriveNameFromAmazonUrl(raw);
+
+    if (derivedName) {
+      const slug = toSlug(derivedName).slice(0, 60).replace(/-+$/, '');
+
+      if (slug.length > 0) {
+        return { ok: true, value: { slug, name: derivedName, target } };
+      }
     }
 
     return { ok: true, value: { slug: target.toLowerCase(), name: target.toUpperCase(), target } };
