@@ -11,7 +11,7 @@ faq:
     answer: No. We do not accept free products or paid placements in exchange for a review.
   - question: How often are guides updated?
     answer: We revisit a guide whenever the product changes, the price moves sharply, or a new model replaces one of our picks.
-status: published
+status: archived
 ---
 
 Most review sites are not complicated. Someone gets a product, spends a few hours with it, writes
