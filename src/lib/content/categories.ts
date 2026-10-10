@@ -17,6 +17,7 @@ export async function listCategories(): Promise<CategoryWithCount[]> {
 
   return categories.map((category) => ({
     ...category,
+    createdAt: null,
     postCount: posts.filter((post) => post.category === category.slug).length,
   }));
 }

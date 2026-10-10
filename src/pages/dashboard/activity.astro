@@ -1,0 +1,85 @@
+---
+import ActivityFeed from '@/components/dashboard/activity-feed.astro';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { listActivity, listActors, type ActorType } from '@/lib/activity/store';
+import { resolveContentDatabase } from '@/lib/content/database';
+
+export const prerender = false;
+
+const database = await resolveContentDatabase();
+
+const typeParam = Astro.url.searchParams.get('type');
+const actorType: ActorType | undefined =
+  typeParam === 'user' || typeParam === 'agent' ? typeParam : undefined;
+const actorId = Astro.url.searchParams.get('actor') ?? undefined;
+
+const entries = database ? await listActivity(database, { actorType, actorId, limit: 100 }) : [];
+const actors = database ? await listActors(database) : [];
+
+const scopeFilters = [
+  { label: 'All', href: '/dashboard/activity', isActive: !actorType && !actorId },
+  {
+    label: 'Users',
+    href: '/dashboard/activity?type=user',
+    isActive: actorType === 'user' && !actorId,
+  },
+  {
+    label: 'Agents',
+    href: '/dashboard/activity?type=agent',
+    isActive: actorType === 'agent' && !actorId,
+  },
+];
+
+const chipClass =
+  'rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors';
+const activeChipClass = 'border-primary bg-primary text-primary-foreground';
+const idleChipClass = 'border-border text-muted-foreground hover:bg-accent hover:text-foreground';
+---
+
+<DashboardLayout title="Activity">
+  <div class="flex flex-col gap-6">
+    <div>
+      <h2 class="text-sm font-medium">Activity log</h2>
+      <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+        Every action you take in the CMS, and every event an agent reports, is recorded here. Filter
+        by scope or by a single actor.
+      </p>
+    </div>
+
+    <nav aria-label="Activity scope" class="flex flex-wrap items-center gap-2">
+      {
+        scopeFilters.map((filter) => (
+          <a
+            href={filter.href}
+            aria-current={filter.isActive ? 'page' : undefined}
+            class:list={[chipClass, filter.isActive ? activeChipClass : idleChipClass]}
+          >
+            {filter.label}
+          </a>
+        ))
+      }
+    </nav>
+
+    {
+      actors.length > 0 && (
+        <nav aria-label="Activity actors" class="flex flex-wrap items-center gap-2">
+          {actors.map((actor) => (
+            <a
+              href={`/dashboard/activity?actor=${encodeURIComponent(actor.id)}`}
+              aria-current={actorId === actor.id ? 'page' : undefined}
+              class:list={[chipClass, actorId === actor.id ? activeChipClass : idleChipClass]}
+            >
+              <span class="mr-1.5">{actor.type === 'agent' ? 'Agent' : 'User'}</span>
+              {actor.label}
+              <span class="ml-1.5 tabular-nums opacity-70">{actor.activityCount}</span>
+            </a>
+          ))}
+        </nav>
+      )
+    }
+
+    <section aria-label="Activity entries" class="rounded-lg border border-border bg-card px-4 py-2">
+      <ActivityFeed entries={entries} />
+    </section>
+  </div>
+</DashboardLayout>

@@ -1,4 +1,5 @@
 import { z } from 'astro/zod';
+import { recordActivity, toUserActor } from '@/lib/activity/record';
 import { withAdmin } from '@/lib/api/handler';
 import { postFrontmatterSchema } from '@/lib/content/post-schema';
 import { createPost, listPosts, type PostSummary } from '@/lib/content/store';
@@ -63,7 +64,7 @@ export const GET = withAdmin(async ({ url }, requestId) => {
   );
 });
 
-export const POST = withAdmin(async ({ request }, requestId) => {
+export const POST = withAdmin(async ({ request }, requestId, user) => {
   const payload = savePostRequestSchema.parse(await readJsonBody(request, 300_000));
 
   const post = await createPost({
@@ -76,6 +77,14 @@ export const POST = withAdmin(async ({ request }, requestId) => {
     },
     body: payload.body,
     message: `feat(content): add ${payload.slug}`,
+  });
+
+  await recordActivity({
+    ...toUserActor(user),
+    action: 'post.created',
+    targetType: 'post',
+    targetId: post.id,
+    summary: `Created post "${payload.frontmatter.title}"`,
   });
 
   return jsonOk({ id: post.id, sha: post.sha, status: payload.frontmatter.status }, requestId, 201);

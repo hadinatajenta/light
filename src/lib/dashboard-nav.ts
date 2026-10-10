@@ -11,6 +11,7 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
   { label: 'Pages', href: '/dashboard/pages', icon: 'pages' },
   { label: 'Media', href: '/dashboard/media', icon: 'media' },
   { label: 'Insights', href: '/dashboard/insights', icon: 'insights' },
+  { label: 'Activity', href: '/dashboard/activity', icon: 'activity' },
   { label: 'Redirects', href: '/dashboard/redirects', icon: 'redirects' },
   { label: 'Monetization', href: '/dashboard/monetization', icon: 'monetization' },
   { label: 'Settings', href: '/dashboard/settings', icon: 'settings' },

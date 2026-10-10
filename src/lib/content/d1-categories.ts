@@ -5,10 +5,12 @@ interface CategoryRow {
   slug: string;
   label: string;
   description: string;
+  created_at: string | null;
   post_count: number;
 }
 
 export interface CategoryWithCount extends Category {
+  createdAt: string | null;
   postCount: number;
 }
 
@@ -24,10 +26,10 @@ export function createD1CategoryStore(db: D1Database) {
     async listCategories(): Promise<CategoryWithCount[]> {
       const result = await db
         .prepare(
-          `SELECT c.slug, c.label, c.description, COUNT(p.id) AS post_count
+          `SELECT c.slug, c.label, c.description, c.created_at, COUNT(p.id) AS post_count
            FROM categories c
            LEFT JOIN posts p ON p.category = c.slug
-           GROUP BY c.slug, c.label, c.description
+           GROUP BY c.slug, c.label, c.description, c.created_at
            ORDER BY c.rowid`,
         )
         .all<CategoryRow>();
@@ -36,6 +38,7 @@ export function createD1CategoryStore(db: D1Database) {
         slug: row.slug,
         label: row.label,
         description: row.description,
+        createdAt: row.created_at,
         postCount: row.post_count,
       }));
     },
@@ -51,8 +54,10 @@ export function createD1CategoryStore(db: D1Database) {
       }
 
       await db
-        .prepare('INSERT INTO categories (slug, label, description) VALUES (?, ?, ?)')
-        .bind(input.slug, input.label, input.description)
+        .prepare(
+          'INSERT INTO categories (slug, label, description, created_at) VALUES (?, ?, ?, ?)',
+        )
+        .bind(input.slug, input.label, input.description, new Date().toISOString())
         .run();
 
       return input;

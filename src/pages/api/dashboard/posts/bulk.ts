@@ -1,4 +1,5 @@
 import { z } from 'astro/zod';
+import { recordActivity, toUserActor } from '@/lib/activity/record';
 import { withAdmin } from '@/lib/api/handler';
 import { deletePost, getPost, updatePost } from '@/lib/content/store';
 import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
@@ -17,7 +18,7 @@ interface BulkOutcome {
   message?: string;
 }
 
-export const POST = withAdmin(async ({ request }, requestId) => {
+export const POST = withAdmin(async ({ request }, requestId, user) => {
   const payload = bulkRequestSchema.parse(await readJsonBody(request, 20_000));
 
   const outcomes: BulkOutcome[] = [];
@@ -47,13 +48,17 @@ export const POST = withAdmin(async ({ request }, requestId) => {
   }
 
   const failed = outcomes.filter((outcome) => !outcome.ok);
+  const affected = outcomes.length - failed.length;
 
-  return jsonOk(
-    {
-      action: payload.action,
-      affected: outcomes.length - failed.length,
-      failed,
-    },
-    requestId,
-  );
+  if (affected > 0) {
+    await recordActivity({
+      ...toUserActor(user),
+      action: `post.bulk.${payload.action}`,
+      targetType: 'post',
+      targetId: null,
+      summary: `${payload.action === 'delete' ? 'Deleted' : 'Archived'} ${affected} post(s)`,
+    });
+  }
+
+  return jsonOk({ action: payload.action, affected, failed }, requestId);
 });
