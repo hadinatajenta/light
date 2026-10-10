@@ -11,7 +11,7 @@ faq:
     answer: The most useful assistants require it. Context from your messages and schedule is what separates a genuinely proactive agent from a chatbot that answers generic questions.
   - question: Can I stop an AI assistant from acting without my approval?
     answer: Some offer read-only modes and approval gates. Check the autonomy settings before you connect sensitive accounts, because defaults vary widely between products.
-status: published
+status: archived
 ---
 
 Most people adopt an AI assistant by signing up for whatever their employer already pays for, then discover weeks later that it has been summarising the wrong emails or quietly drafting replies in a tone they would never use. An assistant sits between you and your most sensitive information, so it is worth deciding what you actually need before you hand over access to your inbox.
