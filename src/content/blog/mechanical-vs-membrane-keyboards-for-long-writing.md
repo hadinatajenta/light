@@ -120,7 +120,7 @@ specification list.
 
 ## Sources and further reading
 
-- OSHA, Computer Workstations eTool: Keyboards. The source for elbows at keyboard height, straight wrists, the 18 to 19 mm horizontal key spacing guidance, and the advice to take a five minute break every hour.
+- OSHA, Computer Workstations eTool: Keyboards, for placement, key spacing, wrist posture, and the advice to break every hour.
 - ISO 9241, Ergonomics of human-system interaction, the series covering workstation layout and physical input device design.
 - Switch manufacturers' published specifications, for travel, actuation force, and endurance ratings. Treat the endurance figure as a design rating rather than an independent test result.
 

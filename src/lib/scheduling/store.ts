@@ -11,6 +11,7 @@ interface PostScheduleRow {
   title: string;
   status: string;
   pub_date: string | null;
+  review_status: string | null;
 }
 
 interface ScheduledCandidate {
@@ -75,11 +76,12 @@ export function isDue(status: string, pubDate: string | null | undefined, now: D
   return dueTimestamp(status, pubDate ?? null, now) !== null;
 }
 
-async function listDraftRows(db: D1Database): Promise<PostScheduleRow[]> {
+async function listDraftRows(db: D1Database, onlyApproved: boolean): Promise<PostScheduleRow[]> {
+  const condition = onlyApproved ? "AND review_status = 'approved'" : '';
   const result = await db
     .prepare(
-      `SELECT id, title, status, pub_date FROM posts
-       WHERE status = 'draft' AND pub_date IS NOT NULL
+      `SELECT id, title, status, pub_date, review_status FROM posts
+       WHERE status = 'draft' AND pub_date IS NOT NULL ${condition}
        ORDER BY pub_date ASC`,
     )
     .all<PostScheduleRow>();
@@ -123,7 +125,7 @@ export async function listScheduledPosts(
   db: D1Database,
   now: Date = new Date(),
 ): Promise<ScheduledPost[]> {
-  const rows = await listDraftRows(db);
+  const rows = await listDraftRows(db, false);
   return toScheduledPosts(selectCandidates(rows, scheduledTimestamp, now), null);
 }
 
@@ -131,7 +133,7 @@ export async function listDueScheduledPosts(
   db: D1Database,
   now: Date = new Date(),
 ): Promise<ScheduledPost[]> {
-  const rows = await listDraftRows(db);
+  const rows = await listDraftRows(db, true);
   return toScheduledPosts(selectCandidates(rows, dueTimestamp, now), DUE_LIMIT);
 }
 
@@ -160,7 +162,7 @@ export async function publishDuePosts(
   for (const post of duePosts) {
     const result = await db
       .prepare(
-        "UPDATE posts SET status = 'published', updated_at = ? WHERE id = ? AND status = 'draft'",
+        "UPDATE posts SET status = 'published', updated_at = ? WHERE id = ? AND status = 'draft' AND review_status = 'approved'",
       )
       .bind(updatedAt, post.id)
       .run();

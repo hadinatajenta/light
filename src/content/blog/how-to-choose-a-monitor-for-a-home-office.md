@@ -53,8 +53,9 @@ best, so match the panel to the task rather than to the price.
   transitions that smear.
 - **IPS.** The office default: consistent colour and viewing angles at around 1000:1 contrast; corner
   bleed is sometimes visible.
-- **OLED.** Effectively unlimited contrast and clean motion. Two risks for a document desk: static
-  interface elements can leave persistent marks, and text often shows colour fringing.
+- **OLED.** A fourth option rather than an LCD family, with effectively unlimited contrast and clean
+  motion. Two risks for a document desk: static interface elements can leave permanent marks, and
+  text often shows colour fringing.
 
 For reading and writing all day, an IPS panel with a good record on text is the low-risk choice; VA
 suits a dim room where films also matter.
@@ -117,7 +118,7 @@ will still be the wrong one.
 - OSHA, Computer Workstations eTool: Desks, for the 50 centimetre minimum viewing distance and the clearance under the work surface.
 - USB Implementers Forum, USB Power Delivery specification, for the 100 watt ceiling in Power Delivery 3.0 and the 240 watt extended range in revision 3.1.
 - VESA, Flat Display Mounting Interface standard, for the 75 x 75 and 100 x 100 millimetre patterns.
-- Apple's macOS 10.14 release, which removed subpixel antialiasing for text.
+- Apple's macOS 10.14 release, which removed subpixel antialiasing.
 - The monitor's specification sheet, for native contrast, panel type, weight without the stand, and the VESA pattern.
 
 ## Related guides

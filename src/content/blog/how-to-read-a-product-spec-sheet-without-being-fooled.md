@@ -28,7 +28,7 @@ the sheet does not say, treat the number as advertising.
 Some figures come from a published method, which makes them comparable across brands.
 
 - **VESA DisplayHDR.** The certification states its requirements per tier: DisplayHDR 400 asks for
-  400 cd/m² at a small centre patch and 320 cd/m² across a full screen flash, so the entry badge
+  400 cd/m² at a small centre patch and 320 cd/m² sustained across a full screen, so the entry badge
   describes a modest peak on a small area.
 - **USB-IF.** Certification ties a figure to a data rate. The same 5 Gbps link has been sold as USB
   3.0, USB 3.1 Gen 1, and USB 3.2 Gen 1, so the rate is checkable and the version name is not.
