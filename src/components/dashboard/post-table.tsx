@@ -705,9 +705,6 @@ export default function PostTable({
               </option>
             ))}
           </select>
-          {hasCategoryError ? (
-            <p className="text-xs text-muted-foreground">Category names unavailable.</p>
-          ) : null}
         </div>
 
         <div className="flex min-w-[16rem] flex-1 flex-col gap-1.5">
@@ -736,6 +733,12 @@ export default function PostTable({
           <RotateCcwIcon />
           Reset
         </Button>
+
+        {hasCategoryError ? (
+          <p className="w-full text-xs text-muted-foreground">
+            Category names are unavailable right now.
+          </p>
+        ) : null}
       </form>
 
       {selectedCount > 0 ? (
@@ -949,42 +952,44 @@ export default function PostTable({
         </Table>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-        <p className="flex items-center gap-2 tabular-nums">
-          <span>{rangeLabel}</span>
-          {isFetching && hasLoaded ? (
-            <span className="flex items-center gap-1 text-xs" aria-live="polite">
-              <Loader2Icon className="size-3 animate-spin" />
-              Updating
+      {showRows ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 tabular-nums">
+            <span>{rangeLabel}</span>
+            {isFetching && hasLoaded ? (
+              <span className="flex items-center gap-1 text-xs" aria-live="polite">
+                <Loader2Icon className="size-3 animate-spin" />
+                Updating
+              </span>
+            ) : null}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={isPaginationDisabled || postsPage.page <= 1}
+            >
+              <ChevronLeftIcon />
+              Previous
+            </Button>
+            <span className="tabular-nums">
+              Page {postsPage.page} of {postsPage.totalPages}
             </span>
-          ) : null}
-        </p>
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            disabled={isPaginationDisabled || postsPage.page <= 1}
-          >
-            <ChevronLeftIcon />
-            Previous
-          </Button>
-          <span className="tabular-nums">
-            Page {postsPage.page} of {postsPage.totalPages}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setPage((current) => Math.min(postsPage.totalPages, current + 1))}
-            disabled={isPaginationDisabled || postsPage.page >= postsPage.totalPages}
-          >
-            Next
-            <ChevronRightIcon />
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setPage((current) => Math.min(postsPage.totalPages, current + 1))}
+              disabled={isPaginationDisabled || postsPage.page >= postsPage.totalPages}
+            >
+              Next
+              <ChevronRightIcon />
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <ConfirmDialog
         open={confirmOpen}
