@@ -24,3 +24,4 @@ pnpm-debug.log*
 .idea/
 # local design workspace (not published)
 UML/
+.wrangler/
