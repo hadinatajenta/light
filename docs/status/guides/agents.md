@@ -93,6 +93,22 @@ This is enforced in the server code, not in the browser. The writer, QC, and Scr
 
 A second gate protects against unverified research. The writer only receives research notes marked **Verified**. If a topic has no verified note, the writer is told to return `NEEDS RESEARCH` and the topic is blocked. A reviewer approves the draft but skips auto publish when the draft's topic has no verified source. The scheduler enforces the same gate, so an approved draft whose topic has no verified source is not published on the schedule either. A draft can never reach the site on unverified research unless a human publishes it by hand.
 
+## Spending budget
+
+Agents call paid services: Tavily for search and DeepSeek for model tokens. The
+**Spending budget** card on the Agents page keeps those from draining your card.
+
+- **Daily searches**: the most Tavily searches allowed in one day.
+- **Monthly searches**: the most in one calendar month. A basic search costs one
+  Tavily credit, so set this to your free credit balance if you want a hard stop.
+- **Daily tokens**: the most DeepSeek tokens across all runs in one day.
+- **Pause all spending**: stops every agent run and search immediately.
+
+When a search limit is reached, the scrapper stops searching and leaves the topic
+for when the budget resets. When the token limit is reached, agent runs are
+recorded as **Skipped** and make no model call. Lower the limits at any time; the
+counts reset on the calendar day and month.
+
 ## How scheduling works
 
 - A separate cron Worker (`light-agents`) runs every 15 minutes.

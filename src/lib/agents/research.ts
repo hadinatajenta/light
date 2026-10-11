@@ -1,3 +1,4 @@
+import { readBudgetState, recordModelUsage, recordSearchUsage } from './budget';
 import {
   dedupeByUrlKey,
   normalizeForMatch,
@@ -239,14 +240,21 @@ async function planQueries(input: {
 }
 
 async function discoverPages(input: {
+  db: D1Database;
   search: ResolvedSearchProvider;
   queries: string[];
   topic: TopicRecord;
   signal?: AbortSignal;
+  maxSearches: number;
 }): Promise<DiscoveredPage[]> {
   const collected: DiscoveredPage[] = [];
+  let searches = 0;
 
   for (const query of input.queries) {
+    if (searches >= input.maxSearches) {
+      break;
+    }
+
     try {
       const results = await withSearchRetry(() =>
         input.search.provider.search({
@@ -256,6 +264,9 @@ async function discoverPages(input: {
           signal: input.signal,
         }),
       );
+
+      searches += 1;
+      await recordSearchUsage(input.db, 1);
 
       for (const result of results) {
         collected.push({ ...result, query });
@@ -500,11 +511,30 @@ export async function runScrapperResearch(input: {
   }
 
   if (pages.length === 0 && search) {
+    const budget = await readBudgetState(db);
+    if (budget.paused || budget.searchesExhausted) {
+      return {
+        status: 'deferred',
+        summary: 'Search budget reached; research resumes when the budget resets',
+        output: '',
+        tokensIn,
+        tokensOut,
+      };
+    }
+
     const plan = await planQueries({ apiKey, agent, topic, signal });
     tokensIn += plan.tokensIn;
     tokensOut += plan.tokensOut;
+    await recordModelUsage(db, plan.tokensIn, plan.tokensOut);
 
-    const discovered = await discoverPages({ search, queries: plan.queries, topic, signal });
+    const discovered = await discoverPages({
+      db,
+      search,
+      queries: plan.queries,
+      topic,
+      signal,
+      maxSearches: budget.searchesRemaining,
+    });
 
     if (discovered.length === 0) {
       return {
@@ -567,6 +597,7 @@ export async function runScrapperResearch(input: {
   });
   tokensIn += synthesis.tokensIn;
   tokensOut += synthesis.tokensOut;
+  await recordModelUsage(db, synthesis.tokensIn, synthesis.tokensOut);
 
   const { verifiedCount, unverifiedCount, verifiedAngles } = await persistNotes({
     db,

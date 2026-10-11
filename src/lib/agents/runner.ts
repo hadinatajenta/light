@@ -1,5 +1,6 @@
 import { recordActivity } from '../activity/record';
 import { ApiError } from '../errors';
+import { readBudgetState, recordModelUsage } from './budget';
 import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
 import { runScrapperResearch } from './research';
@@ -341,6 +342,15 @@ export async function runAgent(
   let revisionTarget: RevisionTarget | null = null;
 
   try {
+    const budget = await readBudgetState(db);
+    if (budget.paused || budget.tokensExhausted) {
+      const summary = budget.paused ? 'Budget is paused' : 'Daily token budget reached';
+      await finishAgentRun(db, runId, { status: 'skipped', summary });
+      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await recordAgentActivity(agent, summary);
+      return { runId, status: 'skipped', summary, output: '', tokensIn: 0, tokensOut: 0 };
+    }
+
     const apiKey = await requireDeepseekKey(db);
     const role = getRoleDefinition(agent.role);
 
@@ -462,6 +472,8 @@ export async function runAgent(
       maxTokens: 32_000,
       signal,
     });
+
+    await recordModelUsage(db, response.tokensIn, response.tokensOut);
 
     const needsResearch = readNeedsResearch(response.content);
 

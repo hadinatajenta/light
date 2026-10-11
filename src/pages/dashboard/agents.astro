@@ -1,5 +1,6 @@
 ---
 import AgentList from '@/components/dashboard/agent-list';
+import BudgetCard from '@/components/dashboard/budget-card';
 import DeepSeekKeyCard from '@/components/dashboard/deepseek-key-card';
 import PipelineRunButton from '@/components/dashboard/pipeline-run-button';
 import SearchProviderCard from '@/components/dashboard/search-provider-card';
@@ -34,5 +35,6 @@ export const prerender = false;
     </section>
     <DeepSeekKeyCard client:load />
     <SearchProviderCard client:load />
+    <BudgetCard client:load />
   </div>
 </DashboardLayout>

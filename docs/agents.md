@@ -72,6 +72,14 @@ and nothing else changes. Tavily ships first, and a `fixture` provider reads
 scrapper run is recorded as `skipped` and the topic is left untouched: it never
 falls back to notes written from memory.
 
+## Spending budget
+
+The **Spending budget** card caps what the agents can spend. Daily and monthly
+search limits cap Tavily calls, a daily token limit caps DeepSeek usage, and a
+pause switch stops all spending. When a cap is reached the scrapper stops
+searching and agent runs are recorded as `skipped` with no model call, so a run
+cannot drain a card. Usage is counted in the `usage_counters` table.
+
 ## Roles
 
 - writer: drafts a new buying guide from a topic, using only verified research.
