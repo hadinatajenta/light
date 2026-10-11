@@ -1,15 +1,19 @@
 import {
   CopyIcon,
+  ImagePlusIcon,
   InboxIcon,
   Loader2Icon,
   RefreshCwIcon,
+  SquareIcon,
   Trash2Icon,
   TriangleAlertIcon,
   UploadIcon,
+  WandSparklesIcon,
 } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,10 +21,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { requestJson, toErrorMessage } from './api-client';
 import { DialogSurface } from './dialog-surface';
+import MediaFinder from './media-finder';
 
 export const MEDIA_ENDPOINT = '/api/dashboard/media';
 export const MEDIA_ACCEPT = 'image/jpeg,image/png,image/gif,image/webp,image/avif';
 export const MEDIA_ALT_MAX_LENGTH = 200;
+export const IMAGE_MODEL_UNAVAILABLE_CODE = 'IMAGE_MODEL_UNAVAILABLE';
+
+const GENERATE_ENDPOINT = `${MEDIA_ENDPOINT}/generate`;
+const SEARCH_ENDPOINT = `${MEDIA_ENDPOINT}/search`;
+const IMPORT_ENDPOINT = `${MEDIA_ENDPOINT}/import`;
+const AUTO_COVER_ENDPOINT = `${MEDIA_ENDPOINT}/auto-cover`;
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
@@ -45,6 +56,117 @@ export interface MediaItem {
   mime: string;
   bytes: number;
   createdAt: string;
+  source?: 'upload' | 'generated' | 'search' | null;
+  sourceUrl?: string | null;
+  creator?: string | null;
+  creatorUrl?: string | null;
+  license?: string | null;
+  licenseUrl?: string | null;
+  prompt?: string | null;
+}
+
+export type MediaSource = 'upload' | 'generated' | 'search';
+
+export interface MediaSearchResult {
+  id: string;
+  title: string | null;
+  thumbnailUrl: string;
+  imageUrl: string;
+  creator: string | null;
+  creatorUrl: string | null;
+  license: string | null;
+  licenseUrl: string | null;
+  sourceUrl: string | null;
+}
+
+export interface MediaSearchResponse {
+  results: MediaSearchResult[];
+  total: number;
+  page: number;
+}
+
+export interface AutoCoverResponse {
+  media: MediaItem;
+  post: { id: string; title: string };
+  remaining: number;
+}
+
+export interface GenerateMediaInput {
+  prompt: string;
+  alt?: string;
+  attachToPostId?: string;
+}
+
+export interface ImportMediaInput {
+  imageUrl: string;
+  title?: string;
+  alt?: string;
+  creator?: string;
+  creatorUrl?: string;
+  license?: string;
+  licenseUrl?: string;
+  sourceUrl?: string;
+  attachToPostId?: string;
+}
+
+const SOURCE_LABELS: Record<MediaSource, string> = {
+  upload: 'Upload',
+  generated: 'Generated',
+  search: 'Search',
+};
+
+export function mediaSourceLabel(source: MediaItem['source']): string {
+  return source ? SOURCE_LABELS[source] : SOURCE_LABELS.upload;
+}
+
+export async function generateMedia(
+  input: GenerateMediaInput,
+  signal: AbortSignal,
+): Promise<MediaItem> {
+  const payload = await requestJson<{ media: MediaItem }>(GENERATE_ENDPOINT, {
+    method: 'POST',
+    body: JSON.stringify(input),
+    signal,
+  });
+
+  return payload.media;
+}
+
+export async function searchMedia(
+  query: string,
+  page: number,
+  signal: AbortSignal,
+): Promise<MediaSearchResponse> {
+  const params = new URLSearchParams({ q: query, page: String(page) });
+  return requestJson<MediaSearchResponse>(`${SEARCH_ENDPOINT}?${params.toString()}`, { signal });
+}
+
+export async function importMedia(
+  input: ImportMediaInput,
+  signal: AbortSignal,
+): Promise<MediaItem> {
+  const payload = await requestJson<{ media: MediaItem }>(IMPORT_ENDPOINT, {
+    method: 'POST',
+    body: JSON.stringify(input),
+    signal,
+  });
+
+  return payload.media;
+}
+
+export async function autoCoverPost(signal: AbortSignal): Promise<AutoCoverResponse> {
+  return requestJson<AutoCoverResponse>(AUTO_COVER_ENDPOINT, {
+    method: 'POST',
+    body: JSON.stringify({}),
+    signal,
+  });
+}
+
+export async function deleteMediaItem(id: string, signal: AbortSignal): Promise<void> {
+  await requestJson<{ id: string; deleted: boolean }>(
+    `${MEDIA_ENDPOINT}/${encodeURIComponent(id)}`,
+    { method: 'DELETE', signal },
+  );
 }
 
 interface PendingUpload {
@@ -158,6 +280,47 @@ function MediaCard({ item, isSavingAlt, onSaveAlt, onCopyUrl, onDelete }: MediaC
           {shortMediaId(item.id)}
         </span>
         <span className="shrink-0 tabular-nums">{formatKilobytes(item.bytes)}</span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Badge
+          variant="outline"
+          className="text-[0.625rem] tracking-[0.08em] text-muted-foreground uppercase"
+        >
+          {mediaSourceLabel(item.source)}
+        </Badge>
+        {item.source === 'search' && item.creator ? (
+          <span className="min-w-0 truncate text-xs text-muted-foreground">
+            {item.creatorUrl ? (
+              <a
+                href={item.creatorUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {item.creator}
+              </a>
+            ) : (
+              item.creator
+            )}
+          </span>
+        ) : null}
+        {item.source === 'search' && item.license ? (
+          <span className="min-w-0 truncate text-xs text-muted-foreground">
+            {item.licenseUrl ? (
+              <a
+                href={item.licenseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                {item.license}
+              </a>
+            ) : (
+              item.license
+            )}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -298,9 +461,19 @@ export default function MediaLibrary() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [isFinderOpen, setIsFinderOpen] = useState(false);
+  const [autoCoverStatus, setAutoCoverStatus] = useState<
+    'idle' | 'running' | 'stopped' | 'done' | 'error'
+  >('idle');
+  const [autoCoverDone, setAutoCoverDone] = useState(0);
+  const [autoCoverTotal, setAutoCoverTotal] = useState<number | null>(null);
+  const [autoCoverTitle, setAutoCoverTitle] = useState<string | null>(null);
+  const [autoCoverError, setAutoCoverError] = useState<string | null>(null);
   const listAbortRef = useRef<AbortController | null>(null);
   const uploadAbortRef = useRef<AbortController | null>(null);
   const mutationAbortRef = useRef<AbortController | null>(null);
+  const autoCoverAbortRef = useRef<AbortController | null>(null);
+  const isAutoCoverActiveRef = useRef(false);
   const altAbortRef = useRef(new Map<string, AbortController>());
   const latestRequestRef = useRef(0);
   const dragDepthRef = useRef(0);
@@ -348,6 +521,7 @@ export default function MediaLibrary() {
       listAbortRef.current?.abort();
       uploadAbortRef.current?.abort();
       mutationAbortRef.current?.abort();
+      autoCoverAbortRef.current?.abort();
       for (const controller of altControllers.values()) {
         controller.abort();
       }
@@ -499,10 +673,7 @@ export default function MediaLibrary() {
     mutationAbortRef.current = controller;
 
     try {
-      await requestJson<{ id: string; deleted: boolean }>(
-        `${MEDIA_ENDPOINT}/${encodeURIComponent(target.id)}`,
-        { method: 'DELETE', signal: controller.signal },
-      );
+      await deleteMediaItem(target.id, controller.signal);
       if (controller.signal.aborted) {
         return;
       }
@@ -521,6 +692,59 @@ export default function MediaLibrary() {
         setIsDeleting(false);
       }
     }
+  };
+
+  const handleStartAutoCover = async () => {
+    if (isAutoCoverActiveRef.current) {
+      return;
+    }
+
+    isAutoCoverActiveRef.current = true;
+    autoCoverAbortRef.current?.abort();
+    const controller = new AbortController();
+    autoCoverAbortRef.current = controller;
+
+    setAutoCoverStatus('running');
+    setAutoCoverDone(0);
+    setAutoCoverTotal(null);
+    setAutoCoverTitle(null);
+    setAutoCoverError(null);
+
+    let processed = 0;
+    try {
+      for (;;) {
+        const payload = await autoCoverPost(controller.signal);
+        if (controller.signal.aborted) {
+          return;
+        }
+        processed += 1;
+        setAutoCoverDone(processed);
+        setAutoCoverTotal(processed + payload.remaining);
+        setAutoCoverTitle(payload.post.title);
+        setItems((current) => [payload.media, ...current]);
+        setStatus('ready');
+        if (payload.remaining <= 0) {
+          setAutoCoverStatus('done');
+          break;
+        }
+      }
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) {
+        return;
+      }
+      setAutoCoverError(toErrorMessage(error));
+      setAutoCoverStatus(processed > 0 ? 'stopped' : 'error');
+    } finally {
+      isAutoCoverActiveRef.current = false;
+      if (autoCoverAbortRef.current === controller) {
+        autoCoverAbortRef.current = null;
+      }
+    }
+  };
+
+  const handleStopAutoCover = () => {
+    autoCoverAbortRef.current?.abort();
+    setAutoCoverStatus('stopped');
   };
 
   const showSkeleton = status === 'loading';
@@ -559,6 +783,29 @@ export default function MediaLibrary() {
           />
           <Button
             type="button"
+            variant="outline"
+            className="whitespace-nowrap"
+            onClick={() => setIsFinderOpen(true)}
+          >
+            <ImagePlusIcon />
+            Find images
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="whitespace-nowrap"
+            disabled={autoCoverStatus === 'running'}
+            onClick={() => void handleStartAutoCover()}
+          >
+            {autoCoverStatus === 'running' ? (
+              <Loader2Icon className="animate-spin" />
+            ) : (
+              <WandSparklesIcon />
+            )}
+            Auto-cover posts
+          </Button>
+          <Button
+            type="button"
             className="whitespace-nowrap"
             disabled={isUploadDisabled}
             onClick={() => fileInputRef.current?.click()}
@@ -581,6 +828,64 @@ export default function MediaLibrary() {
               <span className="min-w-0 truncate">Uploading {entry.name}</span>
             </p>
           ))}
+        </div>
+      ) : null}
+
+      {autoCoverStatus !== 'idle' ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col gap-2 rounded-lg border border-border bg-card px-3 py-2"
+        >
+          {autoCoverStatus === 'running' ? (
+            <>
+              <div className="flex items-center gap-2">
+                <Loader2Icon className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
+                <p className="min-w-0 text-sm tabular-nums text-foreground">
+                  Generating cover <span>{autoCoverDone + 1}</span>
+                  {autoCoverTotal ? ` of ${autoCoverTotal}` : ''}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto whitespace-nowrap"
+                  onClick={handleStopAutoCover}
+                >
+                  <SquareIcon className="fill-current" />
+                  Stop
+                </Button>
+              </div>
+              <p
+                className="min-w-0 truncate text-xs text-muted-foreground"
+                title={autoCoverTitle ?? undefined}
+              >
+                {autoCoverTitle ?? 'Choosing the next post to cover.'}
+              </p>
+            </>
+          ) : null}
+
+          {autoCoverStatus === 'done' ? (
+            <p className="text-sm text-foreground">
+              <span className="tabular-nums">{autoCoverDone}</span>{' '}
+              {autoCoverDone === 1 ? 'cover' : 'covers'} generated. Every post that needed one has
+              one.
+            </p>
+          ) : null}
+
+          {autoCoverStatus === 'stopped' ? (
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-foreground">
+                Stopped after <span className="tabular-nums">{autoCoverDone}</span>{' '}
+                {autoCoverDone === 1 ? 'cover' : 'covers'}. The covers already generated are saved.
+              </p>
+              {autoCoverError ? <p className="text-sm text-destructive">{autoCoverError}</p> : null}
+            </div>
+          ) : null}
+
+          {autoCoverStatus === 'error' ? (
+            <p className="text-sm text-destructive">{autoCoverError}</p>
+          ) : null}
         </div>
       ) : null}
 
@@ -686,6 +991,16 @@ export default function MediaLibrary() {
           }
         }}
         onConfirm={() => void handleDeleteConfirm()}
+      />
+
+      <MediaFinder
+        open={isFinderOpen}
+        onOpenChange={(nextOpen) => {
+          setIsFinderOpen(nextOpen);
+          if (!nextOpen) {
+            void loadMedia();
+          }
+        }}
       />
     </div>
   );

@@ -871,6 +871,7 @@ export default function PostEditor({ postId }: PostEditorProps) {
         open={isCoverPickerOpen}
         onOpenChange={setIsCoverPickerOpen}
         onSelect={handleCoverSelect}
+        suggestedQuery={form.title}
       />
     </div>
   );

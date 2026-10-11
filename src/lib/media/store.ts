@@ -5,6 +5,10 @@ import { ApiError } from '../http';
 import { detectImageExtension, IMAGE_CONTENT_TYPES } from './image-type';
 import { createR2MediaStore } from './r2-store';
 
+export const MEDIA_SOURCES = ['upload', 'generated', 'search'] as const;
+
+export type MediaSource = (typeof MEDIA_SOURCES)[number];
+
 export const mediaItemSchema = z.object({
   id: z.string(),
   path: z.string(),
@@ -13,13 +17,33 @@ export const mediaItemSchema = z.object({
   mime: z.string(),
   bytes: z.number(),
   createdAt: z.string(),
+  source: z.enum(MEDIA_SOURCES).default('upload'),
+  sourceUrl: z.string().nullable().default(null),
+  creator: z.string().nullable().default(null),
+  creatorUrl: z.string().nullable().default(null),
+  license: z.string().nullable().default(null),
+  licenseUrl: z.string().nullable().default(null),
+  prompt: z.string().nullable().default(null),
 });
 
 export type MediaItem = z.infer<typeof mediaItemSchema>;
 
+export interface MediaPutInput {
+  bytes: Uint8Array;
+  originalName: string;
+  alt?: string;
+  source?: MediaSource;
+  sourceUrl?: string | null;
+  creator?: string | null;
+  creatorUrl?: string | null;
+  license?: string | null;
+  licenseUrl?: string | null;
+  prompt?: string | null;
+}
+
 export interface MediaStore {
   list(): Promise<MediaItem[]>;
-  put(input: { bytes: Uint8Array; originalName: string }): Promise<MediaItem>;
+  put(input: MediaPutInput): Promise<MediaItem>;
   updateAlt(id: string, alt: string): Promise<MediaItem>;
   remove(id: string): Promise<void>;
 }
@@ -37,6 +61,10 @@ function toBase64(bytes: Uint8Array): string {
     binary += String.fromCharCode(byte);
   }
   return btoa(binary);
+}
+
+function clampAlt(value: string | undefined): string {
+  return (value ?? '').slice(0, MEDIA_ALT_MAX_LENGTH);
 }
 
 async function readIndex(
@@ -78,7 +106,7 @@ export function createGitMediaStore(config: GithubConfig): MediaStore {
       return [...items].sort((first, second) => second.createdAt.localeCompare(first.createdAt));
     },
 
-    async put(input: { bytes: Uint8Array; originalName: string }): Promise<MediaItem> {
+    async put(input: MediaPutInput): Promise<MediaItem> {
       if (input.bytes.byteLength > MAX_BYTES) {
         throw new ApiError(413, 'FILE_TOO_LARGE', 'Images must be 5 MB or smaller.');
       }
@@ -107,10 +135,17 @@ export function createGitMediaStore(config: GithubConfig): MediaStore {
         id,
         path,
         url: `/media/${fileName}`,
-        alt: '',
+        alt: clampAlt(input.alt),
         mime: IMAGE_CONTENT_TYPES[extension],
         bytes: input.bytes.byteLength,
         createdAt: new Date().toISOString(),
+        source: input.source ?? 'upload',
+        sourceUrl: input.sourceUrl ?? null,
+        creator: input.creator ?? null,
+        creatorUrl: input.creatorUrl ?? null,
+        license: input.license ?? null,
+        licenseUrl: input.licenseUrl ?? null,
+        prompt: input.prompt ?? null,
       };
 
       await writeIndex(config, [item, ...items], sha, `chore(media): index ${fileName}`);
@@ -183,4 +218,51 @@ export async function resolveMediaStore(): Promise<MediaStore> {
   }
 
   return createGitMediaStore(getGithubConfig());
+}
+
+export interface MediaCredit {
+  creator: string | null;
+  creatorUrl: string | null;
+  license: string | null;
+  licenseUrl: string | null;
+  sourceUrl: string | null;
+}
+
+interface MediaCreditRow {
+  creator: string | null;
+  creator_url: string | null;
+  license: string | null;
+  license_url: string | null;
+  source_url: string | null;
+}
+
+export async function findMediaCreditByUrl(url: string): Promise<MediaCredit | null> {
+  try {
+    const bindings = await resolveMediaBindings();
+    if (!bindings) {
+      return null;
+    }
+
+    const row = await bindings.database
+      .prepare(
+        `SELECT creator, creator_url, license, license_url, source_url
+         FROM media WHERE url = ? AND source = 'search' LIMIT 1`,
+      )
+      .bind(url)
+      .first<MediaCreditRow>();
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      creator: row.creator ?? null,
+      creatorUrl: row.creator_url ?? null,
+      license: row.license ?? null,
+      licenseUrl: row.license_url ?? null,
+      sourceUrl: row.source_url ?? null,
+    };
+  } catch {
+    return null;
+  }
 }

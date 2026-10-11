@@ -3,6 +3,7 @@ import AdSlot from '@/components/AdSlot.astro';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
 import { SITE_AUTHOR } from '@/consts';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
+import { findMediaCreditByUrl } from '@/lib/media/store';
 import { formatDate } from '@/utils/date';
 import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildCanonicalUrl, buildFaqJsonLd } from '@/utils/seo';
 import { buildTableOfContents } from '@/utils/toc';
@@ -32,6 +33,8 @@ const authorInitials = SITE_AUTHOR.split(' ')
   .slice(0, 2)
   .join('')
   .toUpperCase();
+
+const coverCredit = post.coverUrl ? await findMediaCreditByUrl(post.coverUrl) : null;
 
 const canonicalUrl =
   buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname) ?? Astro.url.pathname;
@@ -143,6 +146,35 @@ const jsonLd = [
               height="720"
               class="post-hero-image"
             />
+            {coverCredit && (coverCredit.creator || coverCredit.license) ? (
+              <figcaption class="post-hero-credit">
+                <span>Photo</span>
+                {coverCredit.creator ? (
+                  <span>
+                    by{' '}
+                    {coverCredit.creatorUrl ? (
+                      <a href={coverCredit.creatorUrl} rel="noopener nofollow" target="_blank">
+                        {coverCredit.creator}
+                      </a>
+                    ) : (
+                      coverCredit.creator
+                    )}
+                  </span>
+                ) : null}
+                {coverCredit.license ? (
+                  <span>
+                    {coverCredit.creator ? <span aria-hidden="true">/ </span> : null}
+                    {coverCredit.licenseUrl ? (
+                      <a href={coverCredit.licenseUrl} rel="noopener nofollow" target="_blank">
+                        {coverCredit.license.toUpperCase()}
+                      </a>
+                    ) : (
+                      coverCredit.license.toUpperCase()
+                    )}
+                  </span>
+                ) : null}
+              </figcaption>
+            ) : null}
           </figure>
         )
       }

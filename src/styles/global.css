@@ -887,6 +887,12 @@
 .post-hero-image {
   @apply block aspect-video h-auto w-full rounded object-cover;
 }
+.post-hero-credit {
+  @apply mt-3 flex flex-wrap items-center gap-1 font-sans text-[11px] tracking-[0.04em] text-ink-40;
+}
+.post-hero-credit a {
+  @apply underline underline-offset-2;
+}
 
 .ad-slot {
   @apply my-10 flex flex-col items-center justify-center gap-1 rounded border border-dashed border-ink-20 bg-paper-sunk p-3 text-center font-sans text-ink-40;

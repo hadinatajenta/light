@@ -1,4 +1,5 @@
 import {
+  ImagePlusIcon,
   Loader2Icon,
   RefreshCwIcon,
   SearchIcon,
@@ -15,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { requestJson, toErrorMessage } from './api-client';
 import { DialogSurface } from './dialog-surface';
+import MediaFinder from './media-finder';
 import {
   formatKilobytes,
   isAbortError,
@@ -40,14 +42,21 @@ interface MediaPickerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (url: string, alt: string) => void;
+  suggestedQuery?: string;
 }
 
-export default function MediaPicker({ open, onOpenChange, onSelect }: MediaPickerProps) {
+export default function MediaPicker({
+  open,
+  onOpenChange,
+  onSelect,
+  suggestedQuery,
+}: MediaPickerProps) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isFinderOpen, setIsFinderOpen] = useState(false);
   const listAbortRef = useRef<AbortController | null>(null);
   const uploadAbortRef = useRef<AbortController | null>(null);
   const latestRequestRef = useRef(0);
@@ -148,6 +157,11 @@ export default function MediaPicker({ open, onOpenChange, onSelect }: MediaPicke
     onOpenChange(false);
   };
 
+  const handleFinderSelect = (media: MediaItem) => {
+    onSelect(toAbsoluteMediaUrl(media.url), media.alt);
+    onOpenChange(false);
+  };
+
   const normalizedQuery = query.trim().toLowerCase();
   const visibleItems = normalizedQuery
     ? items.filter(
@@ -209,6 +223,16 @@ export default function MediaPicker({ open, onOpenChange, onSelect }: MediaPicke
             >
               {isUploading ? <Loader2Icon className="animate-spin" /> : <UploadIcon />}
               {isUploading ? 'Uploading' : 'Upload'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap"
+              onClick={() => setIsFinderOpen(true)}
+            >
+              <ImagePlusIcon />
+              Find images
             </Button>
           </div>
           {normalizedQuery && status === 'ready' ? (
@@ -313,6 +337,13 @@ export default function MediaPicker({ open, onOpenChange, onSelect }: MediaPicke
           ) : null}
         </div>
       </DialogSurface>
+
+      <MediaFinder
+        open={isFinderOpen}
+        onOpenChange={setIsFinderOpen}
+        onSelect={handleFinderSelect}
+        defaultPrompt={suggestedQuery}
+      />
     </DialogPrimitive.Root>
   );
 }
