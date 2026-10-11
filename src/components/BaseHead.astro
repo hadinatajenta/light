@@ -1,7 +1,6 @@
 ---
 import { AD_CONFIG } from '@/config/monetization';
-import { resolveContentDatabase } from '@/lib/content/database';
-import { DEFAULT_SITE_SETTINGS, getSiteSettings, type SiteSettings } from '@/lib/settings/site';
+import { getRequestSiteSettings } from '@/lib/settings/request';
 import { buildCanonicalUrl, serializeJsonLd } from '@/utils/seo';
 
 interface Props {
@@ -14,20 +13,7 @@ interface Props {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-async function loadSiteSettings(): Promise<SiteSettings> {
-  try {
-    const database = await resolveContentDatabase();
-    if (!database) {
-      return DEFAULT_SITE_SETTINGS;
-    }
-
-    return await getSiteSettings(database);
-  } catch {
-    return DEFAULT_SITE_SETTINGS;
-  }
-}
-
-const siteSettings = await loadSiteSettings();
+const siteSettings = await getRequestSiteSettings(Astro.locals);
 
 const {
   title = siteSettings.title,
