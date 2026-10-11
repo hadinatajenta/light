@@ -39,13 +39,39 @@ npm run agents:tail
 
 ## Schedule
 
-The cron trigger runs every 15 minutes. Each run calls
-`POST https://lightscripts.com/api/agents/run-due`, which finds every agent whose
-schedule is due. The main endpoint enforces a 240 second budget with a 30 second
-safety margin and gives each run its own deadline, so the cron call finishes
-before it is cut off. Runs left in `running` for more than 20 minutes are closed
-as failed and their claimed topic is released. On a tick with no agents due, one
-published post without a cover is given a generated cover.
+The cron trigger runs every 15 minutes. Each tick now makes two calls. The first
+is `POST https://lightscripts.com/api/agents/run-due`, which finds every agent
+whose schedule is due. The second is `POST
+https://lightscripts.com/api/agents/share-due`, which drives automatic sharing.
+The second call is protected by the same `AGENT_CRON_TOKEN` bearer token as the
+first, and the two are independent, so a failure or timeout in `run-due` does not
+skip sharing.
+
+The main endpoint enforces a 240 second budget with a 30 second safety margin and
+gives each run its own deadline, so the cron call finishes before it is cut off.
+Runs left in `running` for more than 20 minutes are closed as failed and their
+claimed topic is released. On a tick with no agents due, one published post
+without a cover is given a generated cover.
+
+## Sharing
+
+Automatic sharing distributes each newly published article to the enabled
+channels. A channel is a configured destination: its provider, a label, whether
+it is enabled, an optional daily cap, an approval requirement, and its
+config. Non-secret config (such as a Telegram chat id) is stored in plain text and
+secrets (such as a bot token) are encrypted with the `AGENT_SECRET_KEY` Worker
+secret; the dashboard only ever reads back the non-secret config and the names of
+the stored secret fields.
+
+The outbox (`share_outbox`) holds one row per article per channel. A job starts
+`pending` (or `awaiting_approval` when the channel requires approval), moves to
+`sending` when the sender claims it, and ends `sent`, `failed`, or `skipped`.
+Failures back off with a delay that grows with the attempt count, rate limits
+reschedule the job and can pause the channel, and the dashboard can retry a job,
+approve an awaiting one, test a channel, or pause sharing globally.
+
+Phase 0a ships the admin JSON API and the Telegram provider only; other providers
+and the React UI are Phase 0b.
 
 The cron Worker has no public URL: `workers_dev` is disabled so only the cron
 trigger can reach it. To exercise the manual `POST /run` handler, or the schedule
