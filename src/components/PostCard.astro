@@ -6,16 +6,22 @@ interface Props {
   post: SitePostSummary;
   variant?: 'default' | 'feature' | 'text' | 'alt';
   symbol?: string;
+  headingLevel?: 2 | 3;
+  priority?: boolean;
 }
 
-const { post, variant = 'default', symbol } = Astro.props;
+const {
+  post,
+  variant = 'default',
+  symbol,
+  headingLevel = 3,
+  priority = false,
+} = Astro.props;
 
+const Heading = `h${headingLevel}` as 'h2' | 'h3';
 const isTextOnly = variant === 'text';
-const cardClass = [
-  'm-card',
-  variant === 'feature' ? 'm-card-feature' : '',
-  isTextOnly ? 'm-card-text' : '',
-]
+const isFeature = variant === 'feature';
+const cardClass = ['m-card', isFeature ? 'm-card-feature' : '', isTextOnly ? 'm-card-text' : '']
   .filter(Boolean)
   .join(' ');
 const mediaClass = variant === 'alt' ? 'm-card-media alt' : 'm-card-media';
@@ -27,25 +33,29 @@ const postHref = `/blog/${post.id}/`;
 <article class={cardClass}>
   {
     !isTextOnly && (
-      <div class={mediaClass} aria-hidden="true">
+      <div class={mediaClass}>
         {post.coverUrl ? (
           <img
             src={post.coverUrl}
             alt={post.coverAlt ?? ''}
-            width="800"
-            height="600"
-            loading="lazy"
+            width={isFeature ? 1280 : 800}
+            height={isFeature ? 800 : 600}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding={priority ? 'sync' : 'async'}
+            fetchpriority={priority ? 'high' : 'auto'}
             class="m-card-image"
           />
         ) : (
-          <span class={glyphClass}>{glyph}</span>
+          <span class={glyphClass} aria-hidden="true">
+            {glyph}
+          </span>
         )}
       </div>
     )
   }
-  <h3 class="m-card-title">
+  <Heading class="m-card-title">
     <a href={postHref}>{post.title}</a>
-  </h3>
+  </Heading>
   <div class="m-card-rule"></div>
   <p class="m-card-desc">{post.description}</p>
   {
@@ -59,9 +69,19 @@ const postHref = `/blog/${post.id}/`;
     post.tags.length > 0 && (
       <div class="m-card-tags">
         {post.tags.map((tag) => (
-          <span>#{tag}</span>
+          <a href={`/tag/${tag}/`}>#{tag}</a>
         ))}
       </div>
     )
   }
 </article>
+
+<style>
+  .m-card-tags a {
+    position: relative;
+    z-index: 1;
+  }
+  .m-card-tags a:hover {
+    text-decoration: underline;
+  }
+</style>

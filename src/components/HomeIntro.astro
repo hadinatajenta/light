@@ -1,0 +1,89 @@
+---
+import { SITE_DESCRIPTION } from '@/consts';
+
+const trustPoints = [
+  { label: 'Independent research', href: null },
+  { label: 'Sources cited', href: null },
+  { label: 'Affiliate links disclosed', href: '/affiliate-disclosure/' },
+];
+---
+
+<section class="home-intro">
+  <h1 class="home-intro-title">Buying guides that hold up after the unboxing.</h1>
+  <p class="home-intro-line">{SITE_DESCRIPTION}</p>
+  <ul class="home-intro-trust">
+    {
+      trustPoints.map((point) => (
+        <li>
+          {point.href ? <a href={point.href}>{point.label}</a> : point.label}
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<style>
+  .home-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto;
+    max-width: 46rem;
+    padding: 32px 24px 24px;
+    text-align: center;
+  }
+  .home-intro-title {
+    font-family: var(--font-display);
+    font-size: clamp(30px, 3.6vw, 46px);
+    font-weight: 900;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    text-wrap: balance;
+  }
+  .home-intro-line {
+    max-width: 34rem;
+    font-size: 17px;
+    line-height: 1.55;
+    color: var(--ink-75);
+    text-wrap: pretty;
+  }
+  .home-intro-trust {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 20px;
+    margin-top: 4px;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-75);
+  }
+  .home-intro-trust li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .home-intro-trust li::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--brand);
+  }
+  .home-intro-trust a {
+    color: var(--brand);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  @media (max-width: 680px) {
+    .home-intro {
+      padding: 28px 20px 24px;
+    }
+    .home-intro-line {
+      font-size: 16px;
+    }
+  }
+</style>

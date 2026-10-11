@@ -6,11 +6,13 @@ interface Props {
 }
 
 const { activeSlug } = Astro.props;
+const isHome = activeSlug === undefined;
+const latestHref = isHome ? '/' : '/blog/';
 ---
 
 <div class="tabs-wrap">
   <nav class="tabs" aria-label="Topics">
-    <a class="tab" href="/blog/" aria-current={activeSlug === undefined ? 'page' : undefined}>Latest</a>
+    <a class="tab" href={latestHref} aria-current={isHome ? 'page' : undefined}>Latest</a>
     {
       TOPICS.map((topic) => (
         <a
@@ -24,3 +26,15 @@ const { activeSlug } = Astro.props;
     }
   </nav>
 </div>
+
+<style>
+  .tabs {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 24px,
+      #000 calc(100% - 24px),
+      transparent 100%
+    );
+  }
+</style>

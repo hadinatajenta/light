@@ -1,0 +1,93 @@
+---
+import { listProducts, listPrograms } from '@/lib/affiliate/store';
+import { resolveContentDatabase } from '@/lib/content/database';
+import type { AffiliateProduct } from '@/lib/affiliate/store';
+
+async function loadSponsorableProduct(): Promise<AffiliateProduct | null> {
+  try {
+    const database = await resolveContentDatabase();
+    if (!database) {
+      return null;
+    }
+
+    const programs = await listPrograms(database);
+    const approvedProgramIds = new Set(
+      programs.filter((program) => program.status === 'approved').map((program) => program.id),
+    );
+
+    if (approvedProgramIds.size === 0) {
+      return null;
+    }
+
+    const products = await listProducts(database, { activeOnly: true });
+    return products.find((product) => approvedProgramIds.has(product.programId)) ?? null;
+  } catch (error) {
+    console.error('Failed to load the sponsored product', error);
+    return null;
+  }
+}
+
+const product = await loadSponsorableProduct();
+---
+
+{
+  product && (
+    <aside class="sponsored" aria-label="Sponsored placement">
+      <span class="sponsored-label">Sponsored</span>
+      <p class="sponsored-name">
+        <a href={`/go/${product.slug}`} rel="sponsored noopener">
+          {product.name}
+        </a>
+      </p>
+      <a class="sponsored-disclosure" href="/affiliate-disclosure/">
+        How affiliate links work
+      </a>
+    </aside>
+  )
+}
+
+<style>
+  .sponsored {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    margin: 0 auto 8px;
+    max-width: 80rem;
+    border: 1px solid var(--ink-20);
+    border-radius: 2px;
+    background: var(--brand-soft);
+    padding: 20px 24px;
+    font-family: var(--font-sans);
+  }
+  .sponsored-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--brand);
+  }
+  .sponsored-name {
+    flex: 1 1 18rem;
+    min-width: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .sponsored-name a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .sponsored-disclosure {
+    font-size: 12px;
+    color: var(--brand);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  @media (max-width: 680px) {
+    .sponsored {
+      padding: 16px 20px;
+    }
+  }
+</style>

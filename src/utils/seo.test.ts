@@ -5,6 +5,7 @@ import {
   buildBreadcrumbJsonLd,
   buildCanonicalUrl,
   buildFaqJsonLd,
+  buildItemListJsonLd,
   buildPageTitle,
 } from './seo';
 
@@ -82,5 +83,24 @@ describe('buildBreadcrumbJsonLd', () => {
     const items = jsonLd.itemListElement as Array<Record<string, unknown>>;
 
     expect(items.map((item) => item.position)).toEqual([1, 2]);
+  });
+});
+
+describe('buildItemListJsonLd', () => {
+  it('numbers the listed posts from one', () => {
+    const jsonLd = buildItemListJsonLd([
+      { name: 'First guide', url: 'https://example.com/blog/first/' },
+      { name: 'Second guide', url: 'https://example.com/blog/second/' },
+    ]);
+    const items = jsonLd.itemListElement as Array<Record<string, unknown>>;
+
+    expect(jsonLd['@type']).toBe('ItemList');
+    expect(items.map((item) => item.position)).toEqual([1, 2]);
+    expect(items[0].name).toBe('First guide');
+    expect(items[1].url).toBe('https://example.com/blog/second/');
+  });
+
+  it('produces an empty list for no posts', () => {
+    expect(buildItemListJsonLd([]).itemListElement).toEqual([]);
   });
 });

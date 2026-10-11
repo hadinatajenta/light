@@ -1,54 +1,196 @@
 ---
 import AdBanner from '@/components/AdBanner.astro';
+import HomeIntro from '@/components/HomeIntro.astro';
 import PostCard from '@/components/PostCard.astro';
+import SponsoredBlock from '@/components/SponsoredBlock.astro';
 import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPostSummaries } from '@/lib/content/public';
-import { buildCanonicalUrl, buildWebsiteJsonLd } from '@/utils/seo';
+import { buildCanonicalUrl, buildItemListJsonLd, buildWebsiteJsonLd } from '@/utils/seo';
 
 export const prerender = false;
 
-const posts = await getPublishedPostSummaries();
-const [featurePost, altPost, thirdPost, fourthPost, fifthPost, sixthPost, seventhPost] = posts;
+const HOMEPAGE_POST_LIMIT = 8;
+const MAGAZINE_MIN_POSTS = 8;
+const FLOW_MIN_POSTS = 4;
+const TEXT_ONLY_RANKS = new Set([4, 6]);
+const SYMBOLS = ['※', '¶', '❦', '△', '❋', '◇', '✦', '◈'];
 
 const siteUrl =
   buildCanonicalUrl(Astro.site ?? undefined, '/') ?? new URL('/', Astro.url.origin).href;
-const jsonLd = buildWebsiteJsonLd({
-  name: SITE_TITLE,
-  url: siteUrl,
-  description: SITE_DESCRIPTION,
-});
+
+const posts = (await getPublishedPostSummaries()).slice(0, HOMEPAGE_POST_LIMIT);
+
+const jsonLd = [
+  buildWebsiteJsonLd({ name: SITE_TITLE, url: siteUrl, description: SITE_DESCRIPTION }),
+  ...(posts.length > 0
+    ? [
+        buildItemListJsonLd(
+          posts.map((post) => ({
+            name: post.title,
+            url: new URL(`/blog/${post.id}/`, siteUrl).href,
+          })),
+        ),
+      ]
+    : []),
+];
+
+const layout = posts.length >= MAGAZINE_MIN_POSTS
+  ? 'magazine'
+  : posts.length >= FLOW_MIN_POSTS
+    ? 'flow'
+    : 'single';
+
+function variantForRank(rank: number): 'feature' | 'text' | 'default' {
+  if (rank === 1) {
+    return 'feature';
+  }
+
+  return TEXT_ONLY_RANKS.has(rank) ? 'text' : 'default';
+}
 ---
 
 <BaseLayout contained={false} jsonLd={jsonLd}>
+  <HomeIntro />
   <TopicTabs />
 
-  <section class="mag-section">
-    <div class="magazine">
-      <div class="mag-col">
-        {altPost && <PostCard post={altPost} symbol="¶" />}
-        {fourthPost && <PostCard post={fourthPost} variant="text" />}
-        {fifthPost && <PostCard post={fifthPost} symbol="△" />}
-      </div>
+  {
+    posts.length === 0 && (
+      <section class="home-empty">
+        <p>Guides are on the way. The first buying guides are being written and reviewed now.</p>
+      </section>
+    )
+  }
 
-      <div class="mag-col mag-col-feature">
-        {featurePost && <PostCard post={featurePost} variant="feature" symbol="※" />}
-        {thirdPost && <PostCard post={thirdPost} variant="alt" symbol="❦" />}
-      </div>
+  {
+    posts.length > 0 && (
+      <section class="home-section">
+        <div class={`home-layout home-layout-${layout}`}>
+          {posts.map((post, index) => (
+            <div class={`home-slot home-slot-${index + 1}`}>
+              <PostCard
+                post={post}
+                variant={variantForRank(index + 1)}
+                headingLevel={2}
+                symbol={SYMBOLS[index % SYMBOLS.length]}
+                priority={index === 0}
+              />
+            </div>
+          ))}
+        </div>
 
-      <div class="mag-col">
-        {sixthPost && <PostCard post={sixthPost} variant="text" />}
-        {seventhPost && <PostCard post={seventhPost} symbol="❋" />}
-        <aside class="m-sponsored">
-          <span class="sp-label">Partner</span>
-          <h4>Sponsored placement</h4>
-          <p>This slot is reserved for a vetted product recommendation from a partner.</p>
-          <a class="btn btn-primary btn-sm" href="/affiliate-disclosure/">How we vet partners</a>
-        </aside>
-      </div>
-    </div>
-  </section>
+        <p class="home-archive">
+          <a href="/blog/">View all guides</a>
+        </p>
+      </section>
+    )
+  }
 
+  <SponsoredBlock />
   <AdBanner />
 </BaseLayout>
+
+<style>
+  .home-section {
+    margin: 0 auto;
+    max-width: 80rem;
+    padding: 8px 24px 40px;
+  }
+  .home-empty {
+    margin: 0 auto;
+    max-width: 46rem;
+    padding: 24px 24px 64px;
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: var(--ink-60);
+  }
+  .home-slot {
+    min-width: 0;
+  }
+  .home-layout-single {
+    display: grid;
+    gap: 52px;
+    margin: 0 auto;
+    max-width: 44rem;
+  }
+  .home-layout-flow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 52px 40px;
+    align-items: start;
+  }
+  .home-layout-flow .home-slot-1 {
+    grid-column: 1 / -1;
+  }
+  .home-layout-magazine {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-areas:
+      's2 s1 s5'
+      's4 s3 s6'
+      's7 . s8';
+    gap: 52px 40px;
+    align-items: start;
+  }
+  .home-layout-magazine .home-slot-1 {
+    grid-area: s1;
+  }
+  .home-layout-magazine .home-slot-2 {
+    grid-area: s2;
+  }
+  .home-layout-magazine .home-slot-3 {
+    grid-area: s3;
+  }
+  .home-layout-magazine .home-slot-4 {
+    grid-area: s4;
+  }
+  .home-layout-magazine .home-slot-5 {
+    grid-area: s5;
+  }
+  .home-layout-magazine .home-slot-6 {
+    grid-area: s6;
+  }
+  .home-layout-magazine .home-slot-7 {
+    grid-area: s7;
+  }
+  .home-layout-magazine .home-slot-8 {
+    grid-area: s8;
+  }
+  .home-archive {
+    margin-top: 40px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .home-archive a {
+    color: var(--brand);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  @media (max-width: 1024px) {
+    .home-layout-magazine {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-areas:
+        's1 s1'
+        's2 s3'
+        's4 s5'
+        's6 s7'
+        's8 .';
+    }
+  }
+  @media (max-width: 680px) {
+    .home-section {
+      padding: 8px 20px 32px;
+    }
+    .home-layout-magazine,
+    .home-layout-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 44px;
+    }
+  }
+</style>

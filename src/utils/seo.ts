@@ -59,6 +59,21 @@ export function buildWebsiteJsonLd(input: {
   };
 }
 
+export function buildItemListJsonLd(
+  items: { name: string; url: string }[],
+): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: item.url,
+    })),
+  };
+}
+
 export function buildBreadcrumbJsonLd(
   items: { name: string; url: string }[],
 ): Record<string, unknown> {
