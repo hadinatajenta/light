@@ -1,4 +1,5 @@
 import { insertActivity } from '../activity/store';
+import { postPassesResearchGate } from '../agents/sources';
 
 export interface ScheduledPost {
   id: string;
@@ -160,6 +161,10 @@ export async function publishDuePosts(
   const updatedAt = now.toISOString();
 
   for (const post of duePosts) {
+    if (!(await postPassesResearchGate(db, post.id))) {
+      continue;
+    }
+
     const result = await db
       .prepare(
         "UPDATE posts SET status = 'published', updated_at = ? WHERE id = ? AND status = 'draft' AND review_status = 'approved'",

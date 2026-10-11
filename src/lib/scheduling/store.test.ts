@@ -29,7 +29,11 @@ function postRow(id: string, status: string, pubDate: string | null, title = id)
   return { id, title, status, pub_date: pubDate };
 }
 
-function createFakeDatabase(options: { rows: FakePostRow[]; updateChanges: number[] }): {
+function createFakeDatabase(options: {
+  rows: FakePostRow[];
+  updateChanges: number[];
+  gate?: { linked: number; verified: number };
+}): {
   database: D1Database;
   writeLog: FakeWrite[];
 } {
@@ -46,6 +50,9 @@ function createFakeDatabase(options: { rows: FakePostRow[]; updateChanges: numbe
         },
         async all() {
           return { results: options.rows };
+        },
+        async first() {
+          return options.gate ?? { linked: 0, verified: 0 };
         },
         async run() {
           writeLog.push({ sql, params });
@@ -248,5 +255,30 @@ describe('publishDuePosts', () => {
 
     expect(published).toEqual([]);
     expect(writeLog).toEqual([]);
+  });
+
+  it('skips a draft whose linked topic has no verified research', async () => {
+    const { database, writeLog } = createFakeDatabase({
+      rows: [postRow('gated', 'draft', PAST_PUB_DATE)],
+      updateChanges: [1],
+      gate: { linked: 1, verified: 0 },
+    });
+
+    const { published } = await publishDuePosts(database, NOW);
+
+    expect(published).toEqual([]);
+    expect(writeLog.filter((write) => write.sql.includes('UPDATE posts'))).toHaveLength(0);
+  });
+
+  it('publishes a draft whose linked topic has a verified source', async () => {
+    const { database } = createFakeDatabase({
+      rows: [postRow('gated', 'draft', PAST_PUB_DATE)],
+      updateChanges: [1],
+      gate: { linked: 1, verified: 1 },
+    });
+
+    const { published } = await publishDuePosts(database, NOW);
+
+    expect(published).toEqual(['gated']);
   });
 });

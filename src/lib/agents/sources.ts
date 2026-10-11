@@ -108,6 +108,27 @@ export async function hasVerifiedSources(db: D1Database, topicId: string): Promi
   return Boolean(row);
 }
 
+export async function postPassesResearchGate(db: D1Database, postId: string): Promise<boolean> {
+  const row = await db
+    .prepare(
+      `SELECT
+         EXISTS(SELECT 1 FROM topics WHERE used_post_id = ?) AS linked,
+         EXISTS(
+           SELECT 1 FROM sources s
+           JOIN topics t ON t.id = s.topic_id
+           WHERE t.used_post_id = ? AND s.verified = 1 AND s.kind <> 'gap'
+         ) AS verified`,
+    )
+    .bind(postId, postId)
+    .first<{ linked: number; verified: number }>();
+
+  if (!row || row.linked === 0) {
+    return true;
+  }
+
+  return row.verified === 1;
+}
+
 export async function createSource(db: D1Database, input: SourceInput): Promise<SourceRecord> {
   const id = crypto.randomUUID();
 

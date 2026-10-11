@@ -81,4 +81,9 @@ falls back to notes written from memory.
 
 A writer produces drafts. Publishing only happens when a reviewer approves a
 draft and that reviewer has auto publish enabled. A reviewer will not auto
-publish a draft whose topic has no verified research.
+publish a draft whose topic has no verified research, and the scheduled
+publisher enforces the same gate.
+
+The Agents page has a **Run & publish** button that runs the enabled agents in
+role order and publishes only drafts that pass the verified research gate. It
+runs in the background; progress is visible on the Activity page.

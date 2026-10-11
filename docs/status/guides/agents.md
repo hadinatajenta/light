@@ -91,7 +91,7 @@ A writer only ever produces drafts. A draft becomes published only when **both**
 
 This is enforced in the server code, not in the browser. The writer, QC, and Scrapper roles can never publish, and turning on auto publish has no effect on them. If you want a human to publish every post, leave auto publish off and click Publish in the post editor yourself.
 
-A second gate protects against unverified research. The writer only receives research notes marked **Verified**. If a topic has no verified note, the writer is told to return `NEEDS RESEARCH` and the topic is blocked. A reviewer approves the draft but skips auto publish when the draft's topic has no verified source, so a draft can never reach the site on unverified research.
+A second gate protects against unverified research. The writer only receives research notes marked **Verified**. If a topic has no verified note, the writer is told to return `NEEDS RESEARCH` and the topic is blocked. A reviewer approves the draft but skips auto publish when the draft's topic has no verified source. The scheduler enforces the same gate, so an approved draft whose topic has no verified source is not published on the schedule either. A draft can never reach the site on unverified research unless a human publishes it by hand.
 
 ## How scheduling works
 
@@ -116,6 +116,15 @@ On the Agents page, each card has a **Run agent** button. It runs the agent imme
 - The card and the run history refresh afterwards.
 
 This button is the fastest way to test a prompt without waiting for the schedule.
+
+## Run and publish
+
+The Agents page also has a **Run & publish** button. It runs the enabled agents in role order (scrapper, then writer, then reviewer) and publishes any draft that passes the verified research gate, without waiting for the next 15 minute tick.
+
+- It runs in the background and the request returns immediately. Watch progress on the Activity page, which shows the live board.
+- It never publishes a draft whose topic has no verified research. Those stay in review for a human.
+- One pass can stop partway because research is split into phases. Press it again, or let the schedule finish the topic.
+- A second click while a pass is running is refused, so runs cannot stack. The button shows **Running** until the pass ends.
 
 ## Test the cron locally
 
