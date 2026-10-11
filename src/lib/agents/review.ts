@@ -1,5 +1,6 @@
 import { toSlug } from '../content/slug';
 import { createPost } from '../content/store';
+import { notifyIndexNow } from '../seo/indexnow';
 import type { AgentRecord } from './store';
 
 export type ReviewStatus = 'pending' | 'approved' | 'changes_requested';
@@ -82,6 +83,12 @@ export async function publishPost(db: D1Database, id: string): Promise<void> {
     )
     .bind(now, now, id)
     .run();
+
+  try {
+    await notifyIndexNow([`/blog/${id}`]);
+  } catch (error) {
+    console.error('IndexNow ping failed for agent publish', id, error);
+  }
 }
 
 export async function updateDraftBody(

@@ -1,5 +1,6 @@
 import { insertActivity } from '../activity/store';
 import { postPassesResearchGate } from '../agents/sources';
+import { notifyIndexNow } from '../seo/indexnow';
 
 export interface ScheduledPost {
   id: string;
@@ -178,6 +179,12 @@ export async function publishDuePosts(
 
     published.push(post.id);
     await recordPublishActivity(db, post);
+
+    try {
+      await notifyIndexNow([`/blog/${post.id}`]);
+    } catch (error) {
+      console.error('IndexNow ping failed for scheduled publish', post.id, error);
+    }
   }
 
   return { published };

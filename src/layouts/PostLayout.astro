@@ -1,8 +1,10 @@
 ---
 import AdSlot from '@/components/AdSlot.astro';
+import RelatedLinks from '@/components/RelatedLinks.astro';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
 import { SITE_AUTHOR } from '@/consts';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
+import { getRelatedPosts } from '@/lib/content/related';
 import { findMediaCreditByUrl } from '@/lib/media/store';
 import { formatDate } from '@/utils/date';
 import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildCanonicalUrl, buildFaqJsonLd } from '@/utils/seo';
@@ -35,6 +37,8 @@ const authorInitials = SITE_AUTHOR.split(' ')
   .toUpperCase();
 
 const coverCredit = post.coverUrl ? await findMediaCreditByUrl(post.coverUrl) : null;
+
+const related = await getRelatedPosts({ id: post.id, tags: post.tags, category: post.category }, 4);
 
 const canonicalUrl =
   buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname) ?? Astro.url.pathname;
@@ -208,6 +212,8 @@ const jsonLd = [
           )
         }
       </article>
+
+      <RelatedLinks posts={related} />
 
       <AdSlot slotId="in-article-bottom" format="leaderboard" />
 

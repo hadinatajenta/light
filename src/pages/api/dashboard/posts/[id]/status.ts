@@ -3,6 +3,7 @@ import { recordActivity, toUserActor } from '@/lib/activity/record';
 import { withAdmin } from '@/lib/api/handler';
 import { getPost, updatePost } from '@/lib/content/store';
 import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
+import { notifyIndexNow } from '@/lib/seo/indexnow';
 
 export const prerender = false;
 
@@ -35,6 +36,14 @@ export const POST = withAdmin(async ({ params, request }, requestId, user) => {
     targetId: id,
     summary: `Set "${id}" to ${payload.status}`,
   });
+
+  if (payload.status === 'published') {
+    try {
+      await notifyIndexNow([`/blog/${id}`]);
+    } catch (error) {
+      console.error('IndexNow ping failed for dashboard publish', id, error);
+    }
+  }
 
   return jsonOk({ id, status: payload.status }, requestId);
 });

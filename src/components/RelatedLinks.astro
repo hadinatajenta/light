@@ -1,0 +1,53 @@
+---
+import type { RelatedPost } from '@/lib/content/related';
+
+interface Props {
+  posts: RelatedPost[];
+}
+
+const { posts } = Astro.props;
+---
+
+{
+  posts.length > 0 && (
+    <section class="post-foot" aria-labelledby="related-reading">
+      <h2 id="related-reading" class="label">
+        Related reading
+      </h2>
+      <ul class="related-list">
+        {posts.map((post) => (
+          <li>
+            <a href={`/blog/${post.id}/`}>{post.title}</a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+<style>
+  .related-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .related-list a {
+    display: block;
+    padding: 5px 0;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--ink-40);
+    transition: text-decoration-color var(--dur) var(--ease);
+  }
+  .related-list a:hover {
+    text-decoration-color: var(--ink);
+  }
+</style>
