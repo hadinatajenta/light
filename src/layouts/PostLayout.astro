@@ -68,7 +68,7 @@ const jsonLd = [
 
   <div class="read-shell">
     <aside class="toc-wrap">
-      <details class="toc-details" open>
+      <details class="toc-details">
         <summary class="toc-summary">
           <span class="toc-title">Contents</span>
           <span class="toc-progress" aria-live="polite"><span id="toc-progress">0%</span></span>
@@ -250,8 +250,8 @@ const jsonLd = [
 
   <script>
     const tocDetails = document.querySelector<HTMLDetailsElement>('.toc-details');
-    if (tocDetails && window.matchMedia('(max-width: 999px)').matches) {
-      tocDetails.open = false;
+    if (tocDetails && window.matchMedia('(min-width: 1000px)').matches) {
+      tocDetails.open = true;
     }
 
     const progressBar = document.getElementById('progress');
