@@ -1,4 +1,4 @@
-export const SHARE_PROVIDERS = ['telegram'] as const;
+export const SHARE_PROVIDERS = ['telegram', 'bluesky', 'discord', 'mastodon'] as const;
 export type ShareProvider = (typeof SHARE_PROVIDERS)[number];
 
 export const SHARE_STATUSES = [

@@ -1,0 +1,10 @@
+---
+import SharingManager from '@/components/dashboard/sharing-manager';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Sharing">
+  <SharingManager client:load />
+</DashboardLayout>

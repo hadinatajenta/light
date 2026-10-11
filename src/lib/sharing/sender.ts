@@ -1,5 +1,8 @@
 import { insertActivity } from '../activity/store';
 import { todayKey } from '../agents/budget';
+import { blueskyAdapter } from './adapters/bluesky';
+import { discordAdapter } from './adapters/discord';
+import { mastodonAdapter } from './adapters/mastodon';
 import { telegramAdapter } from './adapters/telegram';
 import {
   getShareChannel,
@@ -37,6 +40,9 @@ const ERROR_MAX_LENGTH = 500;
 
 const ADAPTERS: Record<ShareProvider, ShareAdapter> = {
   telegram: telegramAdapter,
+  bluesky: blueskyAdapter,
+  discord: discordAdapter,
+  mastodon: mastodonAdapter,
 };
 
 const SHARER_ACTOR = {

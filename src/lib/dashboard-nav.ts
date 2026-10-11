@@ -26,6 +26,7 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
   { label: 'Agents', href: '/dashboard/agents', icon: 'agents', group: 'Automation' },
   { label: 'Research', href: '/dashboard/research', icon: 'research', group: 'Automation' },
   { label: 'Activity', href: '/dashboard/activity', icon: 'activity', group: 'Automation' },
+  { label: 'Sharing', href: '/dashboard/sharing', icon: 'sharing', group: 'Automation' },
   {
     label: 'Monetization',
     href: '/dashboard/monetization',

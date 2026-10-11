@@ -1,21 +1,40 @@
-import type { ShareChannel, ShareMessage, SharePostContent } from './types';
+import type { ShareChannel, ShareMessage, SharePostContent, ShareProvider } from './types';
 
 const TELEGRAM_TEXT_LIMIT = 4096;
 const TELEGRAM_CAPTION_LIMIT = 1024;
+const DISCORD_TEXT_LIMIT = 2000;
+const MASTODON_TEXT_LIMIT = 500;
+const BLUESKY_TEXT_LIMIT = 300;
 const DESCRIPTION_FALLBACK_LENGTH = 140;
 const AFFILIATE_DISCLOSURE = 'Affiliate links may earn us a commission.';
+const ELLIPSIS = '…';
+
+const graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
 export function escapeTelegramHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function codePoints(value: string): string[] {
-  return Array.from(value);
+export function splitGraphemes(value: string): string[] {
+  return Array.from(graphemeSegmenter.segment(value), (entry) => entry.segment);
 }
 
-function truncateToCodePoints(value: string, max: number): string {
-  const points = codePoints(value);
+export function countGraphemes(value: string): number {
+  return splitGraphemes(value).length;
+}
+
+export function countCodePoints(value: string): number {
+  return Array.from(value).length;
+}
+
+export function truncateToCodePoints(value: string, max: number): string {
+  const points = Array.from(value);
   return points.length <= max ? value : points.slice(0, max).join('');
+}
+
+export function truncateToGraphemes(value: string, max: number): string {
+  const segments = splitGraphemes(value);
+  return segments.length <= max ? value : segments.slice(0, max).join('');
 }
 
 export function firstSentence(value: string): string {
@@ -68,29 +87,102 @@ export function deriveShareBlurb(post: SharePostContent): string {
   return truncateToCodePoints(firstSentence(post.body), DESCRIPTION_FALLBACK_LENGTH);
 }
 
-function composeTelegramMessage(post: SharePostContent, url: string, limit: number): string {
-  const head = `<b>${escapeTelegramHtml(post.title.trim() || post.id)}</b>`;
-  const urlLine = escapeTelegramHtml(url);
-  const disclosureLine = post.affiliate ? AFFILIATE_DISCLOSURE : null;
-  const blurb = escapeTelegramHtml(deriveShareBlurb(post));
+type Measure = (value: string) => number;
+type Truncate = (value: string, max: number) => string;
 
-  const fixed = [head, disclosureLine, urlLine].filter((line): line is string => line !== null);
-  const fixedLength = fixed.reduce((total, line) => total + codePoints(line).length, 0);
-  const separatorCount = fixed.length + (blurb ? 1 : 0) - 1;
+function composeBoundedMessage(
+  head: string,
+  blurb: string,
+  disclosure: string | null,
+  url: string,
+  limit: number,
+  measure: Measure,
+  truncate: Truncate,
+): string {
+  const fixed = [head, disclosure, url].filter((line): line is string => line !== null);
+  const fixedLength = fixed.reduce((total, line) => total + measure(line), 0);
+  const separatorCount = fixed.length + (blurb !== '' ? 1 : 0) - 1;
   const budget = limit - fixedLength - Math.max(separatorCount, 0) * 2;
 
   let body = blurb;
   if (body !== '') {
     if (budget <= 0) {
       body = '';
-    } else if (codePoints(body).length > budget) {
-      body = `${truncateToCodePoints(body, Math.max(budget - 1, 0))}…`;
+    } else if (measure(body) > budget) {
+      body = `${truncate(body, Math.max(budget - 1, 0))}${ELLIPSIS}`;
     }
   }
 
-  return [head, body, disclosureLine, urlLine]
+  return [head, body, disclosure, url]
     .filter((line): line is string => line !== null && line !== '')
     .join('\n\n');
+}
+
+function composeTelegramMessage(post: SharePostContent, url: string, limit: number): string {
+  const head = `<b>${escapeTelegramHtml(post.title.trim() || post.id)}</b>`;
+  const urlLine = escapeTelegramHtml(url);
+  const disclosure = post.affiliate ? AFFILIATE_DISCLOSURE : null;
+  const blurb = escapeTelegramHtml(deriveShareBlurb(post));
+
+  return composeBoundedMessage(
+    head,
+    blurb,
+    disclosure,
+    urlLine,
+    limit,
+    countCodePoints,
+    truncateToCodePoints,
+  );
+}
+
+interface PlainTextLimits {
+  limit: number;
+  measure: Measure;
+  truncate: Truncate;
+}
+
+function plainTextLimits(provider: ShareProvider): PlainTextLimits {
+  if (provider === 'discord') {
+    return {
+      limit: DISCORD_TEXT_LIMIT,
+      measure: countCodePoints,
+      truncate: truncateToCodePoints,
+    };
+  }
+
+  if (provider === 'bluesky') {
+    return {
+      limit: BLUESKY_TEXT_LIMIT,
+      measure: countGraphemes,
+      truncate: truncateToGraphemes,
+    };
+  }
+
+  return {
+    limit: MASTODON_TEXT_LIMIT,
+    measure: countCodePoints,
+    truncate: truncateToCodePoints,
+  };
+}
+
+function composePlainTextMessage(
+  post: SharePostContent,
+  url: string,
+  limits: PlainTextLimits,
+): string {
+  const head = post.title.trim() || post.id;
+  const disclosure = post.affiliate ? AFFILIATE_DISCLOSURE : null;
+  const blurb = deriveShareBlurb(post);
+
+  return composeBoundedMessage(
+    head,
+    blurb,
+    disclosure,
+    url,
+    limits.limit,
+    limits.measure,
+    limits.truncate,
+  );
 }
 
 export function renderShareMessage(
@@ -99,11 +191,19 @@ export function renderShareMessage(
   origin: string,
 ): ShareMessage {
   const url = buildShareUrl(post, channel, origin);
-  const photoUrl = toAbsoluteUrl(origin, post.coverUrl);
-  const limit = photoUrl ? TELEGRAM_CAPTION_LIMIT : TELEGRAM_TEXT_LIMIT;
+
+  if (channel.provider === 'telegram') {
+    const photoUrl = toAbsoluteUrl(origin, post.coverUrl);
+    const limit = photoUrl ? TELEGRAM_CAPTION_LIMIT : TELEGRAM_TEXT_LIMIT;
+
+    return {
+      text: composeTelegramMessage(post, url, limit),
+      photoUrl,
+    };
+  }
 
   return {
-    text: composeTelegramMessage(post, url, limit),
-    photoUrl,
+    text: composePlainTextMessage(post, url, plainTextLimits(channel.provider)),
+    photoUrl: null,
   };
 }

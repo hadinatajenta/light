@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
   buildBaseUrl,
   buildShareUrl,
+  countGraphemes,
   deriveShareBlurb,
   escapeTelegramHtml,
   firstSentence,
   renderShareMessage,
   toAbsoluteUrl,
 } from './templates';
-import type { ShareChannel, SharePostContent } from './types';
+import type { ShareChannel, SharePostContent, ShareProvider } from './types';
 
 const ORIGIN = 'https://lightscripts.com';
 
@@ -30,6 +31,10 @@ function channel(): ShareChannel {
     createdAt: '2026-10-11T00:00:00.000Z',
     updatedAt: '2026-10-11T00:00:00.000Z',
   };
+}
+
+function channelFor(provider: ShareProvider): ShareChannel {
+  return { ...channel(), provider, config: {} };
 }
 
 function post(overrides: Partial<SharePostContent> = {}): SharePostContent {
@@ -161,5 +166,51 @@ describe('renderShareMessage', () => {
   it('adds an affiliate disclosure when the post is affiliate', () => {
     const message = renderShareMessage(channel(), post({ affiliate: true }), ORIGIN);
     expect(message.text.toLowerCase()).toContain('affiliate');
+  });
+});
+
+describe('renderShareMessage plain text providers', () => {
+  it('renders discord text as plain text within the 2000 limit', () => {
+    const message = renderShareMessage(
+      channelFor('discord'),
+      post({ description: 'x'.repeat(5000) }),
+      ORIGIN,
+    );
+    expect(message.photoUrl).toBeNull();
+    expect(codePointLength(message.text)).toBeLessThanOrEqual(2000);
+    expect(message.text).toContain('https://lightscripts.com/blog/best-office-chairs');
+    expect(message.text).not.toContain('<b>');
+  });
+
+  it('renders mastodon text within the 500 limit', () => {
+    const message = renderShareMessage(
+      channelFor('mastodon'),
+      post({ description: 'x'.repeat(5000) }),
+      ORIGIN,
+    );
+    expect(message.photoUrl).toBeNull();
+    expect(codePointLength(message.text)).toBeLessThanOrEqual(500);
+    expect(message.text).toContain('https://lightscripts.com/blog/best-office-chairs');
+  });
+
+  it('renders bluesky text within 300 graphemes', () => {
+    const message = renderShareMessage(
+      channelFor('bluesky'),
+      post({ description: 'x'.repeat(5000) }),
+      ORIGIN,
+    );
+    expect(message.photoUrl).toBeNull();
+    expect(countGraphemes(message.text)).toBeLessThanOrEqual(300);
+    expect(message.text).toContain('https://lightscripts.com/blog/best-office-chairs');
+  });
+
+  it('adds an affiliate disclosure in plain text', () => {
+    const message = renderShareMessage(channelFor('discord'), post({ affiliate: true }), ORIGIN);
+    expect(message.text.toLowerCase()).toContain('affiliate');
+  });
+
+  it('counts a multi-codepoint emoji as one grapheme', () => {
+    expect(countGraphemes('\u{1f469}\u200d\u{1f4bb}')).toBe(1);
+    expect(countGraphemes('ab')).toBe(2);
   });
 });

@@ -41,6 +41,16 @@ const PROVIDER_CONFIG_FIELDS: Record<ShareProvider, ProviderFieldSpec[]> = {
     { key: 'botToken', secret: true },
     { key: 'chatId', secret: false },
   ],
+  bluesky: [
+    { key: 'identifier', secret: false },
+    { key: 'service', secret: false },
+    { key: 'appPassword', secret: true },
+  ],
+  discord: [{ key: 'webhookUrl', secret: true }],
+  mastodon: [
+    { key: 'instanceUrl', secret: false },
+    { key: 'accessToken', secret: true },
+  ],
 };
 
 function providerFields(provider: ShareProvider): ProviderFieldSpec[] {
