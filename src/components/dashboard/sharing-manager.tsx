@@ -40,6 +40,7 @@ import { formatAbsoluteTime, formatRelativeTime } from './research-notes';
 
 const SHARING_ENDPOINT = '/api/dashboard/sharing';
 const SHARING_SETTINGS_ENDPOINT = '/api/dashboard/sharing/settings';
+const SHARING_RUN_ENDPOINT = '/api/dashboard/sharing/run';
 const DEFAULT_JOB_LIMIT = 100;
 const JOB_LIMIT_OPTIONS = [100, 200, 500];
 const LABEL_MAX_LENGTH = 120;
@@ -767,6 +768,7 @@ export default function SharingManager() {
   const [jobLimit, setJobLimit] = useState(DEFAULT_JOB_LIMIT);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPauseSaving, setIsPauseSaving] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingChannel, setEditingChannel] = useState<ShareChannel | null>(null);
@@ -866,6 +868,42 @@ export default function SharingManager() {
     } finally {
       if (!controller.signal.aborted) {
         setIsPauseSaving(false);
+      }
+    }
+  };
+
+  const handleRunSharing = async () => {
+    if (isRunning) {
+      return;
+    }
+    setIsRunning(true);
+
+    mutationRef.current?.abort();
+    const controller = new AbortController();
+    mutationRef.current = controller;
+
+    try {
+      const result = await requestJson<{
+        sent: number;
+        failed: number;
+        deferred: number;
+        remaining: number;
+      }>(SHARING_RUN_ENDPOINT, { method: 'POST', signal: controller.signal });
+      if (controller.signal.aborted) {
+        return;
+      }
+      toast.success(
+        `Sharing ran: ${result.sent} sent, ${result.deferred} deferred, ${result.failed} failed`,
+      );
+      await loadSharing(true);
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) {
+        return;
+      }
+      toast.error(toErrorMessage(error));
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsRunning(false);
       }
     }
   };
@@ -1123,9 +1161,26 @@ export default function SharingManager() {
           </span>
         </label>
 
-        <p role="status" aria-live="polite" className="text-xs tabular-nums text-muted-foreground">
-          {isPauseSaving ? 'Saving' : paused ? 'Sharing is paused' : 'Sharing is active'}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p
+            role="status"
+            aria-live="polite"
+            className="text-xs tabular-nums text-muted-foreground"
+          >
+            {isPauseSaving ? 'Saving' : paused ? 'Sharing is paused' : 'Sharing is active'}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="whitespace-nowrap"
+            disabled={isRunning || paused}
+            onClick={() => void handleRunSharing()}
+          >
+            {isRunning ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
+            {isRunning ? 'Running' : 'Run now'}
+          </Button>
+        </div>
       </section>
 
       {loadError !== null && hasDataRef.current ? (

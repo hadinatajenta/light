@@ -2,16 +2,15 @@ import { recordActivity, toUserActor } from '@/lib/activity/record';
 import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
 import { ApiError, jsonOk } from '@/lib/http';
-import { telegramAdapter } from '@/lib/sharing/adapters/telegram';
 import {
   getShareChannel,
   readChannelConfig,
   setChannelNeedsAttention,
   touchChannelSuccess,
 } from '@/lib/sharing/channels';
-import { redactShareError } from '@/lib/sharing/sender';
+import { redactShareError, resolveShareAdapter } from '@/lib/sharing/sender';
 import { escapeTelegramHtml } from '@/lib/sharing/templates';
-import type { ShareMessage, SharePostContent } from '@/lib/sharing/types';
+import type { ShareChannel, ShareMessage, SharePostContent } from '@/lib/sharing/types';
 
 export const prerender = false;
 
@@ -34,6 +33,20 @@ function resolveOrigin(site: URL | undefined, request: Request): string {
   return new URL(request.url).origin;
 }
 
+function buildTestMessage(channel: ShareChannel): ShareMessage {
+  if (channel.provider === 'telegram') {
+    return {
+      text: `<b>Test message</b>\n\nThis is a test send from the ${escapeTelegramHtml(channel.label)} sharing channel.`,
+      photoUrl: null,
+    };
+  }
+
+  return {
+    text: `Test message\n\nThis is a test send from the ${channel.label} sharing channel.`,
+    photoUrl: null,
+  };
+}
+
 export const POST = withAdmin(async ({ params, request, site }, requestId, user) => {
   const database = await requireContentDatabase();
   const id = requireId(params);
@@ -49,16 +62,13 @@ export const POST = withAdmin(async ({ params, request, site }, requestId, user)
     coverUrl: null,
     affiliate: false,
   };
-  const message: ShareMessage = {
-    text: `<b>Test message</b>\n\nThis is a test send from the ${escapeTelegramHtml(channel.label)} sharing channel.`,
-    photoUrl: null,
-  };
 
-  const result = await telegramAdapter.send({
+  const adapter = resolveShareAdapter(channel.provider);
+  const result = await adapter.send({
     channel,
     config,
     post,
-    message,
+    message: buildTestMessage(channel),
     url: resolveOrigin(site, request),
     timeoutMs: TEST_TIMEOUT_MS,
   });

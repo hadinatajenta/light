@@ -47,6 +47,10 @@ const ADAPTERS: Record<ShareProvider, ShareAdapter> = {
   pinterest: pinterestAdapter,
 };
 
+export function resolveShareAdapter(provider: ShareProvider): ShareAdapter {
+  return ADAPTERS[provider];
+}
+
 const SHARER_ACTOR = {
   actorId: 'sharer',
   actorType: 'agent',
