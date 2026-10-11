@@ -100,6 +100,7 @@ export interface GenerateMediaInput {
 
 export interface ImportMediaInput {
   imageUrl: string;
+  fallbackImageUrl?: string;
   title?: string;
   alt?: string;
   creator?: string;

@@ -127,6 +127,9 @@ function ImportStateIcon({ state }: { state: ResultImportState }) {
 
 function toImportMediaInput(result: MediaSearchResult): ImportMediaInput {
   const input: ImportMediaInput = { imageUrl: result.imageUrl };
+  if (result.thumbnailUrl && result.thumbnailUrl !== result.imageUrl) {
+    input.fallbackImageUrl = result.thumbnailUrl;
+  }
   if (result.title) {
     input.title = result.title;
   }
@@ -541,7 +544,7 @@ function SearchPanel({
       ) : null}
 
       {isSearching ? (
-        <ul aria-hidden="true" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <ul aria-hidden="true" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {SEARCH_SKELETON_TILES.map((tileKey) => (
             <li key={tileKey} className="flex flex-col gap-2 rounded-lg border border-border p-2">
               <Skeleton className="aspect-[4/3] w-full" />
@@ -589,7 +592,7 @@ function SearchPanel({
 
       {status === 'ready' && results.length > 0 ? (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {results.map((result) => {
               const isSelected = result.id === selectedResultId;
               const resultState = resultStates[result.id];
@@ -1176,7 +1179,7 @@ export default function MediaFinder({
   return (
     <>
       <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-        <DialogSurface className="flex max-h-[88dvh] max-w-3xl flex-col">
+        <DialogSurface className="flex max-h-[88dvh] max-w-5xl flex-col">
           <div className="flex flex-col gap-1">
             <DialogPrimitive.Title className="text-base font-semibold text-foreground">
               Find images

@@ -12,6 +12,7 @@ export const prerender = false;
 
 const importRequestSchema = z.object({
   imageUrl: z.string().trim().min(1).max(2048),
+  fallbackImageUrl: z.string().trim().min(1).max(2048).optional(),
   title: z.string().trim().min(1).max(200).optional(),
   alt: z
     .string()
@@ -26,10 +27,22 @@ const importRequestSchema = z.object({
   attachToPostId: z.string().trim().min(1).max(120).optional(),
 });
 
+async function downloadWithFallback(primaryUrl: string, fallbackUrl?: string): Promise<Uint8Array> {
+  try {
+    return await downloadImageBytes(primaryUrl);
+  } catch (error) {
+    if (fallbackUrl && fallbackUrl !== primaryUrl) {
+      return await downloadImageBytes(fallbackUrl);
+    }
+
+    throw error;
+  }
+}
+
 export const POST = withAdmin(async ({ request }, requestId, user) => {
   const payload = importRequestSchema.parse(await readJsonBody(request, 20_000));
 
-  const bytes = await downloadImageBytes(payload.imageUrl);
+  const bytes = await downloadWithFallback(payload.imageUrl, payload.fallbackImageUrl);
   const extension = detectImageExtension(bytes) ?? 'jpg';
   const title = payload.title ?? null;
 
