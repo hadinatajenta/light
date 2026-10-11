@@ -30,6 +30,7 @@ const funnelStages = [
   { label: 'In progress', value: pipeline.topicsInProgress },
   { label: 'Used', value: pipeline.topicsUsed },
   { label: 'Blocked', value: pipeline.topicsBlocked },
+  { label: 'Dead', value: pipeline.topicsDead },
 ];
 const funnelTotal = Math.max(
   1,
@@ -232,7 +233,11 @@ const mediaSize =
             <div
               class:list={[
                 'h-full',
-                stage.label === 'Blocked' ? 'bg-destructive/60' : 'bg-primary/70',
+                stage.label === 'Blocked'
+                  ? 'bg-destructive/60'
+                  : stage.label === 'Dead'
+                    ? 'bg-muted-foreground/40'
+                    : 'bg-primary/70',
               ]}
               style={`width: ${(stage.value / funnelTotal) * 100}%`}
               title={`${stage.label}: ${stage.value}`}

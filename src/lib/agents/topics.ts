@@ -7,6 +7,7 @@ export const TOPIC_STATUSES = [
   'in_progress',
   'used',
   'blocked',
+  'dead',
 ] as const;
 
 export const TOPIC_INTENTS = [
@@ -15,6 +16,17 @@ export const TOPIC_INTENTS = [
   'transactional',
   'navigational',
 ] as const;
+
+export const MAX_TOPIC_ATTEMPTS = 3;
+
+const TOPIC_RETRY_DELAYS_MS = [15 * 60 * 1000, 60 * 60 * 1000];
+
+const UNCLAIMABLE_TOPIC_STATUSES: readonly TopicStatus[] = [
+  'in_progress',
+  'used',
+  'blocked',
+  'dead',
+];
 
 export type TopicStatus = (typeof TOPIC_STATUSES)[number];
 
@@ -28,6 +40,8 @@ export interface TopicRecord {
   assignedAgentId: string | null;
   usedPostId: string | null;
   note: string | null;
+  attempts: number;
+  nextAttemptAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +60,7 @@ export interface TopicCounts {
   inProgress: number;
   used: number;
   blocked: number;
+  dead: number;
 }
 
 interface TopicRow {
@@ -58,6 +73,8 @@ interface TopicRow {
   assigned_agent_id: string | null;
   used_post_id: string | null;
   note: string | null;
+  attempts: number;
+  next_attempt_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +94,26 @@ function readStatus(value: string): TopicStatus {
   return (TOPIC_STATUSES as readonly string[]).includes(value) ? (value as TopicStatus) : 'queued';
 }
 
+export function topicRetryDelayMs(attempts: number): number | null {
+  if (attempts < 1 || attempts >= MAX_TOPIC_ATTEMPTS) {
+    return null;
+  }
+
+  return TOPIC_RETRY_DELAYS_MS[attempts - 1] ?? null;
+}
+
+export function isTopicClaimable(
+  status: TopicStatus,
+  nextAttemptAt: string | null,
+  nowIso: string,
+): boolean {
+  if (UNCLAIMABLE_TOPIC_STATUSES.includes(status)) {
+    return false;
+  }
+
+  return nextAttemptAt === null || nextAttemptAt <= nowIso;
+}
+
 function toTopic(row: TopicRow): TopicRecord {
   return {
     id: row.id,
@@ -88,6 +125,8 @@ function toTopic(row: TopicRow): TopicRecord {
     assignedAgentId: row.assigned_agent_id,
     usedPostId: row.used_post_id,
     note: row.note,
+    attempts: row.attempts ?? 0,
+    nextAttemptAt: row.next_attempt_at ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -120,6 +159,7 @@ export async function countTopics(db: D1Database): Promise<TopicCounts> {
     inProgress: 0,
     used: 0,
     blocked: 0,
+    dead: 0,
   };
 
   for (const row of result.results ?? []) {
@@ -135,6 +175,8 @@ export async function countTopics(db: D1Database): Promise<TopicCounts> {
       counts.used = row.total;
     } else if (row.status === 'blocked') {
       counts.blocked = row.total;
+    } else if (row.status === 'dead') {
+      counts.dead = row.total;
     }
   }
 
@@ -181,24 +223,30 @@ async function claimTopicWithStatus(
   agentId: string,
   statuses: TopicStatus[],
 ): Promise<TopicRecord | null> {
+  const nowIso = new Date().toISOString();
   const placeholders = statuses.map(() => '?').join(', ');
   const candidate = await db
     .prepare(
-      `SELECT id, status FROM topics WHERE status IN (${placeholders}) ORDER BY created_at ASC LIMIT 1`,
+      `SELECT id, status, next_attempt_at FROM topics
+       WHERE status IN (${placeholders}) AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+       ORDER BY created_at ASC LIMIT 1`,
     )
-    .bind(...statuses)
-    .first<{ id: string; status: string }>();
+    .bind(...statuses, nowIso)
+    .first<{ id: string; status: string; next_attempt_at: string | null }>();
 
-  if (!candidate) {
+  if (
+    !candidate ||
+    !isTopicClaimable(readStatus(candidate.status), candidate.next_attempt_at, nowIso)
+  ) {
     return null;
   }
 
   const result = await db
     .prepare(
       `UPDATE topics SET status = 'in_progress', assigned_agent_id = ?, updated_at = ?
-       WHERE id = ? AND status = ?`,
+       WHERE id = ? AND status = ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?)`,
     )
-    .bind(agentId, new Date().toISOString(), candidate.id, candidate.status)
+    .bind(agentId, nowIso, candidate.id, candidate.status, nowIso)
     .run();
 
   const changed = (result.meta as { changes?: number } | undefined)?.changes ?? 0;
@@ -223,7 +271,8 @@ export function claimTopicForWriter(db: D1Database, agentId: string): Promise<To
 export async function markTopicResearched(db: D1Database, id: string): Promise<void> {
   await db
     .prepare(
-      "UPDATE topics SET status = 'researched', assigned_agent_id = NULL, updated_at = ? WHERE id = ?",
+      `UPDATE topics SET status = 'researched', assigned_agent_id = NULL, attempts = 0,
+        next_attempt_at = NULL, updated_at = ? WHERE id = ?`,
     )
     .bind(new Date().toISOString(), id)
     .run();
@@ -232,7 +281,8 @@ export async function markTopicResearched(db: D1Database, id: string): Promise<v
 export async function markTopicFetched(db: D1Database, id: string): Promise<void> {
   await db
     .prepare(
-      "UPDATE topics SET status = 'fetched', assigned_agent_id = NULL, updated_at = ? WHERE id = ?",
+      `UPDATE topics SET status = 'fetched', assigned_agent_id = NULL, attempts = 0,
+        next_attempt_at = NULL, updated_at = ? WHERE id = ?`,
     )
     .bind(new Date().toISOString(), id)
     .run();
@@ -261,7 +311,10 @@ export async function findTopicByPost(db: D1Database, postId: string): Promise<T
 
 export async function markTopicUsed(db: D1Database, id: string, postId: string): Promise<void> {
   await db
-    .prepare("UPDATE topics SET status = 'used', used_post_id = ?, updated_at = ? WHERE id = ?")
+    .prepare(
+      `UPDATE topics SET status = 'used', used_post_id = ?, attempts = 0, next_attempt_at = NULL,
+        updated_at = ? WHERE id = ?`,
+    )
     .bind(postId, new Date().toISOString(), id)
     .run();
 }
@@ -285,6 +338,45 @@ export async function blockTopic(db: D1Database, id: string, note: string): Prom
   await db
     .prepare("UPDATE topics SET status = 'blocked', note = ?, updated_at = ? WHERE id = ?")
     .bind(note, new Date().toISOString(), id)
+    .run();
+}
+
+export async function recordTopicFailure(
+  db: D1Database,
+  id: string,
+  note: string,
+  resumeStatus: TopicStatus,
+): Promise<void> {
+  const topic = await getTopic(db, id);
+  const attempts = topic.attempts + 1;
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const retryDelay = topicRetryDelayMs(attempts);
+
+  if (retryDelay === null) {
+    await db
+      .prepare(
+        `UPDATE topics SET status = 'dead', attempts = ?, assigned_agent_id = NULL,
+          next_attempt_at = NULL, note = ?, updated_at = ? WHERE id = ?`,
+      )
+      .bind(attempts, note, nowIso, id)
+      .run();
+    return;
+  }
+
+  await db
+    .prepare(
+      `UPDATE topics SET status = ?, attempts = ?, assigned_agent_id = NULL,
+        next_attempt_at = ?, note = ?, updated_at = ? WHERE id = ?`,
+    )
+    .bind(
+      resumeStatus,
+      attempts,
+      new Date(now.getTime() + retryDelay).toISOString(),
+      note,
+      nowIso,
+      id,
+    )
     .run();
 }
 

@@ -43,6 +43,7 @@ export interface PipelineAnalytics {
   topicsInProgress: number;
   topicsUsed: number;
   topicsBlocked: number;
+  topicsDead: number;
   researchNotes: number;
   pendingReview: number;
   changesRequested: number;
@@ -286,6 +287,7 @@ async function loadPipelineAnalytics(db: D1Database): Promise<PipelineAnalytics>
     topicsInProgress: counts.inProgress,
     topicsUsed: counts.used,
     topicsBlocked: counts.blocked,
+    topicsDead: counts.dead,
     researchNotes: notes,
     pendingReview,
     changesRequested,

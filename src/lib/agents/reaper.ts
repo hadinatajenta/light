@@ -1,9 +1,13 @@
-import { scrapperResumeStatus } from './topics';
+import { recordTopicFailure, scrapperResumeStatus } from './topics';
 
 export const STALE_RUN_MS = 20 * 60 * 1000;
 
 export function staleRunCutoff(now: number, staleMs: number = STALE_RUN_MS): string {
   return new Date(now - staleMs).toISOString();
+}
+
+export function isRunActive(startedAt: string, now: Date): boolean {
+  return startedAt >= staleRunCutoff(now.getTime());
 }
 
 export function topicStatusAfterInterruption(role: string): 'queued' | 'researched' {
@@ -45,26 +49,19 @@ export async function reapStaleRuns(db: D1Database, now: number = Date.now()): P
         .bind(row.agent_id)
         .first<{ id: string }>();
 
-      let resumeStatus: 'queued' | 'fetched' | 'researched' = topicStatusAfterInterruption(
-        agent.role,
-      );
+      if (claimedTopic) {
+        const resumeStatus =
+          agent.role === 'scrapper'
+            ? await scrapperResumeStatus(db, claimedTopic.id)
+            : topicStatusAfterInterruption(agent.role);
 
-      if (agent.role === 'scrapper' && claimedTopic) {
-        resumeStatus = await scrapperResumeStatus(db, claimedTopic.id);
-      }
-
-      await db
-        .prepare(
-          `UPDATE topics SET status = ?, assigned_agent_id = NULL, note = ?, updated_at = ?
-           WHERE status = 'in_progress' AND assigned_agent_id = ?`,
-        )
-        .bind(
+        await recordTopicFailure(
+          db,
+          claimedTopic.id,
+          'Interrupted run, attempt recorded',
           resumeStatus,
-          'Released automatically after an interrupted run',
-          finishedAt,
-          row.agent_id,
-        )
-        .run();
+        );
+      }
     }
 
     await db

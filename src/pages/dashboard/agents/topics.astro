@@ -4,7 +4,14 @@ import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
 export const prerender = false;
 
-const TOPIC_STATUS_FILTERS = ['queued', 'researched', 'in_progress', 'used', 'blocked'] as const;
+const TOPIC_STATUS_FILTERS = [
+  'queued',
+  'researched',
+  'in_progress',
+  'used',
+  'blocked',
+  'dead',
+] as const;
 const statusParam = Astro.url.searchParams.get('status') ?? '';
 const initialStatus =
   statusParam !== '' && (TOPIC_STATUS_FILTERS as readonly string[]).includes(statusParam)

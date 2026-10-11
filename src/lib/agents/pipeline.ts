@@ -2,7 +2,7 @@ import { publishDuePosts } from '../scheduling/store';
 import { reapStaleRuns } from './reaper';
 import type { AgentRole } from './roles';
 import { runAgent } from './runner';
-import { listAgents } from './store';
+import { listDueAgents } from './store';
 import { countTopics } from './topics';
 
 const ROLE_ORDER: AgentRole[] = ['scrapper', 'writer', 'reviewer'];
@@ -42,13 +42,13 @@ export async function runPipeline(
   const roundLimit = Math.max(options.roundLimit ?? 4, 1);
   const reaped = await reapStaleRuns(db);
   const published = (await publishDuePosts(db)).published;
-  const agents = (await listAgents(db)).filter((agent) => agent.enabled);
   const runs: PipelineRunSummary[] = [];
   let previousWorkload = await loadWorkload(db);
   let rounds = 0;
 
   while (rounds < roundLimit && Date.now() < deadline - MIN_ROUND_MS) {
     rounds += 1;
+    const agents = await listDueAgents(db, new Date().toISOString());
 
     for (const role of ROLE_ORDER) {
       for (const agent of agents.filter((entry) => entry.role === role)) {
@@ -57,7 +57,10 @@ export async function runPipeline(
           break;
         }
 
-        const result = await runAgent(db, agent, AbortSignal.timeout(remaining), deadline);
+        const result = await runAgent(db, agent, {
+          signal: AbortSignal.timeout(remaining),
+          deadline,
+        });
         runs.push({ agentId: agent.id, role, status: result.status, summary: result.summary });
       }
     }

@@ -2,6 +2,7 @@ import { marked } from 'marked';
 import { wrapMarkdownTables } from '../../utils/markdown';
 import { resolveAffiliateLinks } from '../affiliate/links';
 import type { PostStatus } from './post-schema';
+import { sanitizeMarkdownTokens } from './sanitize-markdown';
 import { toSlug } from './slug';
 import { getPost, listPosts } from './store';
 
@@ -147,7 +148,9 @@ export function renderMarkdown(
   body: string,
   affiliateLinks: Map<string, string> = new Map(),
 ): RenderResult {
-  const rawHtml = marked.parse(body, { async: false }) as string;
+  const tokens = marked.lexer(body);
+  sanitizeMarkdownTokens(tokens);
+  const rawHtml = marked.parser(tokens, { async: false }) as string;
 
   const withHeadingIds = rawHtml.replace(
     /<h([23])>([\s\S]*?)<\/h\1>/g,

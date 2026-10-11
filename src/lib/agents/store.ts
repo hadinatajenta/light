@@ -1,4 +1,5 @@
 import { ApiError } from '../errors';
+import { isRunActive } from './reaper';
 import {
   type AgentModel,
   type AgentRole,
@@ -98,6 +99,10 @@ function readRunStatus(value: string): AgentRunRecord['status'] {
   }
 
   return 'succeeded';
+}
+
+export function hasRepeatedFailures(statuses: readonly string[]): boolean {
+  return statuses.length === 3 && statuses.every((status) => status === 'failed');
 }
 
 function toRun(row: AgentRunRow): AgentRunRecord {
@@ -236,15 +241,63 @@ export async function listDueAgents(db: D1Database, nowIso: string): Promise<Age
   return (result.results ?? []).map(toAgent);
 }
 
+export interface ClaimAgentRunOptions {
+  now?: Date;
+  force?: boolean;
+}
+
+export async function claimAgentRun(
+  db: D1Database,
+  agent: AgentRecord,
+  options: ClaimAgentRunOptions = {},
+): Promise<boolean> {
+  const now = options.now ?? new Date();
+  const running = await db
+    .prepare(
+      `SELECT id, started_at FROM agent_runs
+       WHERE agent_id = ? AND status = 'running' ORDER BY started_at DESC LIMIT 1`,
+    )
+    .bind(agent.id)
+    .first<{ id: string; started_at: string }>();
+
+  if (running && isRunActive(running.started_at, now)) {
+    return false;
+  }
+
+  const nowIso = now.toISOString();
+  const nextRunAt = computeNextRunAt(agent.runsPerDay, now);
+  const result = options.force
+    ? await db
+        .prepare('UPDATE agents SET next_run_at = ?, updated_at = ? WHERE id = ?')
+        .bind(nextRunAt, nowIso, agent.id)
+        .run()
+    : await db
+        .prepare(
+          `UPDATE agents SET next_run_at = ?, updated_at = ?
+           WHERE id = ? AND enabled = 1 AND (next_run_at IS NULL OR next_run_at <= ?)`,
+        )
+        .bind(nextRunAt, nowIso, agent.id, nowIso)
+        .run();
+
+  const changed = (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+  return changed === 1;
+}
+
 export async function markAgentRun(
   db: D1Database,
   id: string,
   runsPerDay: number,
   ranAt: Date = new Date(),
 ): Promise<void> {
+  const now = new Date();
+  const baseline = ranAt.getTime() > now.getTime() ? ranAt : now;
+
   await db
-    .prepare('UPDATE agents SET last_run_at = ?, next_run_at = ?, updated_at = ? WHERE id = ?')
-    .bind(ranAt.toISOString(), computeNextRunAt(runsPerDay, ranAt), ranAt.toISOString(), id)
+    .prepare(
+      `UPDATE agents SET last_run_at = ?, next_run_at = COALESCE(next_run_at, ?), updated_at = ?
+       WHERE id = ?`,
+    )
+    .bind(ranAt.toISOString(), computeNextRunAt(runsPerDay, baseline), now.toISOString(), id)
     .run();
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_RUNS_PER_DAY } from './roles';
-import { computeNextRunAt } from './store';
+import { MAX_RUNS_PER_DAY, MIN_RUNS_PER_DAY } from './roles';
+import { computeNextRunAt, hasRepeatedFailures } from './store';
 
 const FROM = new Date('2026-10-11T00:00:00.000Z');
 const HOUR_MS = 60 * 60 * 1000;
@@ -24,5 +24,35 @@ describe('computeNextRunAt', () => {
     expect(computeNextRunAt(MAX_RUNS_PER_DAY, FROM)).toBe(
       new Date(FROM.getTime() + 15 * 60 * 1000).toISOString(),
     );
+  });
+
+  it('schedules the claim past the claim time for every cadence', () => {
+    for (let runsPerDay = MIN_RUNS_PER_DAY; runsPerDay <= MAX_RUNS_PER_DAY; runsPerDay += 1) {
+      const nextRunAt = computeNextRunAt(runsPerDay, FROM);
+
+      expect(new Date(nextRunAt).getTime()).toBeGreaterThan(FROM.getTime());
+    }
+  });
+});
+
+describe('hasRepeatedFailures', () => {
+  it('detects three failed runs in a row', () => {
+    expect(hasRepeatedFailures(['failed', 'failed', 'failed'])).toBe(true);
+  });
+
+  it('ignores a streak shorter than three runs', () => {
+    expect(hasRepeatedFailures([])).toBe(false);
+    expect(hasRepeatedFailures(['failed'])).toBe(false);
+    expect(hasRepeatedFailures(['failed', 'failed'])).toBe(false);
+  });
+
+  it('breaks the streak when any run did not fail', () => {
+    expect(hasRepeatedFailures(['failed', 'succeeded', 'failed'])).toBe(false);
+    expect(hasRepeatedFailures(['failed', 'failed', 'skipped'])).toBe(false);
+    expect(hasRepeatedFailures(['failed', 'failed', 'running'])).toBe(false);
+  });
+
+  it('requires exactly the three newest runs', () => {
+    expect(hasRepeatedFailures(['failed', 'failed', 'failed', 'failed'])).toBe(false);
   });
 });

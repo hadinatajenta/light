@@ -4,6 +4,9 @@ const NAMED_ENTITIES: Record<string, string> = {
   gt: '>',
   quot: '"',
   apos: "'",
+  colon: ':',
+  tab: '\t',
+  newline: '\n',
   nbsp: ' ',
   ndash: '-',
   mdash: '-',
@@ -47,7 +50,7 @@ function decodeCodePoint(value: number): string {
   }
 }
 
-function decodeEntities(value: string): string {
+export function decodeEntities(value: string): string {
   return value
     .replace(/&#x([0-9a-f]+);/gi, (_match, hex: string) =>
       decodeCodePoint(Number.parseInt(hex, 16)),

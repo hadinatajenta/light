@@ -55,6 +55,7 @@ interface ResearchCounts {
   inProgress: number;
   used: number;
   blocked: number;
+  dead: number;
 }
 
 interface ResearchTopicRow {
@@ -124,6 +125,7 @@ const TOPIC_STATUS_CARDS: Array<{ key: keyof ResearchCounts; label: string }> = 
   { key: 'inProgress', label: 'In progress' },
   { key: 'used', label: 'Used' },
   { key: 'blocked', label: 'Blocked' },
+  { key: 'dead', label: 'Dead' },
 ];
 
 const EMPTY_NOTES: ResearchNoteRow[] = [];

@@ -24,7 +24,14 @@ import { resolveSearchProvider } from './search/registry';
 import { readSearchConfig } from './search/settings';
 import { requireDeepseekKey } from './settings';
 import { hasVerifiedSources, listVerifiedSources, renderSourcesForPrompt } from './sources';
-import { type AgentRecord, createAgentRun, finishAgentRun, markAgentRun } from './store';
+import {
+  type AgentRecord,
+  claimAgentRun,
+  createAgentRun,
+  finishAgentRun,
+  hasRepeatedFailures,
+  markAgentRun,
+} from './store';
 import {
   blockTopic,
   claimTopicForScrapper,
@@ -33,6 +40,7 @@ import {
   markTopicFetched,
   markTopicResearched,
   markTopicUsed,
+  recordTopicFailure,
   releaseTopic,
   scrapperResumeStatus,
   type TopicRecord,
@@ -330,12 +338,55 @@ function releasedStatusFor(agent: AgentRecord): 'queued' | 'researched' {
   return agent.role === 'writer' ? 'researched' : 'queued';
 }
 
+interface AgentRunStatusRow {
+  status: string;
+}
+
+export async function maybeRecordFailureAlert(db: D1Database, agent: AgentRecord): Promise<void> {
+  const result = await db
+    .prepare('SELECT status FROM agent_runs WHERE agent_id = ? ORDER BY started_at DESC LIMIT 3')
+    .bind(agent.id)
+    .all<AgentRunStatusRow>();
+
+  if (!hasRepeatedFailures((result.results ?? []).map((row) => row.status))) {
+    return;
+  }
+
+  await recordActivity({
+    actorId: agent.id,
+    actorType: 'agent',
+    actorLabel: agent.name,
+    action: 'agent.alert',
+    targetType: 'agent',
+    targetId: agent.id,
+    summary: `Agent "${agent.name}" failed 3 runs in a row`,
+  });
+}
+
+export interface RunAgentOptions {
+  signal?: AbortSignal;
+  deadline?: number;
+  force?: boolean;
+}
+
 export async function runAgent(
   db: D1Database,
   agent: AgentRecord,
-  signal?: AbortSignal,
-  deadline?: number,
+  options: RunAgentOptions = {},
 ): Promise<RunAgentResult> {
+  const { signal, deadline } = options;
+
+  if (!(await claimAgentRun(db, agent, { force: options.force }))) {
+    return {
+      runId: '',
+      status: 'skipped',
+      summary: 'Agent is not due or a run is already in progress',
+      output: '',
+      tokensIn: 0,
+      tokensOut: 0,
+    };
+  }
+
   const runId = await createAgentRun(db, agent.id);
   const effectiveDeadline = deadline ?? Date.now() + SCRAPPER_RESEARCH_BUDGET_MS;
   let topic: TopicRecord | null = null;
@@ -550,7 +601,7 @@ export async function runAgent(
         agent.role === 'scrapper'
           ? await scrapperResumeStatus(db, topic.id)
           : releasedStatusFor(agent);
-      await releaseTopic(db, topic.id, message, releaseStatus);
+      await recordTopicFailure(db, topic.id, message, releaseStatus);
     }
 
     if (revisionTarget) {
@@ -569,6 +620,7 @@ export async function runAgent(
     });
     await markAgentRun(db, agent.id, agent.runsPerDay);
     await recordAgentActivity(agent, `Run failed: ${message}`);
+    await maybeRecordFailureAlert(db, agent);
 
     return {
       runId,

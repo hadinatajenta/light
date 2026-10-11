@@ -52,7 +52,10 @@ export const POST = async (context: APIContext): Promise<Response> => {
         break;
       }
 
-      const result = await runAgent(database, agent, AbortSignal.timeout(remaining), runDeadline);
+      const result = await runAgent(database, agent, {
+        signal: AbortSignal.timeout(remaining),
+        deadline: runDeadline,
+      });
       results.push({ agentId: agent.id, status: result.status, summary: result.summary });
       processed += 1;
     }

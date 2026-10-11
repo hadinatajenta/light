@@ -14,7 +14,7 @@ export const POST = withAdmin(async ({ params }, requestId) => {
   }
 
   const agent = await getAgent(database, id);
-  const result = await runAgent(database, agent);
+  const result = await runAgent(database, agent, { force: true });
 
   return jsonOk({ result }, requestId);
 });

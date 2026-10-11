@@ -1,0 +1,2 @@
+ALTER TABLE topics ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE topics ADD COLUMN next_attempt_at TEXT;

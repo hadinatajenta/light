@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STALE_RUN_MS, staleRunCutoff, topicStatusAfterInterruption } from './reaper';
+import { isRunActive, STALE_RUN_MS, staleRunCutoff, topicStatusAfterInterruption } from './reaper';
 
 const NOW = new Date('2026-10-11T08:00:00.000Z').getTime();
 
@@ -34,5 +34,21 @@ describe('topicStatusAfterInterruption', () => {
     expect(topicStatusAfterInterruption('scrapper')).toBe('queued');
     expect(topicStatusAfterInterruption('reviewer')).toBe('queued');
     expect(topicStatusAfterInterruption('unknown')).toBe('queued');
+  });
+});
+
+describe('isRunActive', () => {
+  it('keeps a run that started one minute ago active', () => {
+    expect(isRunActive(new Date(NOW - 60_000).toISOString(), new Date(NOW))).toBe(true);
+  });
+
+  it('lets a run that started eight hours ago be reaped', () => {
+    expect(isRunActive(new Date(NOW - 8 * 60 * 60 * 1000).toISOString(), new Date(NOW))).toBe(
+      false,
+    );
+  });
+
+  it('treats a run exactly at the stale cutoff as active', () => {
+    expect(isRunActive(staleRunCutoff(NOW), new Date(NOW))).toBe(true);
   });
 });

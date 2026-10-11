@@ -14,6 +14,7 @@ export interface ResearchCounts {
   inProgress: number;
   used: number;
   blocked: number;
+  dead: number;
 }
 
 export interface ResearchTopic {
@@ -184,6 +185,7 @@ export async function loadResearchOverview(db: D1Database): Promise<ResearchOver
       inProgress: counts.inProgress,
       used: counts.used,
       blocked: counts.blocked,
+      dead: counts.dead,
     },
     topics: (topicRows.results ?? []).map((row) => ({
       id: row.id,

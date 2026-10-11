@@ -34,7 +34,14 @@ const SKELETON_NOTES = ['note-skeleton-1', 'note-skeleton-2'];
 const TEXTAREA_CLASS =
   'w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
-export type TopicStatus = 'queued' | 'fetched' | 'researched' | 'in_progress' | 'used' | 'blocked';
+export type TopicStatus =
+  | 'queued'
+  | 'fetched'
+  | 'researched'
+  | 'in_progress'
+  | 'used'
+  | 'blocked'
+  | 'dead';
 
 export const TOPIC_STATUS_LABELS: Record<TopicStatus, string> = {
   queued: 'Queued',
@@ -43,6 +50,7 @@ export const TOPIC_STATUS_LABELS: Record<TopicStatus, string> = {
   in_progress: 'In progress',
   used: 'Used',
   blocked: 'Blocked',
+  dead: 'Dead',
 };
 
 const TOPIC_STATUS_BADGE_VARIANT: Record<
@@ -55,6 +63,7 @@ const TOPIC_STATUS_BADGE_VARIANT: Record<
   in_progress: 'default',
   used: 'ghost',
   blocked: 'destructive',
+  dead: 'destructive',
 };
 
 export function TopicStatusBadge({ status }: { status: TopicStatus }) {

@@ -85,6 +85,7 @@ const STATUS_ORDER: TopicStatus[] = [
   'in_progress',
   'used',
   'blocked',
+  'dead',
 ];
 
 const INTENT_OPTIONS: { value: string; label: string }[] = [
@@ -123,6 +124,7 @@ interface TopicCounts {
   inProgress: number;
   used: number;
   blocked: number;
+  dead: number;
 }
 
 interface TopicsPayload {
