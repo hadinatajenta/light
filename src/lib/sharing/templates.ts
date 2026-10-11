@@ -202,6 +202,13 @@ export function renderShareMessage(
     };
   }
 
+  if (channel.provider === 'pinterest') {
+    return {
+      text: composePlainTextMessage(post, url, plainTextLimits(channel.provider)),
+      photoUrl: toAbsoluteUrl(origin, post.coverUrl),
+    };
+  }
+
   return {
     text: composePlainTextMessage(post, url, plainTextLimits(channel.provider)),
     photoUrl: null,

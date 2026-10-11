@@ -49,7 +49,7 @@ const SKELETON_CARDS = ['sharing-skeleton-1', 'sharing-skeleton-2'];
 const SELECT_CLASS =
   'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
 
-type ShareProvider = 'telegram' | 'discord' | 'mastodon' | 'bluesky';
+type ShareProvider = 'telegram' | 'discord' | 'mastodon' | 'bluesky' | 'pinterest';
 type ShareStatus = 'pending' | 'sending' | 'sent' | 'failed' | 'awaiting_approval' | 'skipped';
 type BadgeVariant = 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive';
 
@@ -145,6 +145,10 @@ const PROVIDER_FIELDS: Record<ShareProvider, ProviderField[]> = {
       placeholder: 'xxxx-xxxx-xxxx-xxxx',
     },
   ],
+  pinterest: [
+    { key: 'boardId', label: 'Board id', kind: 'public', placeholder: '1234567890' },
+    { key: 'accessToken', label: 'Access token', kind: 'secret', placeholder: 'token' },
+  ],
 };
 
 const PROVIDER_OPTIONS: Array<{ value: ShareProvider; label: string }> = [
@@ -152,6 +156,7 @@ const PROVIDER_OPTIONS: Array<{ value: ShareProvider; label: string }> = [
   { value: 'discord', label: 'Discord' },
   { value: 'mastodon', label: 'Mastodon' },
   { value: 'bluesky', label: 'Bluesky' },
+  { value: 'pinterest', label: 'Pinterest' },
 ];
 
 const PROVIDER_LABEL = new Map(PROVIDER_OPTIONS.map((option) => [option.value, option.label]));

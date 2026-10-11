@@ -3,6 +3,7 @@ import { todayKey } from '../agents/budget';
 import { blueskyAdapter } from './adapters/bluesky';
 import { discordAdapter } from './adapters/discord';
 import { mastodonAdapter } from './adapters/mastodon';
+import { pinterestAdapter } from './adapters/pinterest';
 import { telegramAdapter } from './adapters/telegram';
 import {
   getShareChannel,
@@ -43,6 +44,7 @@ const ADAPTERS: Record<ShareProvider, ShareAdapter> = {
   bluesky: blueskyAdapter,
   discord: discordAdapter,
   mastodon: mastodonAdapter,
+  pinterest: pinterestAdapter,
 };
 
 const SHARER_ACTOR = {

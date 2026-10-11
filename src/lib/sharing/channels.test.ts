@@ -170,7 +170,7 @@ describe('createShareChannel', () => {
   it('rejects an unsupported provider', async () => {
     const { database } = createFakeDatabase();
     await expect(
-      createShareChannel(database, input({ provider: 'pinterest' as never })),
+      createShareChannel(database, input({ provider: 'x' as never })),
     ).rejects.toMatchObject({ code: 'INVALID_PROVIDER' });
   });
 });

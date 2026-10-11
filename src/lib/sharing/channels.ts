@@ -51,6 +51,10 @@ const PROVIDER_CONFIG_FIELDS: Record<ShareProvider, ProviderFieldSpec[]> = {
     { key: 'instanceUrl', secret: false },
     { key: 'accessToken', secret: true },
   ],
+  pinterest: [
+    { key: 'boardId', secret: false },
+    { key: 'accessToken', secret: true },
+  ],
 };
 
 function providerFields(provider: ShareProvider): ProviderFieldSpec[] {
