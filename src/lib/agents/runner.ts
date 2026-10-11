@@ -1,5 +1,6 @@
 import { recordActivity } from '../activity/record';
 import { ApiError } from '../errors';
+import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
 import {
   createDraftPost,
@@ -78,17 +79,6 @@ function readStringArray(value: unknown, limit: number): string[] {
     : [];
 }
 
-function readJsonArray(value: string): string[] {
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.filter((entry): entry is string => typeof entry === 'string')
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 function readNeedsResearch(content: string): string | null {
   const trimmed = content.trim();
 
@@ -136,10 +126,7 @@ async function loadCatalogSlice(db: D1Database, topic: TopicRecord): Promise<str
     return 'The product catalog is empty. Write the guide without product links and say nothing about missing links.';
   }
 
-  const matching = topic.category
-    ? usable.filter((row) => readJsonArray(row.topics).includes(topic.category ?? ''))
-    : [];
-  const selected = (matching.length > 0 ? matching : usable).slice(0, MAX_CATALOG_ITEMS);
+  const selected = rankCatalogForTopic(usable, topic, MAX_CATALOG_ITEMS);
 
   return selected.map((row) => `- ${row.slug} | ${row.name}`).join('\n');
 }
