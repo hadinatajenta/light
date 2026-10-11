@@ -1,10 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getAuthProvider } from '@/lib/auth';
-import {
-  isCacheableHomepageRequest,
-  readCachedHomepage,
-  storeHomepageResponse,
-} from '@/lib/cache/homepage';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { getRedirectByPath, recordRedirectHit } from '@/lib/redirects/store';
 
@@ -54,14 +49,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const { pathname } = context.url;
-  const isHomepage = isCacheableHomepageRequest(context.request);
-
-  if (isHomepage) {
-    const cached = await readCachedHomepage(context.url.toString());
-    if (cached) {
-      return cached;
-    }
-  }
 
   if (
     REDIRECT_METHODS.has(context.request.method) &&
@@ -89,15 +76,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   if (!isProtectedPath(pathname)) {
-    const response = await next();
-
-    if (!isHomepage) {
-      return response;
-    }
-
-    return storeHomepageResponse(context.url.toString(), response, (task) => {
-      context.locals.cfContext?.waitUntil(task);
-    });
+    return next();
   }
 
   const user = await getAuthProvider().getCurrentUser(context.request);
