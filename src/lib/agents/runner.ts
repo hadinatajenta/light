@@ -9,6 +9,13 @@ import {
   setPostReview,
   updateDraftBody,
 } from './review';
+import {
+  claimRevisionTarget,
+  findRevisionTarget,
+  type RevisionTarget,
+  replaceDraftBody,
+  saveReviewNotes,
+} from './revision';
 import { getRoleDefinition } from './roles';
 import { requireDeepseekKey } from './settings';
 import { createSource, listSources, renderSourcesForPrompt, SOURCE_KINDS } from './sources';
@@ -141,8 +148,24 @@ async function buildUserMessage(
   db: D1Database,
   agent: AgentRecord,
   topic: TopicRecord | null,
+  revisionTarget: RevisionTarget | null,
 ): Promise<string> {
   if (agent.role === 'writer') {
+    if (revisionTarget) {
+      const notes = revisionTarget.reviewNotes || 'No specific notes were recorded.';
+      const draft = `Title: ${revisionTarget.title}\n\nDescription: ${revisionTarget.description}\n\n${truncate(revisionTarget.body, MAX_DRAFT_CHARS)}`;
+
+      return `An editor reviewed this draft and asked for changes.
+
+Editor notes:
+${notes}
+
+Current draft:
+${draft}
+
+Revise the article so every point in the notes is addressed, and keep the parts that already work. Do not introduce facts that are not supported. Return JSON with keys: title (string), description (string, 50 to 160 characters), tags (array of 2 to 4 lowercase slugs), body (markdown string, no H1), editorNotes (string).`;
+    }
+
     if (!topic) {
       return '';
     }
@@ -212,6 +235,7 @@ async function applyResult(
   agent: AgentRecord,
   content: string,
   topic: TopicRecord | null,
+  revisionTarget: RevisionTarget | null,
 ): Promise<AppliedResult> {
   if (agent.role === 'scrapper') {
     const parsed = extractJsonObject(content);
@@ -265,6 +289,16 @@ async function applyResult(
       throw new ApiError(502, 'MODEL_OUTPUT_INVALID', 'The writer did not return a usable draft.');
     }
 
+    if (revisionTarget) {
+      await replaceDraftBody(db, revisionTarget.id, { title, description, body });
+
+      return {
+        summary: `Revised "${title}"`,
+        output: truncate(editorNotes ? `${editorNotes}\n\n${content}` : content, MAX_OUTPUT_CHARS),
+        postId: revisionTarget.id,
+      };
+    }
+
     const postId = await createDraftPost(db, agent, {
       title,
       description,
@@ -306,6 +340,7 @@ async function applyResult(
     }
 
     await updateDraftBody(db, target.id, revisedBody ? { body: revisedBody } : {});
+    await saveReviewNotes(db, target.id, notes);
     await setPostReview(db, target.id, 'changes_requested', agent.id);
 
     return {
@@ -349,6 +384,7 @@ export async function runAgent(
 ): Promise<RunAgentResult> {
   const runId = await createAgentRun(db, agent.id);
   let topic: TopicRecord | null = null;
+  let revisionTarget: RevisionTarget | null = null;
 
   try {
     const apiKey = await requireDeepseekKey(db);
@@ -358,7 +394,15 @@ export async function runAgent(
       topic = await claimTopicForWriter(db, agent.id);
 
       if (!topic) {
-        const summary = 'No topic queued';
+        const candidate = await findRevisionTarget(db);
+
+        if (candidate && (await claimRevisionTarget(db, candidate.id))) {
+          revisionTarget = candidate;
+        }
+      }
+
+      if (!topic && !revisionTarget) {
+        const summary = 'No topic queued and nothing to revise';
         await finishAgentRun(db, runId, { status: 'succeeded', summary });
         await markAgentRun(db, agent.id, agent.runsPerDay);
         await recordAgentActivity(agent, summary);
@@ -378,7 +422,7 @@ export async function runAgent(
       }
     }
 
-    const userMessage = await buildUserMessage(db, agent, topic);
+    const userMessage = await buildUserMessage(db, agent, topic, revisionTarget);
 
     if (!userMessage) {
       if (topic) {
@@ -435,7 +479,7 @@ export async function runAgent(
       };
     }
 
-    const applied = await applyResult(db, agent, response.content, topic);
+    const applied = await applyResult(db, agent, response.content, topic, revisionTarget);
 
     if (topic) {
       if (agent.role === 'scrapper') {
@@ -481,6 +525,15 @@ export async function runAgent(
 
     if (topic) {
       await releaseTopic(db, topic.id, message, releasedStatusFor(agent));
+    }
+
+    if (revisionTarget) {
+      await db
+        .prepare(
+          "UPDATE posts SET review_status = 'changes_requested', updated_at = ? WHERE id = ? AND review_status = 'pending'",
+        )
+        .bind(new Date().toISOString(), revisionTarget.id)
+        .run();
     }
 
     await finishAgentRun(db, runId, {
