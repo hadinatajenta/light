@@ -63,6 +63,7 @@ export const FOOTER_SECTIONS: FooterSection[] = [
     title: 'Company',
     links: [
       { label: 'About', href: '/about/' },
+      { label: 'Editorial standards', href: '/editorial-standards/' },
       { label: 'Contact', href: '/contact/' },
       { label: 'All Guides', href: '/blog/' },
       { label: 'RSS', href: '/rss.xml' },

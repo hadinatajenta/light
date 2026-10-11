@@ -49,6 +49,7 @@ const jsonLd = [
     description: post.description,
     url: canonicalUrl,
     datePublished: publishedDate,
+    dateModified: post.updatedDate ? new Date(post.updatedDate) : undefined,
     authorName: SITE_AUTHOR,
   }),
   buildBreadcrumbJsonLd([
@@ -137,6 +138,18 @@ const jsonLd = [
           }
           <span class="byline-dot" aria-hidden="true"></span>
           <span>{readingMinutes} min read</span>
+          {
+            post.updatedDate && (
+              <>
+                <span class="byline-dot" aria-hidden="true" />
+                <span>
+                  Updated <time datetime={post.updatedDate}>{formatDate(new Date(post.updatedDate))}</time>
+                </span>
+              </>
+            )
+          }
+          <span class="byline-dot" aria-hidden="true" />
+          <a href="/editorial-standards/">How we research</a>
         </div>
       </header>
 
