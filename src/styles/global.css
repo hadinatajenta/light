@@ -894,6 +894,25 @@
   @apply underline underline-offset-2;
 }
 
+.post-table-scroll {
+  @apply my-8 overflow-x-auto rounded border border-ink-20;
+}
+.post-table-scroll:focus-visible {
+  @apply outline-2 outline-offset-2 outline-ink-40;
+}
+.post-body table {
+  @apply w-full border-collapse font-sans text-[13px];
+}
+.post-body th {
+  @apply border-b border-ink-20 bg-paper-sunk px-3 py-2 text-left align-bottom font-semibold;
+}
+.post-body td {
+  @apply border-b border-ink-12 px-3 py-2 align-top;
+}
+.post-body tbody tr:last-child td {
+  @apply border-b-0;
+}
+
 .ad-slot {
   @apply my-10 flex flex-col items-center justify-center gap-1 rounded border border-dashed border-ink-20 bg-paper-sunk p-3 text-center font-sans text-ink-40;
 }

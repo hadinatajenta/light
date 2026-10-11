@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { wrapMarkdownTables } from '../../utils/markdown';
 import { resolveAffiliateLinks } from '../affiliate/links';
 import type { PostStatus } from './post-schema';
 import { toSlug } from './slug';
@@ -156,8 +157,10 @@ export function renderMarkdown(
     },
   );
 
+  const withTables = wrapMarkdownTables(withHeadingIds);
+
   const redirectLinks = new Map([...affiliateLinks.keys()].map((slug) => [slug, `/go/${slug}`]));
-  const resolved = resolveAffiliateLinks(withHeadingIds, redirectLinks);
+  const resolved = resolveAffiliateLinks(withTables, redirectLinks);
 
   return {
     html: resolved.html,
