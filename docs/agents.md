@@ -41,12 +41,16 @@ npm run agents:tail
 
 The cron trigger runs every 15 minutes. Each run calls
 `POST https://lightscripts.com/api/agents/run-due`, which finds every agent whose
-schedule is due. The main endpoint enforces its own time budget and stops before
-that budget is exhausted, so the cron call can take up to about 110 seconds.
+schedule is due. The main endpoint enforces a 240 second budget with a 30 second
+safety margin and gives each run its own deadline, so the cron call finishes
+before it is cut off. Runs left in `running` for more than 20 minutes are closed
+as failed and their claimed topic is released. On a tick with no agents due, one
+published post without a cover is given a generated cover.
 
 The cron Worker has no public URL: `workers_dev` is disabled so only the cron
-trigger can reach it. To exercise the manual `POST /run` handler, run it locally
-with `npx wrangler dev --config workers/agents/wrangler.jsonc`.
+trigger can reach it. To exercise the manual `POST /run` handler, or the schedule
+itself, run it locally with `npx wrangler dev --config workers/agents/wrangler.jsonc
+--test-scheduled` and hit `/__scheduled`.
 
 ## DeepSeek key
 

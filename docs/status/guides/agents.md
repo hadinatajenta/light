@@ -75,7 +75,9 @@ This is enforced in the server code, not in the browser. The writer, QC, and Scr
 - The endpoint finds every **enabled** agent whose `nextRunAt` is due or empty, and runs them in order.
 - A newly created enabled agent has `nextRunAt` set to its creation time, so it is **due immediately** and runs on the next 15-minute tick.
 - After each run, the next run time is set to now plus `24 hours / runs per day`. A 24-per-day agent is spaced one hour apart; a 1-per-day agent once a day.
-- The endpoint has a time budget of about 110 seconds. If many agents are due at once, it processes as many as fit and reports how many were left.
+- The endpoint has a 240 second budget with a 30 second safety margin. Each run also gets its own deadline, so a slow model call is cancelled cleanly and the run is recorded as failed instead of being killed mid-run. If many agents are due at once, it processes as many as fit and reports how many were left.
+- Any run still marked as running after 20 minutes is closed automatically as failed, and the topic it had claimed is released back to the queue. This is what keeps the Activity page honest after a hard interruption.
+- On a tick with no agents due, one published post that has no cover gets a generated cover, so a fresh article picks up an image without you clicking anything. Set aside a way to see it: the response includes `coversGenerated`.
 
 When you save an agent, its next run time is recomputed, so editing an agent resets its schedule from that moment.
 
@@ -88,6 +90,30 @@ On the Agents page, each card has a **Run agent** button. It runs the agent imme
 - The card and the run history refresh afterwards.
 
 This button is the fastest way to test a prompt without waiting for the schedule.
+
+## Test the cron locally
+
+Never test the schedule against production. The cron Worker is the same code in both places, so a local run tells you everything a production run would, without publishing anything real.
+
+1. Start the dev server (`astro dev --background`). It reads `.dev.vars`, so the `AGENT_CRON_TOKEN` in that file is the one it checks.
+2. Make the agents due immediately, **local database only**:
+   ```sh
+   npx wrangler d1 execute light-content --local --command "UPDATE agents SET next_run_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE enabled = 1"
+   ```
+3. Call the endpoint the cron Worker calls:
+   ```sh
+   TOKEN=$(grep '^AGENT_CRON_TOKEN=' .dev.vars | cut -d= -f2-)
+   curl -s -X POST http://localhost:4321/api/agents/run-due -H "Authorization: Bearer $TOKEN"
+   ```
+   The response reports `published`, `reaped`, `coversGenerated`, `processed`, and how many agents were `remaining`.
+4. To exercise the cron Worker itself, including its schedule and the manual `POST /run` handler, use Wrangler's test scheduler:
+   ```sh
+   npx wrangler dev --config workers/agents/wrangler.jsonc --test-scheduled
+   curl "http://localhost:8787/__scheduled?cron=*/1+*+*+*+*"
+   ```
+   While testing, a one minute `crons` value (`["*/1 * * * *"]`) saves you waiting; put back `["*/15 * * * *"]` before deploying.
+
+Local timings exist only to make testing fast. Production keeps the real cadence.
 
 ## Where to see history
 
