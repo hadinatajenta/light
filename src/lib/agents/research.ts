@@ -1,4 +1,9 @@
-import { readBudgetState, recordModelUsage, recordSearchUsage } from './budget';
+import {
+  maybeRecordBudgetWarning,
+  readBudgetState,
+  recordModelUsage,
+  recordSearchUsage,
+} from './budget';
 import {
   dedupeByUrlKey,
   normalizeForMatch,
@@ -267,6 +272,7 @@ async function discoverPages(input: {
 
       searches += 1;
       await recordSearchUsage(input.db, 1);
+      await maybeRecordBudgetWarning(input.db);
 
       for (const result of results) {
         collected.push({ ...result, query });

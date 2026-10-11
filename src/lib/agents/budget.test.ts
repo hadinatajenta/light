@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBudgetState, monthPrefix, readLimit, todayKey } from './budget';
+import { buildBudgetState, monthPrefix, readLimit, readRate, todayKey } from './budget';
 
 const BASE = {
   paused: false,
@@ -9,6 +9,8 @@ const BASE = {
   searchUsedToday: 0,
   searchUsedThisMonth: 0,
   tokensUsedToday: 0,
+  freeCredits: 100,
+  creditPriceUsd: 0.008,
 };
 
 describe('buildBudgetState', () => {
@@ -39,6 +41,35 @@ describe('buildBudgetState', () => {
     expect(state.searchesRemaining).toBe(0);
     expect(state.tokensRemaining).toBe(1000);
   });
+
+  it('stays inside the free allowance with no paid usage or warning below the threshold', () => {
+    const state = buildBudgetState({ ...BASE, searchUsedThisMonth: 50 });
+
+    expect(state.freeCreditsRemaining).toBe(50);
+    expect(state.paidCreditsUsed).toBe(0);
+    expect(state.estimatedCostUsd).toBe(0);
+    expect(state.paidMode).toBe(false);
+    expect(state.warning).toBe(false);
+  });
+
+  it('warns at or above the free credit warning ratio', () => {
+    const atThreshold = buildBudgetState({ ...BASE, searchUsedThisMonth: 80 });
+    const aboveThreshold = buildBudgetState({ ...BASE, searchUsedThisMonth: 95 });
+
+    expect(atThreshold.warning).toBe(true);
+    expect(aboveThreshold.warning).toBe(true);
+    expect(atThreshold.paidMode).toBe(false);
+  });
+
+  it('tracks paid credits and estimated cost once the free allowance is exceeded', () => {
+    const state = buildBudgetState({ ...BASE, searchUsedThisMonth: 150 });
+
+    expect(state.freeCreditsRemaining).toBe(0);
+    expect(state.paidCreditsUsed).toBe(50);
+    expect(state.estimatedCostUsd).toBeCloseTo(50 * BASE.creditPriceUsd, 10);
+    expect(state.paidMode).toBe(true);
+    expect(state.warning).toBe(false);
+  });
 });
 
 describe('readLimit', () => {
@@ -50,6 +81,18 @@ describe('readLimit', () => {
 
   it('reads a valid stored limit', () => {
     expect(readLimit('12', 40)).toBe(12);
+  });
+});
+
+describe('readRate', () => {
+  it('parses a stored decimal', () => {
+    expect(readRate('0.008', 0.01)).toBe(0.008);
+  });
+
+  it('falls back on missing, invalid, or negative values', () => {
+    expect(readRate(null, 0.008)).toBe(0.008);
+    expect(readRate('abc', 0.008)).toBe(0.008);
+    expect(readRate('-0.5', 0.008)).toBe(0.008);
   });
 });
 

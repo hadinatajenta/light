@@ -76,9 +76,17 @@ falls back to notes written from memory.
 
 The **Spending budget** card caps what the agents can spend. Daily and monthly
 search limits cap Tavily calls, a daily token limit caps DeepSeek usage, and a
-pause switch stops all spending. When a cap is reached the scrapper stops
-searching and agent runs are recorded as `skipped` with no model call, so a run
-cannot drain a card. Usage is counted in the `usage_counters` table.
+pause switch stops all spending. You can also edit free credits per month and
+price per credit (USD). Tavily gives the account a free allowance of 1,500
+credits that resets each calendar month and does not roll over, and a basic
+search costs one credit, so one search is one credit. Beyond the free allowance
+usage is billed at $0.008 per credit, so set the monthly search cap to the free
+allowance to avoid charges. The card shows the free monthly credit allowance
+used, the estimated cost once usage passes the free allowance, and a warning when
+the free credits are nearly used up (about 80 percent). When a cap is reached the
+scrapper stops searching and agent runs are recorded as `skipped` with no model
+call, so a run cannot drain a card. Usage is counted in the `usage_counters`
+table and the monthly counter resets on the calendar month.
 
 ## Roles
 

@@ -1,19 +1,28 @@
+import { recordActivity } from '../activity/record';
 import { getSetting, setSetting } from '../settings/store';
 
 export const BUDGET_PAUSED_SETTING = 'budget_paused';
 export const BUDGET_DAILY_SEARCHES_SETTING = 'budget_daily_searches';
 export const BUDGET_MONTHLY_SEARCHES_SETTING = 'budget_monthly_searches';
 export const BUDGET_DAILY_TOKENS_SETTING = 'budget_daily_tokens';
+export const BUDGET_FREE_CREDITS_SETTING = 'budget_free_monthly_credits';
+export const BUDGET_CREDIT_PRICE_SETTING = 'budget_credit_price_usd';
+export const BUDGET_WARNING_MONTH_SETTING = 'budget_warning_month';
 
 export const DEFAULT_DAILY_SEARCHES = 40;
 export const DEFAULT_MONTHLY_SEARCHES = 1500;
 export const DEFAULT_DAILY_TOKENS = 2_000_000;
+export const DEFAULT_FREE_MONTHLY_CREDITS = 1500;
+export const DEFAULT_CREDIT_PRICE_USD = 0.008;
+export const BUDGET_WARNING_RATIO = 0.8;
 
 export interface BudgetLimits {
   paused: boolean;
   dailySearches: number;
   monthlySearches: number;
   dailyTokens: number;
+  freeCredits: number;
+  creditPriceUsd: number;
 }
 
 export interface BudgetState {
@@ -28,6 +37,13 @@ export interface BudgetState {
   tokensRemaining: number;
   searchesExhausted: boolean;
   tokensExhausted: boolean;
+  freeCredits: number;
+  creditPriceUsd: number;
+  freeCreditsRemaining: number;
+  paidCreditsUsed: number;
+  estimatedCostUsd: number;
+  paidMode: boolean;
+  warning: boolean;
 }
 
 interface CounterRow {
@@ -49,6 +65,11 @@ export function readLimit(value: string | null, fallback: number): number {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
 }
 
+export function readRate(value: string | null, fallback: number): number {
+  const parsed = value ? Number.parseFloat(value) : Number.NaN;
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
 export function buildBudgetState(input: {
   paused: boolean;
   dailySearches: number;
@@ -57,11 +78,21 @@ export function buildBudgetState(input: {
   searchUsedToday: number;
   searchUsedThisMonth: number;
   tokensUsedToday: number;
+  freeCredits: number;
+  creditPriceUsd: number;
 }): BudgetState {
   const dailySearchRemaining = Math.max(input.dailySearches - input.searchUsedToday, 0);
   const monthlySearchRemaining = Math.max(input.monthlySearches - input.searchUsedThisMonth, 0);
   const searchesRemaining = Math.min(dailySearchRemaining, monthlySearchRemaining);
   const tokensRemaining = Math.max(input.dailyTokens - input.tokensUsedToday, 0);
+  const freeCreditsRemaining = Math.max(input.freeCredits - input.searchUsedThisMonth, 0);
+  const paidCreditsUsed = Math.max(input.searchUsedThisMonth - input.freeCredits, 0);
+  const estimatedCostUsd = paidCreditsUsed * input.creditPriceUsd;
+  const paidMode = paidCreditsUsed > 0;
+  const warning =
+    input.freeCredits > 0 &&
+    !paidMode &&
+    input.searchUsedThisMonth >= input.freeCredits * BUDGET_WARNING_RATIO;
 
   return {
     paused: input.paused,
@@ -75,22 +106,34 @@ export function buildBudgetState(input: {
     tokensRemaining,
     searchesExhausted: searchesRemaining <= 0,
     tokensExhausted: tokensRemaining <= 0,
+    freeCredits: input.freeCredits,
+    creditPriceUsd: input.creditPriceUsd,
+    freeCreditsRemaining,
+    paidCreditsUsed,
+    estimatedCostUsd,
+    paidMode,
+    warning,
   };
 }
 
 export async function readBudgetLimits(db: D1Database): Promise<BudgetLimits> {
-  const [paused, dailySearches, monthlySearches, dailyTokens] = await Promise.all([
-    getSetting(db, BUDGET_PAUSED_SETTING),
-    getSetting(db, BUDGET_DAILY_SEARCHES_SETTING),
-    getSetting(db, BUDGET_MONTHLY_SEARCHES_SETTING),
-    getSetting(db, BUDGET_DAILY_TOKENS_SETTING),
-  ]);
+  const [paused, dailySearches, monthlySearches, dailyTokens, freeCredits, creditPriceUsd] =
+    await Promise.all([
+      getSetting(db, BUDGET_PAUSED_SETTING),
+      getSetting(db, BUDGET_DAILY_SEARCHES_SETTING),
+      getSetting(db, BUDGET_MONTHLY_SEARCHES_SETTING),
+      getSetting(db, BUDGET_DAILY_TOKENS_SETTING),
+      getSetting(db, BUDGET_FREE_CREDITS_SETTING),
+      getSetting(db, BUDGET_CREDIT_PRICE_SETTING),
+    ]);
 
   return {
     paused: paused === 'true',
     dailySearches: readLimit(dailySearches, DEFAULT_DAILY_SEARCHES),
     monthlySearches: readLimit(monthlySearches, DEFAULT_MONTHLY_SEARCHES),
     dailyTokens: readLimit(dailyTokens, DEFAULT_DAILY_TOKENS),
+    freeCredits: readLimit(freeCredits, DEFAULT_FREE_MONTHLY_CREDITS),
+    creditPriceUsd: readRate(creditPriceUsd, DEFAULT_CREDIT_PRICE_USD),
   };
 }
 
@@ -109,6 +152,12 @@ export async function saveBudgetLimits(
   }
   if (typeof limits.dailyTokens === 'number') {
     await setSetting(db, BUDGET_DAILY_TOKENS_SETTING, String(limits.dailyTokens));
+  }
+  if (typeof limits.freeCredits === 'number') {
+    await setSetting(db, BUDGET_FREE_CREDITS_SETTING, String(limits.freeCredits));
+  }
+  if (typeof limits.creditPriceUsd === 'number') {
+    await setSetting(db, BUDGET_CREDIT_PRICE_SETTING, String(limits.creditPriceUsd));
   }
 }
 
@@ -151,7 +200,36 @@ export async function readBudgetState(
     searchUsedToday: search?.count ?? 0,
     searchUsedThisMonth: monthSearches,
     tokensUsedToday: (model?.tokens_in ?? 0) + (model?.tokens_out ?? 0),
+    freeCredits: limits.freeCredits,
+    creditPriceUsd: limits.creditPriceUsd,
   });
+}
+
+export async function maybeRecordBudgetWarning(
+  db: D1Database,
+  now: Date = new Date(),
+): Promise<boolean> {
+  const month = monthPrefix(now);
+  const warnedMonth = await getSetting(db, BUDGET_WARNING_MONTH_SETTING);
+  if (warnedMonth === month) {
+    return false;
+  }
+
+  const state = await readBudgetState(db, now);
+  if (!state.warning && !state.paidMode) {
+    return false;
+  }
+
+  await setSetting(db, BUDGET_WARNING_MONTH_SETTING, month);
+  await recordActivity({
+    actorId: 'budget',
+    actorType: 'agent',
+    actorLabel: 'Budget',
+    action: 'budget.warning',
+    summary: `Search usage ${state.searchUsedThisMonth} of ${state.freeCredits} free credits this month`,
+  });
+
+  return true;
 }
 
 export async function recordSearchUsage(

@@ -1,4 +1,11 @@
-import { Loader2Icon, RefreshCwIcon, SaveIcon, ShieldAlertIcon, WalletIcon } from 'lucide-react';
+import {
+  Loader2Icon,
+  RefreshCwIcon,
+  SaveIcon,
+  ShieldAlertIcon,
+  TriangleAlertIcon,
+  WalletIcon,
+} from 'lucide-react';
 import { type SubmitEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,6 +22,8 @@ interface BudgetState {
   dailySearches: number;
   monthlySearches: number;
   dailyTokens: number;
+  freeCredits: number;
+  creditPriceUsd: number;
   searchUsedToday: number;
   searchUsedThisMonth: number;
   tokensUsedToday: number;
@@ -22,12 +31,35 @@ interface BudgetState {
   tokensRemaining: number;
   searchesExhausted: boolean;
   tokensExhausted: boolean;
+  freeCreditsRemaining: number;
+  paidCreditsUsed: number;
+  estimatedCostUsd: number;
+  paidMode: boolean;
+  warning: boolean;
 }
 
 interface BudgetFormValues {
   dailySearches: string;
   monthlySearches: string;
   dailyTokens: string;
+  freeCredits: string;
+  creditPriceUsd: string;
+}
+
+interface BudgetAlert {
+  tone: 'destructive' | 'warning';
+  message: string;
+}
+
+const USD_FORMATTER = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 4,
+});
+
+function formatUsd(value: number): string {
+  return USD_FORMATTER.format(value);
 }
 
 function toFormValues(state: BudgetState): BudgetFormValues {
@@ -35,6 +67,8 @@ function toFormValues(state: BudgetState): BudgetFormValues {
     dailySearches: String(state.dailySearches),
     monthlySearches: String(state.monthlySearches),
     dailyTokens: String(state.dailyTokens),
+    freeCredits: String(state.freeCredits),
+    creditPriceUsd: String(state.creditPriceUsd),
   };
 }
 
@@ -47,6 +81,51 @@ function parseCount(value: string): number | null {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
 }
 
+function parseDecimal(value: string): number | null {
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function resolveAlert(state: BudgetState): BudgetAlert | null {
+  if (state.paused) {
+    return {
+      tone: 'destructive',
+      message:
+        'Spending is paused. Agents and the scrapper will run without calling any paid service.',
+    };
+  }
+  if (state.paidMode) {
+    return {
+      tone: 'destructive',
+      message: `Usage is beyond the free monthly allowance and is now billed. Estimated cost so far: ${formatUsd(state.estimatedCostUsd)}.`,
+    };
+  }
+  if (state.searchesExhausted) {
+    return {
+      tone: 'destructive',
+      message: 'The search budget is used up for today. Research resumes when the budget resets.',
+    };
+  }
+  if (state.tokensExhausted) {
+    return {
+      tone: 'destructive',
+      message: 'The token budget is used up for today. Agent runs are skipped until it resets.',
+    };
+  }
+  if (state.warning) {
+    return {
+      tone: 'warning',
+      message:
+        'Your free monthly credits are nearly used up. Once they run out, usage is billed unless you pause spending.',
+    };
+  }
+  return null;
+}
+
 export default function BudgetCard() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -55,6 +134,8 @@ export default function BudgetCard() {
     dailySearches: '',
     monthlySearches: '',
     dailyTokens: '',
+    freeCredits: '',
+    creditPriceUsd: '',
   });
   const [paused, setPaused] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -107,9 +188,21 @@ export default function BudgetCard() {
     const dailySearches = parseCount(values.dailySearches);
     const monthlySearches = parseCount(values.monthlySearches);
     const dailyTokens = parseCount(values.dailyTokens);
+    const freeCredits = parseCount(values.freeCredits);
+    const creditPriceUsd = parseDecimal(values.creditPriceUsd);
 
-    if (dailySearches === null || monthlySearches === null || dailyTokens === null) {
-      setSaveError('Enter whole numbers for every limit.');
+    if (
+      dailySearches === null ||
+      monthlySearches === null ||
+      dailyTokens === null ||
+      freeCredits === null
+    ) {
+      setSaveError('Enter whole numbers for every count limit.');
+      return;
+    }
+
+    if (creditPriceUsd === null) {
+      setSaveError('Enter a price per credit of 0 or more, for example 0.008.');
       return;
     }
 
@@ -119,7 +212,14 @@ export default function BudgetCard() {
     try {
       const payload = await requestJson<BudgetState>(BUDGET_ENDPOINT, {
         method: 'PUT',
-        body: JSON.stringify({ paused, dailySearches, monthlySearches, dailyTokens }),
+        body: JSON.stringify({
+          paused,
+          dailySearches,
+          monthlySearches,
+          dailyTokens,
+          freeCredits,
+          creditPriceUsd,
+        }),
       });
       applyState(payload);
       toast.success('Budget saved.');
@@ -167,7 +267,7 @@ export default function BudgetCard() {
     );
   }
 
-  const isBlocked = state.paused || state.searchesExhausted || state.tokensExhausted;
+  const alert = resolveAlert(state);
 
   return (
     <section
@@ -185,16 +285,20 @@ export default function BudgetCard() {
         </div>
       </div>
 
-      {isBlocked ? (
+      {alert ? (
         <p
           role="alert"
-          className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          className={cn(
+            'flex items-start gap-2 rounded-md border px-3 py-2 text-sm',
+            alert.tone === 'destructive'
+              ? 'border-destructive/40 bg-destructive/10 text-destructive'
+              : 'border-border bg-muted text-foreground',
+          )}
         >
-          {state.paused
-            ? 'Spending is paused. Agents and the scrapper will run without calling any paid service.'
-            : state.searchesExhausted
-              ? 'The search budget is used up for today. Research resumes when the budget resets.'
-              : 'The token budget is used up for today. Agent runs are skipped until it resets.'}
+          {alert.tone === 'warning' ? (
+            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          ) : null}
+          <span>{alert.message}</span>
         </p>
       ) : null}
 
@@ -222,6 +326,28 @@ export default function BudgetCard() {
           <dd className="mt-1 tabular-nums text-foreground">
             {state.tokensUsedToday.toLocaleString('en-US')} /{' '}
             {state.dailyTokens.toLocaleString('en-US')}
+          </dd>
+        </div>
+        <div className="rounded-md border border-border p-3">
+          <dt className="text-xs tracking-[0.06em] text-muted-foreground uppercase">
+            Free credits this month
+          </dt>
+          <dd className="mt-1 tabular-nums text-foreground">
+            {state.searchUsedThisMonth.toLocaleString('en-US')} /{' '}
+            {state.freeCredits.toLocaleString('en-US')}
+          </dd>
+        </div>
+        <div className="rounded-md border border-border p-3">
+          <dt className="text-xs tracking-[0.06em] text-muted-foreground uppercase">
+            Estimated cost
+          </dt>
+          <dd className="mt-1 tabular-nums text-foreground">
+            {formatUsd(state.estimatedCostUsd)}
+            {state.paidMode ? (
+              <span className="mt-1 block text-xs text-muted-foreground">
+                {state.paidCreditsUsed.toLocaleString('en-US')} paid credits
+              </span>
+            ) : null}
           </dd>
         </div>
       </dl>
@@ -277,6 +403,30 @@ export default function BudgetCard() {
               disabled={isSaving}
               onChange={(event) =>
                 setValues((current) => ({ ...current, dailyTokens: event.target.value }))
+              }
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="budget-free-credits">Free credits / month</Label>
+            <Input
+              id="budget-free-credits"
+              inputMode="numeric"
+              value={values.freeCredits}
+              disabled={isSaving}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, freeCredits: event.target.value }))
+              }
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="budget-credit-price">Price per credit (USD)</Label>
+            <Input
+              id="budget-credit-price"
+              inputMode="decimal"
+              value={values.creditPriceUsd}
+              disabled={isSaving}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, creditPriceUsd: event.target.value }))
               }
             />
           </div>
