@@ -33,11 +33,18 @@ function resolveOrigin(site: URL | undefined, request: Request): string {
   return new URL(request.url).origin;
 }
 
-function buildTestMessage(channel: ShareChannel): ShareMessage {
+function buildTestMessage(channel: ShareChannel, origin: string): ShareMessage {
   if (channel.provider === 'telegram') {
     return {
       text: `<b>Test message</b>\n\nThis is a test send from the ${escapeTelegramHtml(channel.label)} sharing channel.`,
       photoUrl: null,
+    };
+  }
+
+  if (channel.provider === 'pinterest') {
+    return {
+      text: `Test message\n\nThis is a test send from the ${channel.label} sharing channel.`,
+      photoUrl: new URL('/og-default.png', origin).toString(),
     };
   }
 
@@ -64,12 +71,13 @@ export const POST = withAdmin(async ({ params, request, site }, requestId, user)
   };
 
   const adapter = resolveShareAdapter(channel.provider);
+  const origin = resolveOrigin(site, request);
   const result = await adapter.send({
     channel,
     config,
     post,
-    message: buildTestMessage(channel),
-    url: resolveOrigin(site, request),
+    message: buildTestMessage(channel, origin),
+    url: origin,
     timeoutMs: TEST_TIMEOUT_MS,
   });
 
