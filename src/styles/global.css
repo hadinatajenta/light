@@ -122,6 +122,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+.select-control {
+  @apply h-9 w-full rounded-md border border-input bg-transparent px-3 pr-9 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b8f98' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 1rem;
+}
+
 .btn {
   @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[2px] px-[22px] py-[11px] font-sans text-sm font-semibold tracking-[-0.005em];
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease),

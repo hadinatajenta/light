@@ -1,17 +1,21 @@
 import {
-  ClockIcon,
-  CopyIcon,
   FileWarningIcon,
   InfoIcon,
   Link2Icon,
   Loader2Icon,
   RefreshCwIcon,
-  SearchIcon,
   TriangleAlertIcon,
-  UnlinkIcon,
 } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 import { requestJson, toErrorMessage } from './api-client';
 import { DialogSurface } from './dialog-surface';
 import { formatAbsoluteTime, formatRelativeTime } from './research-notes';
@@ -35,21 +40,19 @@ const CHECK_LINKS_ENDPOINT = '/api/dashboard/seo/check-links';
 const ALL_FILTER = 'all';
 const ERRORS_FILTER = 'errors';
 const WARNINGS_FILTER = 'warnings';
+const CLEAN_FILTER = 'clean';
+const PAGE_SIZE = 10;
 
-const SELECT_CLASS =
-  'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
+type AuditViewId = 'articles' | 'links' | 'opportunities';
 
-const SKELETON_STATS = [
-  'stat-1',
-  'stat-2',
-  'stat-3',
-  'stat-4',
-  'stat-5',
-  'stat-6',
-  'stat-7',
-  'stat-8',
-  'stat-9',
-];
+type SortOption =
+  | 'score-asc'
+  | 'score-desc'
+  | 'updated-desc'
+  | 'updated-asc'
+  | 'title-asc'
+  | 'title-desc'
+  | 'issues-desc';
 
 type SeoIssueSeverity = 'error' | 'warning' | 'info';
 
@@ -145,6 +148,48 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
   archived: 'secondary',
 };
 
+const VIEW_TABS: Array<{ id: AuditViewId; label: string }> = [
+  { id: 'articles', label: 'Articles' },
+  { id: 'links', label: 'Links' },
+  { id: 'opportunities', label: 'Opportunities' },
+];
+
+const SUMMARY_METRICS: Array<{ key: keyof SeoAuditSummary; label: string }> = [
+  { key: 'total', label: 'Total' },
+  { key: 'published', label: 'Published' },
+  { key: 'withErrors', label: 'Errors' },
+  { key: 'withWarnings', label: 'Warnings' },
+  { key: 'averageScore', label: 'Avg score' },
+  { key: 'orphans', label: 'Orphans' },
+  { key: 'cannibalized', label: 'Cannibalized' },
+  { key: 'refreshCandidates', label: 'Refresh' },
+  { key: 'brokenLinks', label: 'Broken links' },
+];
+
+const STATUS_FILTER_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: ALL_FILTER, label: 'All statuses' },
+  { value: 'draft', label: 'Draft' },
+  { value: 'published', label: 'Published' },
+  { value: 'archived', label: 'Archived' },
+];
+
+const SEVERITY_FILTER_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: ALL_FILTER, label: 'All severities' },
+  { value: ERRORS_FILTER, label: 'Has errors' },
+  { value: WARNINGS_FILTER, label: 'Has warnings' },
+  { value: CLEAN_FILTER, label: 'Clean' },
+];
+
+const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
+  { value: 'score-asc', label: 'Score (low to high)' },
+  { value: 'score-desc', label: 'Score (high to low)' },
+  { value: 'updated-desc', label: 'Updated (newest)' },
+  { value: 'updated-asc', label: 'Updated (oldest)' },
+  { value: 'title-asc', label: 'Title (A to Z)' },
+  { value: 'title-desc', label: 'Title (Z to A)' },
+  { value: 'issues-desc', label: 'Issues (most first)' },
+];
+
 function toSeverityCounts(issues: SeoIssue[]): Record<SeoIssueSeverity, number> {
   const counts: Record<SeoIssueSeverity, number> = { error: 0, warning: 0, info: 0 };
   for (const issue of issues) {
@@ -153,18 +198,8 @@ function toSeverityCounts(issues: SeoIssue[]): Record<SeoIssueSeverity, number> 
   return counts;
 }
 
-function formatIssueCounts(counts: Record<SeoIssueSeverity, number>): string {
-  const parts: string[] = [];
-  if (counts.error > 0) {
-    parts.push(`${counts.error} ${counts.error === 1 ? 'error' : 'errors'}`);
-  }
-  if (counts.warning > 0) {
-    parts.push(`${counts.warning} ${counts.warning === 1 ? 'warning' : 'warnings'}`);
-  }
-  if (parts.length === 0) {
-    return 'None';
-  }
-  return parts.join(', ');
+function formatIssueSummary(counts: Record<SeoIssueSeverity, number>): string {
+  return `${counts.error} err / ${counts.warning} warn`;
 }
 
 function scoreBadgeVariant(score: number): 'default' | 'secondary' | 'destructive' {
@@ -177,6 +212,53 @@ function scoreBadgeVariant(score: number): 'default' | 'secondary' | 'destructiv
   return 'destructive';
 }
 
+function toSortableTime(value: string | null): number {
+  if (!value) {
+    return 0;
+  }
+  const normalized = value.includes(' ') ? `${value.replace(' ', 'T')}Z` : value;
+  const timestamp = new Date(normalized).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function comparePosts(left: SeoPost, right: SeoPost, sort: SortOption): number {
+  switch (sort) {
+    case 'score-asc':
+      return left.score - right.score;
+    case 'score-desc':
+      return right.score - left.score;
+    case 'updated-desc':
+      return toSortableTime(right.updatedAt) - toSortableTime(left.updatedAt);
+    case 'updated-asc':
+      return toSortableTime(left.updatedAt) - toSortableTime(right.updatedAt);
+    case 'title-asc':
+      return left.title.localeCompare(right.title);
+    case 'title-desc':
+      return right.title.localeCompare(left.title);
+    case 'issues-desc':
+      return right.issues.length - left.issues.length;
+    default:
+      return 0;
+  }
+}
+
+function matchesStatus(post: SeoPost, filter: string): boolean {
+  return filter === ALL_FILTER || post.status === filter;
+}
+
+function matchesSeverity(post: SeoPost, filter: string): boolean {
+  if (filter === ERRORS_FILTER) {
+    return post.issues.some((issue) => issue.severity === 'error');
+  }
+  if (filter === WARNINGS_FILTER) {
+    return post.issues.some((issue) => issue.severity === 'warning');
+  }
+  if (filter === CLEAN_FILTER) {
+    return post.issues.length === 0;
+  }
+  return true;
+}
+
 function SeverityBadge({ severity }: { severity: SeoIssueSeverity }) {
   return <Badge variant={SEVERITY_BADGE_VARIANT[severity]}>{SEVERITY_LABEL[severity]}</Badge>;
 }
@@ -187,11 +269,13 @@ function PostStatusBadge({ status }: { status: string }) {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function SummaryChip({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-md border border-border p-3">
+    <div className="flex items-baseline gap-2 rounded-md border border-border px-3 py-1.5">
       <dt className="text-xs tracking-[0.06em] text-muted-foreground uppercase">{label}</dt>
-      <dd className="mt-1 tabular-nums text-foreground">{value.toLocaleString('en-US')}</dd>
+      <dd className="tabular-nums text-sm font-medium text-foreground">
+        {value.toLocaleString('en-US')}
+      </dd>
     </div>
   );
 }
@@ -206,21 +290,70 @@ function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
   );
 }
 
+function Pagination({
+  page,
+  pageCount,
+  onPrevious,
+  onNext,
+  label,
+}: {
+  page: number;
+  pageCount: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  label: string;
+}) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  return (
+    <nav aria-label={label} className="flex items-center justify-between gap-2">
+      <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={onPrevious}>
+        Previous
+      </Button>
+      <span aria-live="polite" className="text-xs tabular-nums text-muted-foreground">
+        Page {page} of {pageCount}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={page >= pageCount}
+        onClick={onNext}
+      >
+        Next
+      </Button>
+    </nav>
+  );
+}
+
 export default function SeoAudit() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [report, setReport] = useState<SeoAuditReport | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeView, setActiveView] = useState<AuditViewId>('articles');
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState(ALL_FILTER);
   const [severityFilter, setSeverityFilter] = useState(ALL_FILTER);
+  const [sortOption, setSortOption] = useState<SortOption>('score-asc');
+  const [page, setPage] = useState(1);
   const [issuePost, setIssuePost] = useState<SeoPost | null>(null);
   const [isIssueOpen, setIsIssueOpen] = useState(false);
   const [isCheckDialogOpen, setIsCheckDialogOpen] = useState(false);
   const [isCheckingLinks, setIsCheckingLinks] = useState(false);
   const [linkCheckResult, setLinkCheckResult] = useState<LinkCheckResult | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
+  const tabRefs = useRef<Record<AuditViewId, HTMLButtonElement | null>>({
+    articles: null,
+    links: null,
+    opportunities: null,
+  });
   const searchInputId = useId();
+  const statusSelectId = useId();
   const severitySelectId = useId();
+  const sortSelectId = useId();
 
   const loadReport = useCallback(async (isSilent = false) => {
     controllerRef.current?.abort();
@@ -271,30 +404,33 @@ export default function SeoAudit() {
   const filteredPosts = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    return posts.filter((post) => {
-      if (
-        severityFilter === ERRORS_FILTER &&
-        !post.issues.some((issue) => issue.severity === 'error')
-      ) {
-        return false;
-      }
-      if (
-        severityFilter === WARNINGS_FILTER &&
-        !post.issues.some((issue) => issue.severity === 'warning')
-      ) {
-        return false;
-      }
-      if (query.length === 0) {
-        return true;
-      }
-      return (
-        post.title.toLowerCase().includes(query) ||
-        (post.targetKeyword ?? '').toLowerCase().includes(query)
-      );
-    });
-  }, [posts, searchQuery, severityFilter]);
+    return posts
+      .filter((post) => {
+        if (!matchesStatus(post, statusFilter)) {
+          return false;
+        }
+        if (!matchesSeverity(post, severityFilter)) {
+          return false;
+        }
+        if (query.length === 0) {
+          return true;
+        }
+        return (
+          post.title.toLowerCase().includes(query) ||
+          (post.targetKeyword ?? '').toLowerCase().includes(query)
+        );
+      })
+      .sort((left, right) => comparePosts(left, right, sortOption));
+  }, [posts, searchQuery, statusFilter, severityFilter, sortOption]);
 
   const refreshCandidates = useMemo(() => posts.filter((post) => post.isRefreshCandidate), [posts]);
+
+  const pageCount = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
+  const safePage = Math.min(page, pageCount);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pagedPosts = filteredPosts.slice(pageStart, pageStart + PAGE_SIZE);
+  const rangeStart = filteredPosts.length === 0 ? 0 : pageStart + 1;
+  const rangeEnd = Math.min(pageStart + PAGE_SIZE, filteredPosts.length);
 
   const groupedIssues = useMemo(() => {
     const issues = issuePost?.issues ?? [];
@@ -303,6 +439,30 @@ export default function SeoAudit() {
       issues: issues.filter((issue) => issue.severity === severity),
     })).filter((group) => group.issues.length > 0);
   }, [issuePost]);
+
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const currentIndex = VIEW_TABS.findIndex((tab) => tab.id === activeView);
+    let nextIndex: number | null = null;
+
+    if (event.key === 'ArrowRight') {
+      nextIndex = (currentIndex + 1) % VIEW_TABS.length;
+    } else if (event.key === 'ArrowLeft') {
+      nextIndex = (currentIndex - 1 + VIEW_TABS.length) % VIEW_TABS.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = VIEW_TABS.length - 1;
+    }
+
+    if (nextIndex === null) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTab = VIEW_TABS[nextIndex].id;
+    setActiveView(nextTab);
+    tabRefs.current[nextTab]?.focus();
+  };
 
   const handleOpenIssues = (post: SeoPost) => {
     setIssuePost(post);
@@ -334,28 +494,23 @@ export default function SeoAudit() {
 
   if (status === 'loading') {
     return (
-      <section
-        aria-label="SEO audit"
-        role="status"
-        aria-live="polite"
-        className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:p-6"
-      >
+      <div role="status" aria-live="polite" className="flex flex-col gap-6">
         <span className="sr-only">Loading SEO audit</span>
-        <Skeleton className="h-5 w-40" />
-        <div className="grid gap-2 sm:grid-cols-3">
-          {SKELETON_STATS.map((statKey) => (
-            <Skeleton key={statKey} className="h-16 w-full" />
-          ))}
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-4 w-80" />
         </div>
-        <Skeleton className="h-4 w-64" />
-      </section>
+        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-9 w-full max-w-md" />
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
 
   if (status === 'error' || !report) {
     return (
       <section
-        aria-label="SEO audit"
+        aria-label="SEO"
         className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-4 sm:p-6"
       >
         <TriangleAlertIcon className="size-6 text-destructive" />
@@ -375,342 +530,486 @@ export default function SeoAudit() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section
-        aria-label="SEO audit summary"
-        className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
-      >
-        <div className="flex items-start gap-3">
-          <SearchIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-medium text-foreground">SEO audit</h2>
+            <h2 className="text-base font-semibold text-foreground">SEO</h2>
             <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-              Every post scored on keyword targeting, structure, and links. Fix the flagged posts to
-              raise the average score.
+              Every post scored on keyword targeting, structure, and links. Fix what the audit flags
+              to raise the average score.
             </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="whitespace-nowrap"
+              disabled={isRefreshing}
+              onClick={() => void loadReport(true)}
+            >
+              <RefreshCwIcon className={cn(isRefreshing && 'animate-spin')} />
+              {isRefreshing ? 'Refreshing' : 'Refresh'}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="whitespace-nowrap"
+              onClick={() => setIsCheckDialogOpen(true)}
+            >
+              <Link2Icon />
+              Check links
+            </Button>
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <StatCard label="Total posts" value={summary.total} />
-          <StatCard label="Published" value={summary.published} />
-          <StatCard label="With errors" value={summary.withErrors} />
-          <StatCard label="With warnings" value={summary.withWarnings} />
-          <StatCard label="Average score" value={summary.averageScore} />
-          <StatCard label="Orphans" value={summary.orphans} />
-          <StatCard label="Cannibalized" value={summary.cannibalized} />
-          <StatCard label="Refresh candidates" value={summary.refreshCandidates} />
-          <StatCard label="Broken links" value={summary.brokenLinks} />
+        <p role="status" aria-live="polite" className="text-xs tabular-nums text-muted-foreground">
+          {isRefreshing
+            ? 'Refreshing audit'
+            : linkCheckResult
+              ? `Checked ${linkCheckResult.checked} links, ${linkCheckResult.broken} broken, ${linkCheckResult.remaining} remaining.`
+              : `${summary.total} ${summary.total === 1 ? 'article' : 'articles'} audited, ${summary.brokenLinks} broken.`}
+        </p>
+      </section>
+
+      <section
+        aria-label="SEO summary"
+        className="rounded-xl border border-border bg-card p-4 sm:p-6"
+      >
+        <dl className="flex flex-wrap gap-2">
+          {SUMMARY_METRICS.map((metric) => (
+            <SummaryChip key={metric.key} label={metric.label} value={summary[metric.key]} />
+          ))}
         </dl>
       </section>
 
-      <section
-        aria-label="Post scores"
-        className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
+      <div
+        role="tablist"
+        aria-label="SEO views"
+        className="flex gap-1 rounded-lg border border-border p-1"
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-medium text-foreground">Posts</h2>
-          <span
-            role="status"
-            aria-live="polite"
-            className="text-xs tabular-nums text-muted-foreground"
-          >
-            {isRefreshing
-              ? 'Updating'
-              : `${filteredPosts.length} of ${posts.length} ${posts.length === 1 ? 'post' : 'posts'}`}
-          </span>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex flex-col gap-2 lg:col-span-3">
-            <Label htmlFor={searchInputId}>Search posts</Label>
-            <Input
-              id={searchInputId}
-              type="search"
-              value={searchQuery}
-              autoComplete="off"
-              placeholder="Search title or target keyword"
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={severitySelectId}>Severity</Label>
-            <select
-              id={severitySelectId}
-              className={SELECT_CLASS}
-              value={severityFilter}
-              onChange={(event) => setSeverityFilter(event.target.value)}
+        {VIEW_TABS.map((tab) => {
+          const isActive = activeView === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              id={`seo-tab-${tab.id}`}
+              aria-selected={isActive}
+              aria-controls={`seo-panel-${tab.id}`}
+              tabIndex={isActive ? 0 : -1}
+              ref={(node) => {
+                tabRefs.current[tab.id] = node;
+              }}
+              className={cn(
+                'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+              )}
+              onClick={() => setActiveView(tab.id)}
+              onKeyDown={handleTabKeyDown}
             >
-              <option value={ALL_FILTER}>All posts</option>
-              <option value={ERRORS_FILTER}>Has errors</option>
-              <option value={WARNINGS_FILTER}>Has warnings</option>
-            </select>
-          </div>
-        </div>
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>Issues</TableHead>
-              <TableHead>Target keyword</TableHead>
-              <TableHead>Intent</TableHead>
-              <TableHead>Updated</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredPosts.length === 0 ? (
-              <EmptyRow
-                colSpan={8}
-                message={
-                  posts.length === 0
-                    ? 'No posts have been audited yet.'
-                    : 'No posts match the current filters.'
-                }
-              />
-            ) : (
-              filteredPosts.map((post) => (
-                <TableRow key={post.id}>
-                  <TableCell className="whitespace-normal">
-                    <a
-                      href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}
-                      className="font-medium text-foreground underline-offset-4 hover:underline"
-                    >
-                      {post.title}
-                    </a>
-                  </TableCell>
-                  <TableCell>
-                    <PostStatusBadge status={post.status} />
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={scoreBadgeVariant(post.score)}>
-                      <span className="tabular-nums">{post.score}</span>
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="whitespace-normal tabular-nums text-muted-foreground">
-                    {formatIssueCounts(toSeverityCounts(post.issues))}
-                  </TableCell>
-                  <TableCell className="whitespace-normal text-muted-foreground">
-                    {post.targetKeyword ?? 'None'}
-                  </TableCell>
-                  <TableCell className="whitespace-normal text-muted-foreground">
-                    {post.intent ?? 'None'}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-muted-foreground">
-                    <time
-                      dateTime={post.updatedAt ?? undefined}
-                      title={post.updatedAt ? formatAbsoluteTime(post.updatedAt) : undefined}
-                    >
-                      {formatRelativeTime(post.updatedAt)}
-                    </time>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="whitespace-nowrap"
-                      aria-label={`View issues for ${post.title}`}
-                      onClick={() => handleOpenIssues(post)}
-                    >
-                      Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </section>
-
-      <section
-        aria-label="Keyword cannibalization"
-        className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
+      <div
+        role="tabpanel"
+        id="seo-panel-articles"
+        aria-labelledby="seo-tab-articles"
+        hidden={activeView !== 'articles'}
       >
-        <div className="flex items-start gap-3">
-          <CopyIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-          <div className="min-w-0">
-            <h2 className="text-sm font-medium text-foreground">Keyword cannibalization</h2>
-            <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-              Keywords shared by more than one post. Competing posts split their ranking and usually
-              need to be merged or retargeted.
-            </p>
+        <section
+          aria-label="Articles"
+          className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-medium text-foreground">Articles</h3>
+            <span
+              role="status"
+              aria-live="polite"
+              className="text-xs tabular-nums text-muted-foreground"
+            >
+              {filteredPosts.length} of {posts.length} {posts.length === 1 ? 'article' : 'articles'}
+            </span>
           </div>
-        </div>
 
-        {cannibalization.length === 0 ? (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-            No two posts target the same keyword.
-          </p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {cannibalization.map((group) => (
-              <li key={group.keyword} className="flex flex-col gap-2 p-3">
-                <p className="text-sm font-medium text-foreground">{group.keyword}</p>
-                <ul className="flex flex-col gap-1">
-                  {group.posts.map((post) => (
-                    <li key={post.id}>
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={searchInputId}>Search articles</Label>
+              <Input
+                id={searchInputId}
+                type="search"
+                value={searchQuery}
+                autoComplete="off"
+                placeholder="Search title or target keyword"
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={statusSelectId}>Status</Label>
+                <select
+                  id={statusSelectId}
+                  className="select-control"
+                  value={statusFilter}
+                  onChange={(event) => {
+                    setStatusFilter(event.target.value);
+                    setPage(1);
+                  }}
+                >
+                  {STATUS_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={severitySelectId}>Severity</Label>
+                <select
+                  id={severitySelectId}
+                  className="select-control"
+                  value={severityFilter}
+                  onChange={(event) => {
+                    setSeverityFilter(event.target.value);
+                    setPage(1);
+                  }}
+                >
+                  {SEVERITY_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={sortSelectId}>Order by</Label>
+                <select
+                  id={sortSelectId}
+                  className="select-control"
+                  value={sortOption}
+                  onChange={(event) => {
+                    setSortOption(event.target.value as SortOption);
+                    setPage(1);
+                  }}
+                >
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Score</TableHead>
+                <TableHead>Issues</TableHead>
+                <TableHead>Keyword</TableHead>
+                <TableHead>Intent</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagedPosts.length === 0 ? (
+                <EmptyRow
+                  colSpan={8}
+                  message={
+                    posts.length === 0
+                      ? 'No articles have been audited yet.'
+                      : 'No articles match the current filters.'
+                  }
+                />
+              ) : (
+                pagedPosts.map((post) => (
+                  <TableRow key={post.id}>
+                    <TableCell className="whitespace-normal">
                       <a
                         href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}
-                        className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                        className="font-medium text-foreground underline-offset-4 hover:underline"
                       >
                         {post.title}
                       </a>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                    </TableCell>
+                    <TableCell>
+                      <PostStatusBadge status={post.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={scoreBadgeVariant(post.score)}>
+                        <span className="tabular-nums">{post.score}</span>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="whitespace-normal tabular-nums text-muted-foreground">
+                      {formatIssueSummary(toSeverityCounts(post.issues))}
+                    </TableCell>
+                    <TableCell className="whitespace-normal text-muted-foreground">
+                      {post.targetKeyword ?? 'None'}
+                    </TableCell>
+                    <TableCell className="whitespace-normal text-muted-foreground">
+                      {post.intent ?? 'None'}
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      <time
+                        dateTime={post.updatedAt ?? undefined}
+                        title={post.updatedAt ? formatAbsoluteTime(post.updatedAt) : undefined}
+                      >
+                        {formatRelativeTime(post.updatedAt)}
+                      </time>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="whitespace-nowrap"
+                        aria-label={`View issues for ${post.title}`}
+                        onClick={() => handleOpenIssues(post)}
+                      >
+                        Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
 
-      <section
-        aria-label="Orphan posts"
-        className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
-      >
-        <div className="flex items-start gap-3">
-          <UnlinkIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-          <div className="min-w-0">
-            <h2 className="text-sm font-medium text-foreground">Orphans</h2>
-            <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-              Posts with no inbound internal links. Link them from a relevant post so crawlers can
-              reach them.
+          <div className="flex flex-col gap-3">
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {filteredPosts.length === 0
+                ? 'No articles to show'
+                : `Showing ${rangeStart} to ${rangeEnd} of ${filteredPosts.length}`}
             </p>
+            <Pagination
+              label="Articles pagination"
+              page={safePage}
+              pageCount={pageCount}
+              onPrevious={() => setPage((current) => Math.max(current - 1, 1))}
+              onNext={() => setPage((current) => Math.min(current + 1, pageCount))}
+            />
           </div>
-        </div>
+        </section>
+      </div>
 
-        {orphans.length === 0 ? (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-            Every post has at least one inbound internal link.
-          </p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {orphans.map((post) => (
-              <li key={post.id} className="p-3">
-                <a
-                  href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}
-                  className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
-                >
-                  {post.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section
-        aria-label="Refresh candidates"
-        className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
+      <div
+        role="tabpanel"
+        id="seo-panel-links"
+        aria-labelledby="seo-tab-links"
+        hidden={activeView !== 'links'}
       >
-        <div className="flex items-start gap-3">
-          <ClockIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-          <div className="min-w-0">
-            <h2 className="text-sm font-medium text-foreground">Refresh candidates</h2>
-            <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-              Posts that have gone stale or lost a keyword. Refresh the content before the topic
-              date passes.
-            </p>
-          </div>
-        </div>
-
-        {refreshCandidates.length === 0 ? (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-            No posts need a refresh right now.
-          </p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {refreshCandidates.map((post) => (
-              <li key={post.id} className="flex flex-wrap items-center justify-between gap-2 p-3">
-                <a
-                  href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}
-                  className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
-                >
-                  {post.title}
-                </a>
-                <time
-                  dateTime={post.updatedAt ?? undefined}
-                  title={post.updatedAt ? formatAbsoluteTime(post.updatedAt) : undefined}
-                  className="text-xs tabular-nums text-muted-foreground"
-                >
-                  Updated {formatRelativeTime(post.updatedAt)}
-                </time>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section
-        aria-label="Broken links"
-        className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <Link2Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+        <section
+          aria-label="Broken links"
+          className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="text-sm font-medium text-foreground">Broken links</h2>
+              <h3 className="text-sm font-medium text-foreground">Broken links</h3>
               <p className="mt-1 max-w-prose text-sm text-muted-foreground">
                 External links that failed the last check. Re-run the check after you fix them.
               </p>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 whitespace-nowrap"
+              onClick={() => setIsCheckDialogOpen(true)}
+            >
+              <Link2Icon />
+              Check links
+            </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0 whitespace-nowrap"
-            onClick={() => setIsCheckDialogOpen(true)}
-          >
-            <Link2Icon />
-            Check links
-          </Button>
-        </div>
 
-        {linkCheckResult ? (
-          <p
-            role="status"
-            aria-live="polite"
-            className="rounded-md border border-border px-3 py-2 text-sm tabular-nums text-muted-foreground"
-          >
-            Checked {linkCheckResult.checked} links, found {linkCheckResult.broken} broken,{' '}
-            {linkCheckResult.remaining} remaining.
-          </p>
-        ) : null}
+          {linkCheckResult ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="rounded-md border border-border px-3 py-2 text-sm tabular-nums text-muted-foreground"
+            >
+              Checked {linkCheckResult.checked} links, found {linkCheckResult.broken} broken,{' '}
+              {linkCheckResult.remaining} remaining.
+            </p>
+          ) : null}
 
-        {brokenLinks.length === 0 ? (
-          <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-            No broken links were found in the last check.
-          </p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {brokenLinks.map((link) => (
-              <li key={link.url} className="flex flex-col gap-1 p-3">
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="break-all text-sm font-medium text-foreground underline underline-offset-4"
-                >
-                  {link.url}
-                </a>
-                <p className="text-xs tabular-nums text-muted-foreground">
-                  {link.statusCode === null ? 'No response' : `Status ${link.statusCode}`}
-                  {link.error ? ` - ${link.error}` : ''}
+          {brokenLinks.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 rounded-lg border border-border p-4">
+              <Link2Icon className="size-6 text-muted-foreground" aria-hidden="true" />
+              <div>
+                <p className="text-sm font-medium text-foreground">No broken links</p>
+                <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+                  No external link failed the last check. Run a check to refresh this list.
                 </p>
-                <p className="text-xs tabular-nums text-muted-foreground">
-                  <time dateTime={link.checkedAt} title={formatAbsoluteTime(link.checkedAt)}>
-                    Checked {formatRelativeTime(link.checkedAt)}
-                  </time>
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              </div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>URL</TableHead>
+                  <TableHead>Status code</TableHead>
+                  <TableHead>Error</TableHead>
+                  <TableHead>Checked at</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {brokenLinks.map((link) => (
+                  <TableRow key={link.url}>
+                    <TableCell className="max-w-[24rem] whitespace-normal">
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all font-medium text-foreground underline underline-offset-4"
+                      >
+                        {link.url}
+                      </a>
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      {link.statusCode === null ? 'No response' : link.statusCode}
+                    </TableCell>
+                    <TableCell className="max-w-[16rem] whitespace-normal text-muted-foreground">
+                      {link.error ? (
+                        <span className="break-words" title={link.error}>
+                          {link.error}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell className="tabular-nums text-muted-foreground">
+                      <time dateTime={link.checkedAt} title={formatAbsoluteTime(link.checkedAt)}>
+                        {formatRelativeTime(link.checkedAt)}
+                      </time>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </section>
+      </div>
+
+      <div
+        role="tabpanel"
+        id="seo-panel-opportunities"
+        aria-labelledby="seo-tab-opportunities"
+        hidden={activeView !== 'opportunities'}
+      >
+        <section
+          aria-label="Opportunities"
+          className="flex flex-col gap-5 rounded-xl border border-border bg-card p-4 sm:p-6"
+        >
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-medium text-foreground">Refresh candidates</h3>
+            <p className="max-w-prose text-sm text-muted-foreground">
+              Posts that have gone stale or lost a keyword. Refresh the content before the topic
+              date passes.
+            </p>
+            {refreshCandidates.length === 0 ? (
+              <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+                No posts need a refresh right now.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+                {refreshCandidates.map((post) => (
+                  <li
+                    key={post.id}
+                    className="flex flex-wrap items-center justify-between gap-2 p-3"
+                  >
+                    <a
+                      href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}
+                      className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      {post.title}
+                    </a>
+                    <time
+                      dateTime={post.updatedAt ?? undefined}
+                      title={post.updatedAt ? formatAbsoluteTime(post.updatedAt) : undefined}
+                      className="text-xs tabular-nums text-muted-foreground"
+                    >
+                      Updated {formatRelativeTime(post.updatedAt)}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 border-t border-border pt-5">
+            <h3 className="text-sm font-medium text-foreground">Cannibalization</h3>
+            <p className="max-w-prose text-sm text-muted-foreground">
+              Keywords shared by more than one post. Competing posts split their ranking and usually
+              need to be merged or retargeted.
+            </p>
+            {cannibalization.length === 0 ? (
+              <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+                No two posts target the same keyword.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+                {cannibalization.map((group) => (
+                  <li key={group.keyword} className="flex flex-col gap-2 p-3">
+                    <p className="text-sm font-medium text-foreground">{group.keyword}</p>
+                    <ul className="flex flex-col gap-1">
+                      {group.posts.map((post) => (
+                        <li key={post.id}>
+                          <a
+                            href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}
+                            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                          >
+                            {post.title}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 border-t border-border pt-5">
+            <h3 className="text-sm font-medium text-foreground">Orphans</h3>
+            <p className="max-w-prose text-sm text-muted-foreground">
+              Posts with no inbound internal links. Link them from a relevant post so crawlers can
+              reach them.
+            </p>
+            {orphans.length === 0 ? (
+              <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+                Every post has at least one inbound internal link.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+                {orphans.map((post) => (
+                  <li key={post.id} className="p-3">
+                    <a
+                      href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}
+                      className="text-sm font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      {post.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      </div>
 
       <DialogPrimitive.Root open={isIssueOpen} onOpenChange={setIsIssueOpen}>
         <DialogSurface className="max-h-[90dvh] max-w-2xl overflow-y-auto">
