@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../errors';
-import { generateImageBytes, type ImageModelBinding, withRetry } from './generate';
+import { generateImageBytes, type ImageModelBinding, isQuotaError, withRetry } from './generate';
 
 vi.mock('../content/store', () => ({
   getPost: vi.fn(),
@@ -58,6 +58,31 @@ describe('withRetry', () => {
     await expect(withRetry(operation)).rejects.toThrow('permanently down');
     expect(operation).toHaveBeenCalledTimes(2);
   });
+
+  it('does not retry when the error is not retryable', async () => {
+    const operation = vi.fn(async () => {
+      throw new Error('do not retry');
+    });
+
+    await expect(withRetry(operation, 3, () => false)).rejects.toThrow('do not retry');
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('isQuotaError', () => {
+  it('detects the Workers AI quota message', () => {
+    expect(
+      isQuotaError(
+        new Error(
+          "4006: you have used up your daily free allocation of 10,000 neurons, please upgrade to Cloudflare's Workers Paid plan",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not treat a generic failure as a quota error', () => {
+    expect(isQuotaError(new Error('upstream model unavailable'))).toBe(false);
+  });
 });
 
 describe('generateImageBytes', () => {
@@ -86,5 +111,22 @@ describe('generateImageBytes', () => {
     const bytes = await generateImageBytes(model, 'a calm desk scene');
 
     expect(Array.from(bytes)).toEqual([0, 1, 2]);
+  });
+
+  it('reports a quota error without retrying', async () => {
+    const model = createFailingModel(
+      "4006: you have used up your daily free allocation of 10,000 neurons, please upgrade to Cloudflare's Workers Paid plan",
+    );
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const error = await generateImageBytes(model, 'a calm desk scene').catch(
+      (thrown: unknown) => thrown,
+    );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 429, code: 'IMAGE_QUOTA_EXCEEDED' });
+    expect(model.run).toHaveBeenCalledTimes(1);
+
+    consoleError.mockRestore();
   });
 });

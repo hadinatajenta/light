@@ -64,5 +64,7 @@ export const AD_CONFIG: AdConfig = {
     'home-top': '',
     'in-article-top': '',
     'in-article-bottom': '',
+    'article-rail-top': '',
+    'article-rail-bottom': '',
   },
 };

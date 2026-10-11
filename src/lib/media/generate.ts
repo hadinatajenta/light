@@ -8,6 +8,8 @@ export const IMAGE_ERROR_DETAIL_MAX_LENGTH = 300;
 
 const RETRY_DELAY_MS = 800;
 
+const QUOTA_PATTERNS = [/4006/, /daily free allocation/i, /neurons/i];
+
 export interface ImageModelBinding {
   run(
     model: string,
@@ -19,7 +21,16 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function withRetry<T>(operation: () => Promise<T>, attempts = 2): Promise<T> {
+export function isQuotaError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return QUOTA_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  attempts = 2,
+  shouldRetry: (error: unknown) => boolean = () => true,
+): Promise<T> {
   const maxAttempts = Math.max(attempts, 1);
   let lastError: unknown;
 
@@ -28,9 +39,10 @@ export async function withRetry<T>(operation: () => Promise<T>, attempts = 2): P
       return await operation();
     } catch (error) {
       lastError = error;
-      if (attempt < maxAttempts - 1) {
-        await sleep(RETRY_DELAY_MS);
+      if (attempt === maxAttempts - 1 || !shouldRetry(error)) {
+        break;
       }
+      await sleep(RETRY_DELAY_MS);
     }
   }
 
@@ -54,13 +66,27 @@ export async function generateImageBytes(
 ): Promise<Uint8Array> {
   let result: { image: string };
   try {
-    result = await withRetry(() => model.run(IMAGE_MODEL, { prompt, steps }));
+    result = await withRetry(
+      () => model.run(IMAGE_MODEL, { prompt, steps }),
+      2,
+      (error) => !isQuotaError(error),
+    );
   } catch (error) {
     console.error('Image model generation failed', error);
     const cause = (error instanceof Error ? error.message : String(error)).slice(
       0,
       IMAGE_ERROR_DETAIL_MAX_LENGTH,
     );
+
+    if (isQuotaError(error)) {
+      throw new ApiError(
+        429,
+        'IMAGE_QUOTA_EXCEEDED',
+        'The daily image generation quota has been reached.',
+        { cause },
+      );
+    }
+
     throw new ApiError(
       502,
       'IMAGE_GENERATION_FAILED',

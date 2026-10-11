@@ -535,22 +535,6 @@
   @apply sticky flex flex-col gap-6 self-start;
   top: calc(var(--nav-h) + 24px);
 }
-.rail-ad {
-  @apply flex flex-col items-center justify-center gap-1 rounded-[2px] border border-ink-12 bg-paper-sunk p-2 text-center font-sans text-[10px] font-semibold tracking-[0.22em] uppercase text-ink-75 tabular-nums;
-  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-.rail-ad:hover {
-  @apply border-ink-20 text-ink;
-}
-.rail-ad small {
-  @apply text-[10px] font-normal tracking-[0.06em] normal-case opacity-75;
-}
-.rail-ad.sq {
-  @apply h-60;
-}
-.rail-ad.tall {
-  @apply h-[560px];
-}
 
 .rail-card {
   @apply overflow-hidden rounded-[2px] border border-ink-20 bg-paper-raised;
