@@ -35,8 +35,8 @@ describe('buildScenePrompt', () => {
 
     expect(prompt).toContain('Completely free of writing and branding');
     expect(prompt).toContain('no lettering');
-    expect(prompt).toContain('logos, or brand emblems');
-    expect(prompt).toContain('Screens are switched off and blank');
+    expect(prompt).toContain('logos or brand emblems');
+    expect(prompt).toContain('Displays are dark and blank');
     expect(prompt).toContain('Do not include books');
     expect(prompt).not.toContain('buying guide');
     expect(prompt).not.toContain('Editorial');
@@ -50,8 +50,7 @@ describe('buildScenePrompt', () => {
     const prompt = buildScenePrompt('a'.repeat(500));
 
     expect(prompt.length).toBeLessThanOrEqual(2048);
-    expect(prompt).toContain('Keep the scene minimal and uncluttered.');
-    expect(prompt).toContain('no visible emblem');
+    expect(prompt).toContain('Displays are dark and blank with a uniform bezel and no emblem.');
   });
 
   it('falls back to a plain scene when the subject is empty', () => {
