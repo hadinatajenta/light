@@ -7,7 +7,7 @@ import { publishDuePosts } from '@/lib/scheduling/store';
 
 export const prerender = false;
 
-const RUN_BUDGET_MS = 110_000;
+const RUN_BUDGET_MS = 240_000;
 const BEARER_PREFIX = 'Bearer ';
 
 interface TimingSafeSubtleCrypto extends SubtleCrypto {

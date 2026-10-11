@@ -5,7 +5,7 @@ interface Env {
 
 const DEFAULT_AGENT_RUN_URL = 'https://lightscripts.com/api/agents/run-due';
 
-const RUN_TIMEOUT_MS = 120_000;
+const RUN_TIMEOUT_MS = 300_000;
 
 async function triggerRun(env: Env): Promise<unknown> {
   const token = env.AGENT_CRON_TOKEN;
