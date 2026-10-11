@@ -857,7 +857,13 @@
   @apply my-10 mb-14;
 }
 .post-hero-image {
-  @apply block aspect-video h-auto w-full rounded-[2px] object-cover;
+  @apply block h-full w-full rounded-[2px] object-cover;
+}
+.post-hero-frame {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 2px;
 }
 .post-hero-credit {
   @apply mt-3 flex flex-wrap items-center gap-1 font-sans text-[11px] tracking-[0.04em] text-ink-75;

@@ -139,13 +139,18 @@ const jsonLd = [
       {
         post.coverUrl && (
           <figure class="post-hero">
-            <img
-              src={post.coverUrl}
-              alt={post.coverAlt ?? post.title}
-              width="1280"
-              height="720"
-              class="post-hero-image"
-            />
+            <div class="post-hero-frame">
+              <img
+                src={post.coverUrl}
+                alt={post.coverAlt ?? post.title}
+                width="1280"
+                height="720"
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+                class="post-hero-image"
+              />
+            </div>
             {coverCredit && (coverCredit.creator || coverCredit.license) ? (
               <figcaption class="post-hero-credit">
                 <span>Photo</span>
