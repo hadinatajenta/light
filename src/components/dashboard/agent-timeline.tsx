@@ -30,7 +30,11 @@ export default function AgentTimeline({ runs }: { runs: LiveRecentRun[] }) {
             <span
               className={cn(
                 'mt-1.5 size-2 shrink-0 rounded-full',
-                run.status === 'failed' ? 'bg-destructive' : 'bg-primary',
+                run.status === 'failed'
+                  ? 'bg-destructive'
+                  : run.status === 'skipped'
+                    ? 'bg-muted-foreground'
+                    : 'bg-primary',
               )}
             />
             <span className="mt-1 w-px flex-1 bg-border" />
@@ -46,7 +50,11 @@ export default function AgentTimeline({ runs }: { runs: LiveRecentRun[] }) {
                   run.status === 'failed' ? 'text-destructive' : 'text-muted-foreground',
                 )}
               >
-                {run.status === 'failed' ? 'Failed' : 'Succeeded'}
+                {run.status === 'failed'
+                  ? 'Failed'
+                  : run.status === 'skipped'
+                    ? 'Skipped'
+                    : 'Succeeded'}
               </span>
               <time
                 className="ml-auto text-xs text-muted-foreground tabular-nums"

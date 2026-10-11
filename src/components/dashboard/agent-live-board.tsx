@@ -147,6 +147,7 @@ function AgentStateCard({
 function PipelineStrip({ pipeline }: { pipeline: LivePipeline }) {
   const stages = [
     { key: 'queued', label: 'Queued', value: pipeline.topicsQueued },
+    { key: 'fetched', label: 'Fetched', value: pipeline.topicsFetched },
     { key: 'researched', label: 'Researched', value: pipeline.topicsResearched },
     { key: 'inProgress', label: 'In progress', value: pipeline.topicsInProgress },
     { key: 'pendingReview', label: 'Pending review', value: pipeline.pendingReview },

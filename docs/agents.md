@@ -58,12 +58,27 @@ The DeepSeek API key is entered in the dashboard, on the Agents page. It is
 stored encrypted in D1 with AES-GCM, using the `AGENT_SECRET_KEY` Worker secret,
 and it is never returned to the browser.
 
+## Search provider
+
+The scrapper does not invent facts from model memory. It runs a real web search,
+fetches the pages it finds, and writes notes only from that text. Connect a
+search provider on the Agents page; the key uses the same encrypted storage as
+the DeepSeek key.
+
+Providers live behind one `SearchProvider` interface in
+`src/lib/agents/search`, so a new provider is an adapter plus a registry entry
+and nothing else changes. Tavily ships first, and a `fixture` provider reads
+`SEARCH_FIXTURE_JSON` for local development. When no provider is configured the
+scrapper run is recorded as `skipped` and the topic is left untouched: it never
+falls back to notes written from memory.
+
 ## Roles
 
-- writer: drafts a new buying guide from a topic.
+- writer: drafts a new buying guide from a topic, using only verified research.
 - reviewer: reviews the oldest pending draft, approves it, or requests changes.
 - qc: audits the oldest pending draft for formatting, SEO fields, and policy issues.
-- scrapper: collects research notes for a topic.
+- scrapper: searches the web and fetches sources, then writes verifiable notes tagged by angle and source type.
 
 A writer produces drafts. Publishing only happens when a reviewer approves a
-draft and that reviewer has auto publish enabled.
+draft and that reviewer has auto publish enabled. A reviewer will not auto
+publish a draft whose topic has no verified research.

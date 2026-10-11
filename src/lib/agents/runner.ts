@@ -2,6 +2,7 @@ import { recordActivity } from '../activity/record';
 import { ApiError } from '../errors';
 import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
+import { runScrapperResearch } from './research';
 import {
   createDraftPost,
   findPendingDraft,
@@ -18,23 +19,27 @@ import {
   saveReviewNotes,
 } from './revision';
 import { getRoleDefinition } from './roles';
+import { resolveSearchProvider } from './search/registry';
+import { readSearchConfig } from './search/settings';
 import { requireDeepseekKey } from './settings';
-import { createSource, listSources, renderSourcesForPrompt, SOURCE_KINDS } from './sources';
+import { hasVerifiedSources, listVerifiedSources, renderSourcesForPrompt } from './sources';
 import { type AgentRecord, createAgentRun, finishAgentRun, markAgentRun } from './store';
 import {
   blockTopic,
   claimTopicForScrapper,
   claimTopicForWriter,
   findTopicByPost,
+  markTopicFetched,
   markTopicResearched,
   markTopicUsed,
   releaseTopic,
+  scrapperResumeStatus,
   type TopicRecord,
 } from './topics';
 
 export interface RunAgentResult {
   runId: string;
-  status: 'succeeded' | 'failed';
+  status: 'succeeded' | 'failed' | 'skipped';
   summary: string;
   output: string;
   tokensIn: number;
@@ -63,6 +68,7 @@ interface CatalogRow {
 const MAX_OUTPUT_CHARS = 200_000;
 const MAX_DRAFT_CHARS = 40_000;
 const MAX_CATALOG_ITEMS = 12;
+const SCRAPPER_RESEARCH_BUDGET_MS = 180_000;
 const NEEDS_RESEARCH_PATTERN = /^\s*NEEDS RESEARCH/i;
 
 function truncate(value: string, limit: number): string {
@@ -159,7 +165,7 @@ Revise the article so every point in the notes is addressed, and keep the parts 
 
     const [catalog, sources, titles] = await Promise.all([
       loadCatalogSlice(db, topic),
-      listSources(db, topic.id),
+      listVerifiedSources(db, topic.id),
       listRecentPublishedTitles(db, 12),
     ]);
 
@@ -181,21 +187,6 @@ ${catalog}
 Return JSON with keys: title (string, 10 to 70 characters), description (string, 50 to 160 characters), tags (array of 2 to 4 lowercase slugs), body (markdown string, no H1), editorNotes (string).${avoid}`;
   }
 
-  if (agent.role === 'scrapper') {
-    if (!topic) {
-      return '';
-    }
-
-    const keywords = topic.keywords.length > 0 ? `\nKeywords: ${topic.keywords.join(', ')}` : '';
-    const category = topic.category ? `\nCategory: ${topic.category}` : '';
-
-    return `Research the topic below for a buying guide. Gather what a buyer must verify before purchasing: the specifications that actually matter, the compatibility traps, the materials and durability signals, and the marketing claims that mislead. Cite a named standard or a manufacturer document when a claim depends on one. Never invent specifications, prices, ratings, or test results. If a fact cannot be established, leave it out rather than guessing.
-
-Topic: ${topic.title}${category}${keywords}
-
-Return JSON with keys: notes (array of objects with keys heading (string), detail (string), kind (one of note, spec, claim, source), reference (string or null)).`;
-  }
-
   const target = await findPendingDraft(db);
   if (!target) {
     return '';
@@ -208,7 +199,7 @@ Return JSON with keys: notes (array of objects with keys heading (string), detai
   }
 
   const topicForDraft = await findTopicByPost(db, target.id);
-  const sources = topicForDraft ? await listSources(db, topicForDraft.id) : [];
+  const sources = topicForDraft ? await listVerifiedSources(db, topicForDraft.id) : [];
   const research = renderSourcesForPrompt(sources);
   const researchBlock = research
     ? `\n\nResearch notes the draft was supposed to be based on:\n${research}`
@@ -224,46 +215,6 @@ async function applyResult(
   topic: TopicRecord | null,
   revisionTarget: RevisionTarget | null,
 ): Promise<AppliedResult> {
-  if (agent.role === 'scrapper') {
-    const parsed = extractJsonObject(content);
-    const rawNotes = Array.isArray(parsed.notes) ? parsed.notes : [];
-    let saved = 0;
-
-    for (const entry of rawNotes.slice(0, 24)) {
-      if (typeof entry !== 'object' || entry === null) {
-        continue;
-      }
-
-      const note = entry as Record<string, unknown>;
-      const heading = readString(note.heading);
-      const detail = readString(note.detail);
-
-      if (!heading || !detail) {
-        continue;
-      }
-
-      const kind = readString(note.kind);
-      const reference = readString(note.reference);
-
-      await createSource(db, {
-        topicId: topic?.id ?? '',
-        agentId: agent.id,
-        kind: (SOURCE_KINDS as readonly string[]).includes(kind)
-          ? (kind as (typeof SOURCE_KINDS)[number])
-          : 'note',
-        heading,
-        detail,
-        reference: reference || null,
-      });
-      saved += 1;
-    }
-
-    return {
-      summary: `Collected ${saved} research note(s)`,
-      output: truncate(content, MAX_OUTPUT_CHARS),
-    };
-  }
-
   if (agent.role === 'writer') {
     const parsed = extractJsonObject(content);
     const title = readString(parsed.title);
@@ -320,6 +271,16 @@ async function applyResult(
       await setPostReview(db, target.id, 'approved', agent.id);
 
       if (agent.autoPublish) {
+        const linkedTopic = await findTopicByPost(db, target.id);
+        const canPublish = linkedTopic ? await hasVerifiedSources(db, linkedTopic.id) : true;
+
+        if (!canPublish) {
+          return {
+            summary: `Approved "${target.title}" but auto publish was skipped: no verified research`,
+            output: truncate(notes, MAX_OUTPUT_CHARS),
+          };
+        }
+
         await publishPost(db, target.id);
         return {
           summary: `Approved and published "${target.title}"`,
@@ -372,8 +333,10 @@ export async function runAgent(
   db: D1Database,
   agent: AgentRecord,
   signal?: AbortSignal,
+  deadline?: number,
 ): Promise<RunAgentResult> {
   const runId = await createAgentRun(db, agent.id);
+  const effectiveDeadline = deadline ?? Date.now() + SCRAPPER_RESEARCH_BUDGET_MS;
   let topic: TopicRecord | null = null;
   let revisionTarget: RevisionTarget | null = null;
 
@@ -411,6 +374,64 @@ export async function runAgent(
         await recordAgentActivity(agent, summary);
         return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
       }
+
+      const [search, searchConfig] = await Promise.all([
+        resolveSearchProvider(db),
+        readSearchConfig(db),
+      ]);
+
+      const outcome = await runScrapperResearch({
+        db,
+        agent,
+        topic,
+        apiKey,
+        search,
+        allowUnverified: searchConfig.allowUnverified,
+        deadline: effectiveDeadline,
+        signal,
+      });
+
+      if (outcome.status === 'skipped') {
+        await releaseTopic(db, topic.id, outcome.summary, await scrapperResumeStatus(db, topic.id));
+        await finishAgentRun(db, runId, { status: 'skipped', summary: outcome.summary });
+        await markAgentRun(db, agent.id, agent.runsPerDay);
+        await recordAgentActivity(agent, outcome.summary);
+        return {
+          runId,
+          status: 'skipped',
+          summary: outcome.summary,
+          output: '',
+          tokensIn: 0,
+          tokensOut: 0,
+        };
+      }
+
+      if (outcome.status === 'blocked') {
+        await blockTopic(db, topic.id, outcome.summary);
+      } else if (outcome.status === 'completed') {
+        await markTopicResearched(db, topic.id);
+      } else {
+        await markTopicFetched(db, topic.id);
+      }
+
+      await finishAgentRun(db, runId, {
+        status: 'succeeded',
+        summary: outcome.summary,
+        output: outcome.output,
+        tokensIn: outcome.tokensIn,
+        tokensOut: outcome.tokensOut,
+      });
+      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await recordAgentActivity(agent, outcome.summary);
+
+      return {
+        runId,
+        status: 'succeeded',
+        summary: outcome.summary,
+        output: outcome.output,
+        tokensIn: outcome.tokensIn,
+        tokensOut: outcome.tokensOut,
+      };
     }
 
     const userMessage = await buildUserMessage(db, agent, topic, revisionTarget);
@@ -473,9 +494,7 @@ export async function runAgent(
     const applied = await applyResult(db, agent, response.content, topic, revisionTarget);
 
     if (topic) {
-      if (agent.role === 'scrapper') {
-        await markTopicResearched(db, topic.id);
-      } else if (applied.postId) {
+      if (applied.postId) {
         await markTopicUsed(db, topic.id, applied.postId);
       } else {
         await releaseTopic(db, topic.id, applied.summary, releasedStatusFor(agent));
@@ -515,7 +534,11 @@ export async function runAgent(
         : baseMessage;
 
     if (topic) {
-      await releaseTopic(db, topic.id, message, releasedStatusFor(agent));
+      const releaseStatus =
+        agent.role === 'scrapper'
+          ? await scrapperResumeStatus(db, topic.id)
+          : releasedStatusFor(agent);
+      await releaseTopic(db, topic.id, message, releaseStatus);
     }
 
     if (revisionTarget) {

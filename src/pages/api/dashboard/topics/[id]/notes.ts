@@ -1,5 +1,6 @@
 import { z } from 'astro/zod';
 import { recordActivity, toUserActor } from '@/lib/activity/record';
+import { insertResearchPage } from '@/lib/agents/research-pages';
 import { createSource, listSources, SOURCE_KINDS } from '@/lib/agents/sources';
 import { getTopic } from '@/lib/agents/topics';
 import { withAdmin } from '@/lib/api/handler';
@@ -12,6 +13,7 @@ const noteInputSchema = z.object({
   heading: z.string().min(3).max(140),
   detail: z.string().min(3).max(2000),
   reference: z.string().max(200).nullable().default(null),
+  url: z.url().max(2000).nullable().default(null),
   kind: z.enum(SOURCE_KINDS).default('note'),
 });
 
@@ -46,7 +48,20 @@ export const POST = withAdmin(async ({ params, request }, requestId, user) => {
     heading: payload.heading,
     detail: payload.detail,
     reference: payload.reference,
+    url: payload.url,
+    verified: true,
   });
+
+  if (payload.url) {
+    await insertResearchPage(database, {
+      topicId,
+      query: null,
+      url: payload.url,
+      title: null,
+      snippet: null,
+      origin: 'manual',
+    });
+  }
 
   await recordActivity({
     ...toUserActor(user),

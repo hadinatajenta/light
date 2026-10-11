@@ -1,6 +1,13 @@
 import { ApiError } from '../errors';
 
-export const TOPIC_STATUSES = ['queued', 'researched', 'in_progress', 'used', 'blocked'] as const;
+export const TOPIC_STATUSES = [
+  'queued',
+  'fetched',
+  'researched',
+  'in_progress',
+  'used',
+  'blocked',
+] as const;
 
 export type TopicStatus = (typeof TOPIC_STATUSES)[number];
 
@@ -25,6 +32,7 @@ export interface TopicInput {
 
 export interface TopicCounts {
   queued: number;
+  fetched: number;
   researched: number;
   inProgress: number;
   used: number;
@@ -94,11 +102,20 @@ export async function countTopics(db: D1Database): Promise<TopicCounts> {
     .prepare('SELECT status, COUNT(*) AS total FROM topics GROUP BY status')
     .all<{ status: string; total: number }>();
 
-  const counts: TopicCounts = { queued: 0, researched: 0, inProgress: 0, used: 0, blocked: 0 };
+  const counts: TopicCounts = {
+    queued: 0,
+    fetched: 0,
+    researched: 0,
+    inProgress: 0,
+    used: 0,
+    blocked: 0,
+  };
 
   for (const row of result.results ?? []) {
     if (row.status === 'queued') {
       counts.queued = row.total;
+    } else if (row.status === 'fetched') {
+      counts.fetched = row.total;
     } else if (row.status === 'researched') {
       counts.researched = row.total;
     } else if (row.status === 'in_progress') {
@@ -174,7 +191,7 @@ export function claimTopicForScrapper(
   db: D1Database,
   agentId: string,
 ): Promise<TopicRecord | null> {
-  return claimTopicWithStatus(db, agentId, ['queued']);
+  return claimTopicWithStatus(db, agentId, ['queued', 'fetched']);
 }
 
 export function claimTopicForWriter(db: D1Database, agentId: string): Promise<TopicRecord | null> {
@@ -188,6 +205,27 @@ export async function markTopicResearched(db: D1Database, id: string): Promise<v
     )
     .bind(new Date().toISOString(), id)
     .run();
+}
+
+export async function markTopicFetched(db: D1Database, id: string): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE topics SET status = 'fetched', assigned_agent_id = NULL, updated_at = ? WHERE id = ?",
+    )
+    .bind(new Date().toISOString(), id)
+    .run();
+}
+
+export async function scrapperResumeStatus(
+  db: D1Database,
+  topicId: string,
+): Promise<'queued' | 'fetched'> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS total FROM research_pages WHERE topic_id = ?')
+    .bind(topicId)
+    .first<{ total: number }>();
+
+  return (row?.total ?? 0) > 0 ? 'fetched' : 'queued';
 }
 
 export async function findTopicByPost(db: D1Database, postId: string): Promise<TopicRecord | null> {

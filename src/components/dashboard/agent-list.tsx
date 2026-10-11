@@ -59,7 +59,7 @@ interface AgentsMeta {
 
 interface AgentRunResult {
   runId: string;
-  status: 'succeeded' | 'failed';
+  status: 'succeeded' | 'failed' | 'skipped';
   summary: string;
   output: string | null;
   tokensIn: number | null;
@@ -265,6 +265,8 @@ export default function AgentList() {
       );
       if (payload.result.status === 'succeeded') {
         toast.success(payload.result.summary);
+      } else if (payload.result.status === 'skipped') {
+        toast(payload.result.summary);
       } else {
         toast.error(payload.result.error ?? payload.result.summary);
       }

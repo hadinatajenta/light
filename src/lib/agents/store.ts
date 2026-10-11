@@ -35,7 +35,7 @@ export interface AgentInput {
 export interface AgentRunRecord {
   id: string;
   agentId: string;
-  status: 'running' | 'succeeded' | 'failed';
+  status: 'running' | 'succeeded' | 'failed' | 'skipped';
   summary: string | null;
   output: string | null;
   tokensIn: number | null;
@@ -92,11 +92,19 @@ function toAgent(row: AgentRow): AgentRecord {
   };
 }
 
+function readRunStatus(value: string): AgentRunRecord['status'] {
+  if (value === 'running' || value === 'failed' || value === 'skipped') {
+    return value;
+  }
+
+  return 'succeeded';
+}
+
 function toRun(row: AgentRunRow): AgentRunRecord {
   return {
     id: row.id,
     agentId: row.agent_id,
-    status: row.status === 'running' || row.status === 'failed' ? row.status : 'succeeded',
+    status: readRunStatus(row.status),
     summary: row.summary,
     output: row.output,
     tokensIn: row.tokens_in,
@@ -255,7 +263,7 @@ export async function createAgentRun(db: D1Database, agentId: string): Promise<s
 }
 
 export interface AgentRunOutcome {
-  status: 'succeeded' | 'failed';
+  status: 'succeeded' | 'failed' | 'skipped';
   summary: string;
   output?: string;
   tokensIn?: number;

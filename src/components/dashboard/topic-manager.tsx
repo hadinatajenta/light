@@ -78,7 +78,14 @@ const SKELETON_ROWS = [
   'topic-skeleton-5',
   'topic-skeleton-6',
 ];
-const STATUS_ORDER: TopicStatus[] = ['queued', 'researched', 'in_progress', 'used', 'blocked'];
+const STATUS_ORDER: TopicStatus[] = [
+  'queued',
+  'fetched',
+  'researched',
+  'in_progress',
+  'used',
+  'blocked',
+];
 
 const SELECT_CLASS =
   'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
@@ -103,6 +110,7 @@ interface TopicRecord {
 
 interface TopicCounts {
   queued: number;
+  fetched: number;
   researched: number;
   inProgress: number;
   used: number;
@@ -130,7 +138,12 @@ function readCount(counts: TopicCounts, status: TopicStatus): number {
 }
 
 function canBlock(status: TopicStatus): boolean {
-  return status === 'queued' || status === 'researched' || status === 'in_progress';
+  return (
+    status === 'queued' ||
+    status === 'fetched' ||
+    status === 'researched' ||
+    status === 'in_progress'
+  );
 }
 
 interface CategoryFieldProps {

@@ -38,6 +38,7 @@ export interface ContentAnalytics {
 
 export interface PipelineAnalytics {
   topicsQueued: number;
+  topicsFetched: number;
   topicsResearched: number;
   topicsInProgress: number;
   topicsUsed: number;
@@ -280,6 +281,7 @@ async function loadPipelineAnalytics(db: D1Database): Promise<PipelineAnalytics>
 
   return {
     topicsQueued: counts.queued,
+    topicsFetched: counts.fetched,
     topicsResearched: counts.researched,
     topicsInProgress: counts.inProgress,
     topicsUsed: counts.used,

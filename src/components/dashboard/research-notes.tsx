@@ -34,10 +34,11 @@ const SKELETON_NOTES = ['note-skeleton-1', 'note-skeleton-2'];
 const TEXTAREA_CLASS =
   'w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
-export type TopicStatus = 'queued' | 'researched' | 'in_progress' | 'used' | 'blocked';
+export type TopicStatus = 'queued' | 'fetched' | 'researched' | 'in_progress' | 'used' | 'blocked';
 
 export const TOPIC_STATUS_LABELS: Record<TopicStatus, string> = {
   queued: 'Queued',
+  fetched: 'Fetched',
   researched: 'Researched',
   in_progress: 'In progress',
   used: 'Used',
@@ -49,6 +50,7 @@ const TOPIC_STATUS_BADGE_VARIANT: Record<
   'default' | 'secondary' | 'outline' | 'ghost' | 'destructive'
 > = {
   queued: 'outline',
+  fetched: 'outline',
   researched: 'secondary',
   in_progress: 'default',
   used: 'ghost',
@@ -116,6 +118,12 @@ export interface NoteRecord {
   heading: string;
   detail: string;
   reference: string | null;
+  url: string | null;
+  quote: string | null;
+  verified: boolean;
+  accessedAt: string | null;
+  sourceType: string | null;
+  angle: string | null;
   createdAt: string;
 }
 
@@ -129,9 +137,10 @@ interface NoteFormValues {
   heading: string;
   detail: string;
   reference: string;
+  url: string;
 }
 
-type NoteFieldErrors = Partial<Record<'heading' | 'detail' | 'reference' | 'form', string>>;
+type NoteFieldErrors = Partial<Record<'heading' | 'detail' | 'reference' | 'url' | 'form', string>>;
 
 const KIND_LABELS: Record<string, string> = {
   note: 'Notes',
@@ -200,6 +209,7 @@ function validateNote(values: NoteFormValues): NoteFieldErrors {
   const heading = values.heading.trim();
   const detail = values.detail.trim();
   const reference = values.reference.trim();
+  const url = values.url.trim();
 
   if (heading.length < HEADING_MIN_LENGTH) {
     errors.heading = `Heading must be at least ${HEADING_MIN_LENGTH} characters.`;
@@ -217,6 +227,10 @@ function validateNote(values: NoteFormValues): NoteFieldErrors {
     errors.reference = `Reference must be ${REFERENCE_MAX_LENGTH} characters or fewer.`;
   }
 
+  if (url.length > 0 && toSafeReferenceUrl(url) === null) {
+    errors.url = 'Enter a valid http or https URL.';
+  }
+
   return errors;
 }
 
@@ -232,7 +246,12 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [values, setValues] = useState<NoteFormValues>({ heading: '', detail: '', reference: '' });
+  const [values, setValues] = useState<NoteFormValues>({
+    heading: '',
+    detail: '',
+    reference: '',
+    url: '',
+  });
   const [fieldErrors, setFieldErrors] = useState<NoteFieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -245,6 +264,7 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
   const headingRef = useRef<HTMLInputElement>(null);
   const detailRef = useRef<HTMLTextAreaElement>(null);
   const referenceRef = useRef<HTMLInputElement>(null);
+  const urlRef = useRef<HTMLInputElement>(null);
 
   const topicId = topic?.id ?? null;
 
@@ -306,7 +326,7 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
       setHasLoaded(false);
     }
 
-    setValues({ heading: '', detail: '', reference: '' });
+    setValues({ heading: '', detail: '', reference: '', url: '' });
     setFieldErrors({});
     setDeleteTargetId(null);
     setDeleteError(null);
@@ -335,6 +355,10 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
       detailRef.current?.focus();
       return;
     }
+    if (nextErrors.url) {
+      urlRef.current?.focus();
+      return;
+    }
     referenceRef.current?.focus();
   };
 
@@ -354,6 +378,7 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
     const heading = values.heading.trim();
     const detail = values.detail.trim();
     const reference = values.reference.trim();
+    const url = values.url.trim();
 
     setIsSubmitting(true);
     setFieldErrors({});
@@ -366,9 +391,12 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
         `${TOPICS_ENDPOINT}/${encodeURIComponent(topicId)}/notes`,
         {
           method: 'POST',
-          body: JSON.stringify(
-            reference.length > 0 ? { heading, detail, reference } : { heading, detail },
-          ),
+          body: JSON.stringify({
+            heading,
+            detail,
+            ...(reference.length > 0 ? { reference } : {}),
+            ...(url.length > 0 ? { url } : {}),
+          }),
           signal: controller.signal,
         },
       );
@@ -376,7 +404,7 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
         return;
       }
       toast.success('Note added.');
-      setValues({ heading: '', detail: '', reference: '' });
+      setValues({ heading: '', detail: '', reference: '', url: '' });
       void loadNotes(true);
     } catch (error) {
       if (controller.signal.aborted) {
@@ -393,6 +421,9 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
         }
         if (mapped.reference) {
           serverErrors.reference = mapped.reference;
+        }
+        if (mapped.url) {
+          serverErrors.url = mapped.url;
         }
         if (Object.keys(serverErrors).length > 0) {
           setFieldErrors(serverErrors);
@@ -502,13 +533,20 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
             </h4>
             <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
               {group.notes.map((note) => {
-                const referenceUrl = note.reference ? toSafeReferenceUrl(note.reference) : null;
+                const sourceUrl = note.url ? toSafeReferenceUrl(note.url) : null;
 
                 return (
                   <li key={note.id} className="flex flex-col gap-2 p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground">{note.heading}</p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">{note.heading}</p>
+                          {note.verified ? <Badge variant="secondary">Verified</Badge> : null}
+                          {note.sourceType ? (
+                            <Badge variant="outline">Source type: {note.sourceType}</Badge>
+                          ) : null}
+                          {note.angle ? <Badge variant="outline">Angle: {note.angle}</Badge> : null}
+                        </div>
                         <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
                           <time
                             dateTime={note.createdAt}
@@ -564,22 +602,31 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
                       {note.detail}
                     </p>
 
+                    {sourceUrl ? (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium tracking-[0.06em] uppercase">Source</span>{' '}
+                        <a
+                          href={sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="break-all text-foreground underline underline-offset-4"
+                        >
+                          {note.url}
+                        </a>
+                      </p>
+                    ) : null}
+
                     {note.reference ? (
                       <p className="text-xs text-muted-foreground">
                         <span className="font-medium tracking-[0.06em] uppercase">Reference</span>{' '}
-                        {referenceUrl ? (
-                          <a
-                            href={referenceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="break-all text-foreground underline underline-offset-4"
-                          >
-                            {note.reference}
-                          </a>
-                        ) : (
-                          <span className="break-all text-foreground">{note.reference}</span>
-                        )}
+                        <span className="break-all text-foreground">{note.reference}</span>
                       </p>
+                    ) : null}
+
+                    {note.quote ? (
+                      <blockquote className="border-l-2 border-border pl-3 text-xs text-muted-foreground italic">
+                        {note.quote}
+                      </blockquote>
                     ) : null}
                   </li>
                 );
@@ -703,15 +750,43 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="research-note-reference">Reference (optional)</Label>
+            <Label htmlFor="research-note-url">Source URL (optional)</Label>
+            <Input
+              id="research-note-url"
+              ref={urlRef}
+              value={values.url}
+              autoComplete="off"
+              spellCheck={false}
+              type="url"
+              placeholder="https://example.com/report"
+              aria-invalid={Boolean(fieldErrors.url)}
+              aria-describedby={
+                fieldErrors.url ? 'research-note-url-error' : 'research-note-url-help'
+              }
+              onChange={(event) =>
+                setValues((current) => ({ ...current, url: event.target.value }))
+              }
+            />
+            {fieldErrors.url ? (
+              <p id="research-note-url-error" className="text-sm text-destructive">
+                {fieldErrors.url}
+              </p>
+            ) : (
+              <p id="research-note-url-help" className="text-xs text-muted-foreground">
+                The scrapper fetches this URL and verifies notes against the page.
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="research-note-reference">Citation (optional)</Label>
             <Input
               id="research-note-reference"
               ref={referenceRef}
               value={values.reference}
               autoComplete="off"
-              spellCheck={false}
               maxLength={REFERENCE_MAX_LENGTH}
-              placeholder="https://example.com/report"
+              placeholder="ANSI/BIFMA G1, section 5"
               aria-invalid={Boolean(fieldErrors.reference)}
               aria-describedby={
                 fieldErrors.reference
@@ -728,7 +803,7 @@ export default function ResearchNotes({ topic, isOpen, onOpenChange }: ResearchN
               </p>
             ) : (
               <p id="research-note-reference-help" className="text-xs text-muted-foreground">
-                A source URL or citation the writer can point to.
+                A named standard or citation the writer can point to.
               </p>
             )}
           </div>

@@ -21,7 +21,7 @@ export interface LiveRecentRun {
   agentId: string;
   agentName: string;
   role: string;
-  status: 'succeeded' | 'failed';
+  status: 'succeeded' | 'failed' | 'skipped';
   summary: string | null;
   startedAt: string;
   finishedAt: string | null;
@@ -30,6 +30,7 @@ export interface LiveRecentRun {
 
 export interface LivePipeline {
   topicsQueued: number;
+  topicsFetched: number;
   topicsResearched: number;
   topicsInProgress: number;
   pendingReview: number;
@@ -75,8 +76,12 @@ interface ReviewRow {
   total: number;
 }
 
-function readRunStatus(value: string): 'succeeded' | 'failed' {
-  return value === 'failed' ? 'failed' : 'succeeded';
+function readRunStatus(value: string): 'succeeded' | 'failed' | 'skipped' {
+  if (value === 'failed' || value === 'skipped') {
+    return value;
+  }
+
+  return 'succeeded';
 }
 
 function elapsedMinutes(now: number, startedAt: string): number {
@@ -111,6 +116,7 @@ async function loadPipeline(db: D1Database): Promise<LivePipeline> {
 
   return {
     topicsQueued: counts.queued,
+    topicsFetched: counts.fetched,
     topicsResearched: counts.researched,
     topicsInProgress: counts.inProgress,
     pendingReview,

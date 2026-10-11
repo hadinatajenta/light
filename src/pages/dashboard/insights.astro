@@ -35,6 +35,7 @@ const agentRunMax = Math.max(1, ...agents.perAgent.map((agent) => agent.runs));
 
 const funnelStages = [
   { label: 'Queued', value: pipeline.topicsQueued },
+  { label: 'Fetched', value: pipeline.topicsFetched },
   { label: 'Researched', value: pipeline.topicsResearched },
   { label: 'In progress', value: pipeline.topicsInProgress },
   { label: 'Used', value: pipeline.topicsUsed },

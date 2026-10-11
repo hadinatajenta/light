@@ -26,7 +26,7 @@ const TEXTAREA_CLASS =
 
 type AgentRole = 'writer' | 'reviewer' | 'qc' | 'scrapper';
 type AgentFormMode = 'create' | 'edit';
-type RunStatus = 'running' | 'succeeded' | 'failed';
+type RunStatus = 'running' | 'succeeded' | 'failed' | 'skipped';
 
 interface AgentRecord {
   id: string;
@@ -104,12 +104,14 @@ const RUN_STATUS_LABEL: Record<RunStatus, string> = {
   running: 'Running',
   succeeded: 'Succeeded',
   failed: 'Failed',
+  skipped: 'Skipped',
 };
 
 const RUN_STATUS_VARIANT: Record<RunStatus, 'default' | 'secondary' | 'destructive'> = {
   running: 'secondary',
   succeeded: 'default',
   failed: 'destructive',
+  skipped: 'secondary',
 };
 
 function mapFieldErrors(details: unknown): Record<string, string> {

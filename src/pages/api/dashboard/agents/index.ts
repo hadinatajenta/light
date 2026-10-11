@@ -8,6 +8,7 @@ import {
   MIN_RUNS_PER_DAY,
 } from '@/lib/agents/roles';
 import { agentInputSchema } from '@/lib/agents/schema';
+import { describeSearchConfig } from '@/lib/agents/search/settings';
 import { describeDeepseekKey } from '@/lib/agents/settings';
 import { createAgent, listAgents } from '@/lib/agents/store';
 import { withAdmin } from '@/lib/api/handler';
@@ -18,9 +19,10 @@ export const prerender = false;
 
 export const GET = withAdmin(async (_context, requestId) => {
   const database = await requireContentDatabase();
-  const [agents, deepseek] = await Promise.all([
+  const [agents, deepseek, search] = await Promise.all([
     listAgents(database),
     describeDeepseekKey(database),
+    describeSearchConfig(database),
   ]);
 
   return jsonOk(
@@ -34,6 +36,7 @@ export const GET = withAdmin(async (_context, requestId) => {
         maxRunsPerDay: MAX_RUNS_PER_DAY,
         defaultModel: DEFAULT_AGENT_MODEL,
         deepseek,
+        search,
       },
     },
     requestId,

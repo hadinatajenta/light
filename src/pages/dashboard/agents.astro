@@ -1,6 +1,7 @@
 ---
 import AgentList from '@/components/dashboard/agent-list';
 import DeepSeekKeyCard from '@/components/dashboard/deepseek-key-card';
+import SearchProviderCard from '@/components/dashboard/search-provider-card';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
 export const prerender = false;
@@ -30,5 +31,6 @@ export const prerender = false;
       </a>
     </section>
     <DeepSeekKeyCard client:load />
+    <SearchProviderCard client:load />
   </div>
 </DashboardLayout>

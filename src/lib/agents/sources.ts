@@ -1,6 +1,6 @@
 import { ApiError } from '../errors';
 
-export const SOURCE_KINDS = ['note', 'spec', 'claim', 'source'] as const;
+export const SOURCE_KINDS = ['note', 'spec', 'claim', 'source', 'gap'] as const;
 
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
@@ -12,6 +12,12 @@ export interface SourceRecord {
   heading: string;
   detail: string;
   reference: string | null;
+  url: string | null;
+  quote: string | null;
+  verified: boolean;
+  accessedAt: string | null;
+  sourceType: string | null;
+  angle: string | null;
   createdAt: string;
 }
 
@@ -22,6 +28,12 @@ export interface SourceInput {
   heading: string;
   detail: string;
   reference: string | null;
+  url?: string | null;
+  quote?: string | null;
+  verified?: boolean;
+  accessedAt?: string | null;
+  sourceType?: string | null;
+  angle?: string | null;
 }
 
 interface SourceRow {
@@ -32,6 +44,12 @@ interface SourceRow {
   heading: string;
   detail: string;
   reference: string | null;
+  url: string | null;
+  quote: string | null;
+  verified: number;
+  accessed_at: string | null;
+  source_type: string | null;
+  angle: string | null;
   created_at: string;
 }
 
@@ -48,6 +66,12 @@ function toSource(row: SourceRow): SourceRecord {
     heading: row.heading,
     detail: row.detail,
     reference: row.reference,
+    url: row.url,
+    quote: row.quote,
+    verified: row.verified === 1,
+    accessedAt: row.accessed_at,
+    sourceType: row.source_type,
+    angle: row.angle,
     createdAt: row.created_at,
   };
 }
@@ -61,13 +85,37 @@ export async function listSources(db: D1Database, topicId: string): Promise<Sour
   return (result.results ?? []).map(toSource);
 }
 
+export async function listVerifiedSources(
+  db: D1Database,
+  topicId: string,
+): Promise<SourceRecord[]> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM sources WHERE topic_id = ? AND (verified = 1 OR kind = 'gap') ORDER BY created_at ASC",
+    )
+    .bind(topicId)
+    .all<SourceRow>();
+
+  return (result.results ?? []).map(toSource);
+}
+
+export async function hasVerifiedSources(db: D1Database, topicId: string): Promise<boolean> {
+  const row = await db
+    .prepare("SELECT id FROM sources WHERE topic_id = ? AND verified = 1 AND kind <> 'gap' LIMIT 1")
+    .bind(topicId)
+    .first();
+
+  return Boolean(row);
+}
+
 export async function createSource(db: D1Database, input: SourceInput): Promise<SourceRecord> {
   const id = crypto.randomUUID();
 
   await db
     .prepare(
-      `INSERT INTO sources (id, topic_id, agent_id, kind, heading, detail, reference, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO sources
+         (id, topic_id, agent_id, kind, heading, detail, reference, url, quote, verified, accessed_at, source_type, angle, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       id,
@@ -77,6 +125,12 @@ export async function createSource(db: D1Database, input: SourceInput): Promise<
       input.heading,
       input.detail,
       input.reference,
+      input.url ?? null,
+      input.quote ?? null,
+      input.verified === false ? 0 : 1,
+      input.accessedAt ?? null,
+      input.sourceType ?? null,
+      input.angle ?? null,
       new Date().toISOString(),
     )
     .run();
@@ -106,8 +160,15 @@ export function renderSourcesForPrompt(sources: SourceRecord[], limit = 20): str
   return sources
     .slice(0, limit)
     .map((source) => {
-      const reference = source.reference ? ` (source: ${source.reference})` : '';
-      return `- [${source.kind}] ${source.heading}: ${source.detail}${reference}`;
+      const metadata = [
+        source.sourceType ? `type: ${source.sourceType}` : null,
+        source.angle ? `angle: ${source.angle}` : null,
+      ].filter((entry): entry is string => entry !== null);
+      const summary = metadata.length > 0 ? ` (${metadata.join(', ')})` : '';
+      const citation = source.url ?? source.reference;
+      const reference = citation ? ` (source: ${citation})` : '';
+      const quote = source.quote ? `\n  Quoted: "${source.quote}"` : '';
+      return `- [${source.kind}] ${source.heading}${summary}: ${source.detail}${reference}${quote}`;
     })
     .join('\n');
 }
