@@ -87,6 +87,13 @@ const STATUS_ORDER: TopicStatus[] = [
   'blocked',
 ];
 
+const INTENT_OPTIONS: { value: string; label: string }[] = [
+  { value: 'informational', label: 'Informational' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'transactional', label: 'Transactional' },
+  { value: 'navigational', label: 'Navigational' },
+];
+
 const SELECT_CLASS =
   'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
 
@@ -100,6 +107,7 @@ interface TopicRecord {
   title: string;
   keywords: string[];
   category: string | null;
+  intent: string | null;
   status: TopicStatus;
   assignedAgentId: string | null;
   usedPostId: string | null;
@@ -322,6 +330,7 @@ function CreateTopicDialog({
   const [title, setTitle] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
   const [category, setCategory] = useState('');
+  const [intent, setIntent] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -335,6 +344,7 @@ function CreateTopicDialog({
     setTitle('');
     setKeywords([]);
     setCategory('');
+    setIntent('');
     setFieldErrors({});
     setIsSubmitting(false);
   }, [isOpen]);
@@ -381,6 +391,7 @@ function CreateTopicDialog({
           title: trimmedTitle,
           keywords,
           category: category.length > 0 ? category : null,
+          intent: intent.length > 0 ? intent : null,
         }),
         signal: controller.signal,
       });
@@ -480,6 +491,27 @@ function CreateTopicDialog({
             onChange={setCategory}
             onRetry={onRetryCategories}
           />
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="topic-intent">Intent</Label>
+            <select
+              id="topic-intent"
+              className={SELECT_CLASS}
+              value={intent}
+              aria-describedby="topic-intent-help"
+              onChange={(event) => setIntent(event.target.value)}
+            >
+              <option value="">No intent</option>
+              {INTENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p id="topic-intent-help" className="text-xs text-muted-foreground">
+              Match the topic to what the searcher wants
+            </p>
+          </div>
 
           {fieldErrors.form ? (
             <p

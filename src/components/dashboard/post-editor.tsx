@@ -91,6 +91,7 @@ interface PostFrontmatterForm {
   canonical: string;
   noindex: boolean;
   focusKeyword: string;
+  targetIntent: string;
   affiliate: boolean;
 }
 
@@ -183,6 +184,7 @@ function createEmptyForm(): PostFrontmatterForm {
     canonical: '',
     noindex: false,
     focusKeyword: '',
+    targetIntent: '',
     affiliate: false,
   };
 }
@@ -202,6 +204,7 @@ function toForm(frontmatter: Record<string, unknown>, fallbackSlug: string): Pos
     canonical: readString(frontmatter.canonical),
     noindex: readBoolean(frontmatter.noindex),
     focusKeyword: readString(frontmatter.focusKeyword),
+    targetIntent: readString(frontmatter.targetIntent),
     affiliate: readBoolean(frontmatter.affiliate),
   };
 }
@@ -243,6 +246,10 @@ function buildFrontmatterPayload(
   const focusKeyword = form.focusKeyword.trim();
   if (focusKeyword) {
     frontmatter.focusKeyword = focusKeyword;
+  }
+  const targetIntent = form.targetIntent.trim();
+  if (targetIntent) {
+    frontmatter.targetIntent = targetIntent;
   }
 
   return frontmatter;
@@ -837,6 +844,7 @@ export default function PostEditor({ postId }: PostEditorProps) {
               coverAlt: form.coverAlt,
               canonical: form.canonical,
               focusKeyword: form.focusKeyword,
+              targetIntent: form.targetIntent,
               noindex: form.noindex,
               pubDate: form.pubDate,
             }}

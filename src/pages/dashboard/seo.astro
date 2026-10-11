@@ -1,0 +1,10 @@
+---
+import SeoAudit from '@/components/dashboard/seo-audit';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="SEO">
+  <SeoAudit client:load />
+</DashboardLayout>

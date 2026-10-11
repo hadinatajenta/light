@@ -17,6 +17,16 @@ const SECTION_LABEL_CLASS_NAME =
 const TEXTAREA_CLASS_NAME =
   'min-h-24 w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
+const SELECT_CLASS_NAME =
+  'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
+
+const INTENT_OPTIONS = [
+  { value: 'informational', label: 'Informational' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'transactional', label: 'Transactional' },
+  { value: 'navigational', label: 'Navigational' },
+];
+
 export interface SeoPanelFrontmatter {
   title: string;
   description: string;
@@ -26,6 +36,7 @@ export interface SeoPanelFrontmatter {
   coverAlt: string;
   canonical: string;
   focusKeyword: string;
+  targetIntent: string;
   noindex: boolean;
   pubDate: string;
 }
@@ -319,6 +330,27 @@ export default function SeoPanel({
             Add a focus keyword to review the checklist.
           </p>
         )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="post-target-intent">Search intent</Label>
+        <select
+          id="post-target-intent"
+          value={frontmatter.targetIntent}
+          onChange={(event) => onChange({ targetIntent: event.target.value })}
+          disabled={disabled}
+          className={SELECT_CLASS_NAME}
+        >
+          <option value="">Not set</option>
+          {INTENT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Match the article to what the searcher wants
+        </p>
       </div>
 
       <Separator />

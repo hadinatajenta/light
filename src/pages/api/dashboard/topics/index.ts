@@ -1,6 +1,12 @@
 import { z } from 'astro/zod';
 import { recordActivity, toUserActor } from '@/lib/activity/record';
-import { countTopics, createTopic, listTopics, TOPIC_STATUSES } from '@/lib/agents/topics';
+import {
+  countTopics,
+  createTopic,
+  listTopics,
+  TOPIC_INTENTS,
+  TOPIC_STATUSES,
+} from '@/lib/agents/topics';
 import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
 import { jsonOk, readJsonBody } from '@/lib/http';
@@ -11,6 +17,7 @@ const topicInputSchema = z.object({
   title: z.string().min(10).max(140),
   keywords: z.array(z.string().min(1).max(60)).max(12).default([]),
   category: z.string().max(60).nullable().default(null),
+  intent: z.enum(TOPIC_INTENTS).nullable().default(null),
 });
 
 const bulkRequestSchema = z.object({
@@ -50,7 +57,12 @@ export const POST = withAdmin(async ({ request }, requestId, user) => {
     const created = [];
     for (const title of titles) {
       created.push(
-        await createTopic(database, { title, keywords: [], category: payload.category }),
+        await createTopic(database, {
+          title,
+          keywords: [],
+          category: payload.category,
+          intent: null,
+        }),
       );
     }
 

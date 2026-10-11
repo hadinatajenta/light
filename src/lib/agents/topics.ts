@@ -9,6 +9,13 @@ export const TOPIC_STATUSES = [
   'blocked',
 ] as const;
 
+export const TOPIC_INTENTS = [
+  'informational',
+  'commercial',
+  'transactional',
+  'navigational',
+] as const;
+
 export type TopicStatus = (typeof TOPIC_STATUSES)[number];
 
 export interface TopicRecord {
@@ -16,6 +23,7 @@ export interface TopicRecord {
   title: string;
   keywords: string[];
   category: string | null;
+  intent: string | null;
   status: TopicStatus;
   assignedAgentId: string | null;
   usedPostId: string | null;
@@ -28,6 +36,7 @@ export interface TopicInput {
   title: string;
   keywords: string[];
   category: string | null;
+  intent: string | null;
 }
 
 export interface TopicCounts {
@@ -44,6 +53,7 @@ interface TopicRow {
   title: string;
   keywords: string;
   category: string | null;
+  intent: string | null;
   status: string;
   assigned_agent_id: string | null;
   used_post_id: string | null;
@@ -73,6 +83,7 @@ function toTopic(row: TopicRow): TopicRecord {
     title: row.title,
     keywords: readKeywords(row.keywords),
     category: row.category,
+    intent: row.intent,
     status: readStatus(row.status),
     assignedAgentId: row.assigned_agent_id,
     usedPostId: row.used_post_id,
@@ -136,10 +147,10 @@ export async function createTopic(db: D1Database, input: TopicInput): Promise<To
 
   await db
     .prepare(
-      `INSERT INTO topics (id, title, keywords, category, status, assigned_agent_id, used_post_id, note, created_at, updated_at)
-       VALUES (?, ?, ?, ?, 'queued', NULL, NULL, NULL, ?, ?)`,
+      `INSERT INTO topics (id, title, keywords, category, intent, status, assigned_agent_id, used_post_id, note, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'queued', NULL, NULL, NULL, ?, ?)`,
     )
-    .bind(id, input.title, JSON.stringify(input.keywords), input.category, now, now)
+    .bind(id, input.title, JSON.stringify(input.keywords), input.category, input.intent, now, now)
     .run();
 
   return getTopic(db, id);
@@ -152,6 +163,17 @@ export async function getTopic(db: D1Database, id: string): Promise<TopicRecord>
   }
 
   return toTopic(row);
+}
+
+export async function setTopicIntent(
+  db: D1Database,
+  id: string,
+  intent: string | null,
+): Promise<void> {
+  await db
+    .prepare('UPDATE topics SET intent = ?, updated_at = ? WHERE id = ?')
+    .bind(intent, new Date().toISOString(), id)
+    .run();
 }
 
 async function claimTopicWithStatus(

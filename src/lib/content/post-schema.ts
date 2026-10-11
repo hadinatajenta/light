@@ -20,6 +20,7 @@ export const postFrontmatterSchema = z.object({
   canonical: z.url().optional(),
   noindex: z.boolean().default(false),
   focusKeyword: z.string().optional(),
+  targetIntent: z.enum(['informational', 'commercial', 'transactional', 'navigational']).optional(),
   affiliate: z.boolean().default(false),
   faq: z.array(z.object({ question: z.string(), answer: z.string() })).default([]),
 });

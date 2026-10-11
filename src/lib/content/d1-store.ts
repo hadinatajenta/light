@@ -17,6 +17,7 @@ interface PostRow {
   canonical: string | null;
   noindex: number;
   focus_keyword: string | null;
+  target_intent: string | null;
   affiliate: number;
   faq: string;
   pub_date: string | null;
@@ -79,6 +80,7 @@ function toDocument(row: PostRow): PostDocument {
       canonical: row.canonical ?? undefined,
       noindex: row.noindex === 1,
       focusKeyword: row.focus_keyword ?? undefined,
+      targetIntent: row.target_intent ?? undefined,
       affiliate: row.affiliate === 1,
       faq: parseJsonArray(row.faq),
       pubDate: row.pub_date ?? undefined,
@@ -176,9 +178,9 @@ export function createD1Store(db: D1Database) {
       await db
         .prepare(
           `INSERT INTO posts (id, title, description, seo_title, status, category, tags, body,
-            cover_url, cover_alt, canonical, noindex, focus_keyword, affiliate, faq,
+            cover_url, cover_alt, canonical, noindex, focus_keyword, target_intent, affiliate, faq,
             pub_date, updated_date, published_at, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
@@ -194,6 +196,7 @@ export function createD1Store(db: D1Database) {
           data.canonical ? String(data.canonical) : null,
           readBool(data.noindex),
           data.focusKeyword ? String(data.focusKeyword) : null,
+          data.targetIntent ? String(data.targetIntent) : null,
           readBool(data.affiliate),
           JSON.stringify(Array.isArray(data.faq) ? data.faq : []),
           toIsoOrNull(data.pubDate),
@@ -227,7 +230,7 @@ export function createD1Store(db: D1Database) {
         .prepare(
           `UPDATE posts SET title = ?, description = ?, seo_title = ?, status = ?, category = ?,
             tags = ?, body = ?, cover_url = ?, cover_alt = ?, canonical = ?, noindex = ?,
-            focus_keyword = ?, affiliate = ?, faq = ?, pub_date = ?, updated_date = ?, published_at = ?, updated_at = ?
+            focus_keyword = ?, target_intent = ?, affiliate = ?, faq = ?, pub_date = ?, updated_date = ?, published_at = ?, updated_at = ?
            WHERE id = ?`,
         )
         .bind(
@@ -243,6 +246,7 @@ export function createD1Store(db: D1Database) {
           data.canonical ? String(data.canonical) : null,
           readBool(data.noindex),
           data.focusKeyword ? String(data.focusKeyword) : null,
+          data.targetIntent ? String(data.targetIntent) : row.target_intent,
           readBool(data.affiliate),
           JSON.stringify(Array.isArray(data.faq) ? data.faq : []),
           toIsoOrNull(data.pubDate),

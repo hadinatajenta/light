@@ -5,6 +5,8 @@ import {
   getTopic,
   listTopics,
   releaseTopic,
+  setTopicIntent,
+  TOPIC_INTENTS,
   TOPIC_STATUSES,
 } from '@/lib/agents/topics';
 import { withAdmin } from '@/lib/api/handler';
@@ -15,6 +17,7 @@ export const prerender = false;
 
 const updateRequestSchema = z.object({
   status: z.enum(TOPIC_STATUSES),
+  intent: z.enum(TOPIC_INTENTS).nullable().optional(),
 });
 
 function requireId(params: Record<string, string | undefined>): string {
@@ -45,6 +48,10 @@ export const PUT = withAdmin(async ({ params, request }, requestId, user) => {
       .prepare('UPDATE topics SET status = ?, updated_at = ? WHERE id = ?')
       .bind(payload.status, new Date().toISOString(), id)
       .run();
+  }
+
+  if (payload.intent !== undefined) {
+    await setTopicIntent(database, id, payload.intent);
   }
 
   const [topic] = await listTopics(database, { limit: 200 }).then((topics) =>
