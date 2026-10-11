@@ -26,6 +26,8 @@ export interface ArticleJsonLdInput {
   url: string;
   datePublished: Date;
   authorName: string;
+  publisherName?: string;
+  publisherLogoUrl?: string;
   image?: string;
   dateModified?: Date;
 }
@@ -40,7 +42,30 @@ export function buildArticleJsonLd(input: ArticleJsonLdInput): Record<string, un
     datePublished: input.datePublished.toISOString(),
     dateModified: (input.dateModified ?? input.datePublished).toISOString(),
     author: { '@type': 'Organization', name: input.authorName },
+    publisher: {
+      '@type': 'Organization',
+      name: input.publisherName ?? input.authorName,
+      ...(input.publisherLogoUrl
+        ? { logo: { '@type': 'ImageObject', url: input.publisherLogoUrl } }
+        : {}),
+    },
     ...(input.image ? { image: [input.image] } : {}),
+  };
+}
+
+export function buildOrganizationJsonLd(input: {
+  name: string;
+  url: string;
+  logoUrl?: string;
+  sameAs?: string[];
+}): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: input.name,
+    url: input.url,
+    ...(input.logoUrl ? { logo: input.logoUrl } : {}),
+    ...(input.sameAs && input.sameAs.length > 0 ? { sameAs: input.sameAs } : {}),
   };
 }
 

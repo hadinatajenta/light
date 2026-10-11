@@ -7,7 +7,7 @@ import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPostSummaries } from '@/lib/content/public';
-import { buildCanonicalUrl, buildItemListJsonLd, buildWebsiteJsonLd } from '@/utils/seo';
+import { buildCanonicalUrl, buildItemListJsonLd, buildOrganizationJsonLd, buildWebsiteJsonLd } from '@/utils/seo';
 
 export const prerender = false;
 
@@ -24,6 +24,11 @@ const posts = (await getPublishedPostSummaries()).slice(0, HOMEPAGE_POST_LIMIT);
 
 const jsonLd = [
   buildWebsiteJsonLd({ name: SITE_TITLE, url: siteUrl, description: SITE_DESCRIPTION }),
+  buildOrganizationJsonLd({
+    name: SITE_TITLE,
+    url: siteUrl,
+    logoUrl: new URL('/og-default.png', siteUrl).href,
+  }),
   ...(posts.length > 0
     ? [
         buildItemListJsonLd(

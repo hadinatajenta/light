@@ -70,3 +70,28 @@ The route `src/pages/llms.txt.ts` is generated at request time from the publishe
 2. Confirm the automatic IndexNow ping reached the endpoint (Worker logs, or a `2xx` in the IndexNow response).
 3. Confirm the post appears in `sitemap.xml` and `llms.txt`.
 4. Confirm related links render on the post and on its neighbours.
+
+## Structured data
+
+The site emits JSON-LD for:
+
+- **Article** on every guide, including `author`, `publisher` (with a logo), `datePublished`, and `dateModified`.
+- **BreadcrumbList** on guides and pages.
+- **FAQPage** when a post has FAQ entries.
+- **WebSite** and **Organization** on the homepage, and **ItemList** for the homepage post list.
+
+We deliberately do **not** emit **Product** or **Review** rich results: they require real offers, prices, and aggregate ratings, and inventing them violates Google's structured-data policy. Add them only when we have trustworthy data (verified price/rating with a source).
+
+**HowTo** rich results were deprecated by Google in 2023, so we do not emit HowTo markup. The steps still live in the article body as H2 sections, which is what readers and Google use.
+
+## Core Web Vitals
+
+Core Web Vitals are a field measurement, not something to hardcode. After ads are live, check them:
+
+1. Open PageSpeed Insights for the homepage and one guide, or use the CrUX report in Search Console.
+2. Watch **LCP** (main image and ads), **CLS** (ad slots reserving height, fonts), and **INP** (interaction cost of ads and scripts).
+3. The ad slots already reserve height through `min-height` classes, which is the main CLS control. Re-check after any new ad format is enabled.
+
+## SEO audit dashboard
+
+`/dashboard/seo` renders a deterministic audit built from the article content: title and description length, H1/H2 structure, word count, target keyword placement, internal links, cover, plus keyword cannibalization, orphan posts, refresh candidates (not updated in 180 days), and broken external links. Use it before and after publishing. The external link check is on demand and bounded; run it occasionally rather than on every page load.

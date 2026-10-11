@@ -2,7 +2,7 @@
 import AdSlot from '@/components/AdSlot.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
-import { SITE_AUTHOR } from '@/consts';
+import { SITE_AUTHOR, SITE_TITLE } from '@/consts';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
 import { getRelatedPosts } from '@/lib/content/related';
 import { findMediaCreditByUrl } from '@/lib/media/store';
@@ -43,6 +43,7 @@ const related = await getRelatedPosts({ id: post.id, tags: post.tags, category: 
 const canonicalUrl =
   buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname) ?? Astro.url.pathname;
 const publishedDate = post.pubDate ? new Date(post.pubDate) : new Date();
+const organizationLogoUrl = new URL('/og-default.png', Astro.site ?? Astro.url.origin).href;
 const jsonLd = [
   buildArticleJsonLd({
     title: post.title,
@@ -51,6 +52,8 @@ const jsonLd = [
     datePublished: publishedDate,
     dateModified: post.updatedDate ? new Date(post.updatedDate) : undefined,
     authorName: SITE_AUTHOR,
+    publisherName: SITE_TITLE,
+    publisherLogoUrl: organizationLogoUrl,
   }),
   buildBreadcrumbJsonLd([
     { name: 'Home', url: new URL('/', Astro.site ?? Astro.url.origin).href },
