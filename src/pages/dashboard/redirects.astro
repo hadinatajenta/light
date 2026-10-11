@@ -1,14 +1,20 @@
 ---
+import RedirectManager from '@/components/dashboard/redirect-manager';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
 export const prerender = false;
 ---
 
 <DashboardLayout title="Redirects">
-  <div class="rounded-lg border border-border bg-card p-6">
-    <h2 class="text-base font-medium">Redirects</h2>
-    <p class="mt-2 max-w-prose text-sm text-muted-foreground">
-      Keep 301 redirects for changed slugs, so old links never break.
-    </p>
+  <div class="flex flex-col gap-6">
+    <div class="min-w-0">
+      <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">Redirects</h2>
+      <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+        Send an old link to its new home. Add a redirect when a slug changed or a page moved, so
+        search engines and shared links keep working instead of hitting a 404.
+      </p>
+    </div>
+
+    <RedirectManager client:load />
   </div>
 </DashboardLayout>

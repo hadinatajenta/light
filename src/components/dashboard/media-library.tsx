@@ -639,18 +639,10 @@ export default function MediaLibrary() {
             <div>
               <p className="text-sm font-medium text-foreground">No images yet</p>
               <p className="mt-1 max-w-prose text-sm text-muted-foreground">
-                Upload your first image, then use it as a cover in the post editor.
+                Use the Upload image button above, or drop files here. Then pick one as a cover in
+                the post editor.
               </p>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              disabled={isUploadDisabled}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <UploadIcon />
-              Upload image
-            </Button>
           </div>
         ) : null}
 

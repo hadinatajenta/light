@@ -1,14 +1,134 @@
 ---
+import { GITHUB_BRANCH, GITHUB_REPO } from 'astro:env/server';
+import { AD_CONFIG } from '@/config/monetization';
+import { describeDeepseekKey } from '@/lib/agents/settings';
+import { listPrograms } from '@/lib/affiliate/store';
+import { DEFAULT_BRANCH, DEFAULT_REPOSITORY } from '@/lib/content/config';
+import { resolveContentDatabase } from '@/lib/content/database';
+import { readJsonSetting } from '@/lib/settings/store';
+import SiteSettingsForm from '@/components/dashboard/site-settings-form';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
 export const prerender = false;
+
+interface Integrations {
+  repository: string;
+  branch: string;
+  deepseekConfigured: boolean;
+  deepseekHint: string | null;
+  amazonApproved: boolean;
+  adNetwork: string;
+}
+
+const AD_NETWORK_LABELS: Record<string, string> = {
+  none: 'No ads',
+  adsense: 'Google AdSense',
+  ezoic: 'Ezoic',
+  mediavine: 'Mediavine',
+};
+
+async function loadIntegrations(): Promise<Integrations> {
+  const base: Integrations = {
+    repository: GITHUB_REPO ?? DEFAULT_REPOSITORY,
+    branch: GITHUB_BRANCH ?? DEFAULT_BRANCH,
+    deepseekConfigured: false,
+    deepseekHint: null,
+    amazonApproved: false,
+    adNetwork: AD_CONFIG.network,
+  };
+
+  try {
+    const database = await resolveContentDatabase();
+    if (!database) {
+      return base;
+    }
+
+    const [deepseek, programs, ads] = await Promise.all([
+      describeDeepseekKey(database),
+      listPrograms(database),
+      readJsonSetting<{ network?: string }>(database, 'ads_config'),
+    ]);
+
+    const amazon = programs.find((program) => program.network === 'amazon');
+
+    return {
+      ...base,
+      deepseekConfigured: deepseek.configured,
+      deepseekHint: deepseek.hint,
+      amazonApproved: amazon ? amazon.status === 'approved' : false,
+      adNetwork: ads?.network ?? AD_CONFIG.network,
+    };
+  } catch {
+    return base;
+  }
+}
+
+const integrations = await loadIntegrations();
+const adNetworkLabel = AD_NETWORK_LABELS[integrations.adNetwork] ?? integrations.adNetwork;
 ---
 
 <DashboardLayout title="Settings">
-  <div class="rounded-lg border border-border bg-card p-6">
-    <h2 class="text-base font-medium">Settings</h2>
-    <p class="mt-2 max-w-prose text-sm text-muted-foreground">
-      Site title, description, social links, default image, analytics id, and SEO defaults.
-    </p>
+  <div class="flex flex-col gap-6">
+    <div class="min-w-0">
+      <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">Settings</h2>
+      <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+        The site title, description, and social defaults. These render into every page head and
+        apply immediately, because the site reads them from the database.
+      </p>
+    </div>
+
+    <SiteSettingsForm client:load />
+
+    <section
+      aria-label="Integrations"
+      class="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
+    >
+      <div class="min-w-0">
+        <h3 class="text-sm font-medium text-foreground">Integrations</h3>
+        <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+          Read-only status for the services this site depends on. Configure these elsewhere.
+        </p>
+      </div>
+
+      <dl class="grid gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1 rounded-lg border border-border p-3">
+          <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">Content backup</dt>
+          <dd class="text-sm text-foreground">
+            <span class="font-mono text-xs">{integrations.repository}</span>
+            <span class="mt-0.5 block text-muted-foreground">
+              Branch {integrations.branch}
+            </span>
+          </dd>
+        </div>
+
+        <div class="flex flex-col gap-1 rounded-lg border border-border p-3">
+          <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">DeepSeek key</dt>
+          <dd class="text-sm text-foreground">
+            {integrations.deepseekConfigured ? 'Configured' : 'Not configured'}
+            {integrations.deepseekHint ? (
+              <span class="mt-0.5 block font-mono text-xs text-muted-foreground">
+                {integrations.deepseekHint}
+              </span>
+            ) : (
+              <span class="mt-0.5 block text-muted-foreground">
+                Add a key on the Agents page.
+              </span>
+            )}
+          </dd>
+        </div>
+
+        <div class="flex flex-col gap-1 rounded-lg border border-border p-3">
+          <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">Amazon program</dt>
+          <dd class="text-sm text-foreground">
+            {integrations.amazonApproved ? 'Approved' : 'Not approved'}
+          </dd>
+        </div>
+
+        <div class="flex flex-col gap-1 rounded-lg border border-border p-3">
+          <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">Ad network</dt>
+          <dd class="text-sm text-foreground">{adNetworkLabel}</dd>
+        </div>
+      </dl>
+    </section>
   </div>
 </DashboardLayout>

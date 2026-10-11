@@ -116,6 +116,10 @@ function isActive(href: string): boolean {
         margin-top: 0.5rem;
       }
 
+      [data-sidebar-collapsed='true'] #dashboard-sidebar-collapse svg {
+        transform: rotate(180deg);
+      }
+
       @media (max-width: 767px) {
         [data-sidebar-collapsed='true'] .sidebar-shell {
           width: 16rem;
@@ -158,6 +162,27 @@ function isActive(href: string): boolean {
           </a>
           <span class="sidebar-label text-xs text-muted-foreground">admin</span>
         </div>
+
+        <button
+          type="button"
+          id="dashboard-sidebar-collapse"
+          class="absolute top-7 right-0 z-50 hidden size-6 translate-x-1/2 place-items-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:grid"
+          aria-label="Collapse sidebar"
+          aria-pressed="false"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="size-3.5 transition-transform duration-200 ease-out"
+            aria-hidden="true"
+          >
+            <path d="M15 6l-6 6 6 6"></path>
+          </svg>
+        </button>
 
         <div class="p-3 pb-1">
           <a
@@ -226,30 +251,6 @@ function isActive(href: string): boolean {
             ))
           }
         </nav>
-
-        <div class="border-t border-border p-3">
-          <button
-            type="button"
-            id="dashboard-sidebar-collapse"
-            class="sidebar-link flex w-full items-center gap-3 rounded-md px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            aria-label="Collapse sidebar"
-            aria-pressed="false"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="size-4 shrink-0"
-              aria-hidden="true"
-            >
-              <path d="M15 6l-6 6 6 6"></path>
-            </svg>
-            <span class="sidebar-label">Collapse</span>
-          </button>
-        </div>
       </aside>
 
       <div class="flex min-w-0 flex-1 flex-col">

@@ -1,12 +1,7 @@
 ---
 import { AD_CONFIG } from '@/config/monetization';
-import {
-  DEFAULT_OG_IMAGE,
-  GOOGLE_SITE_VERIFICATION,
-  SITE_DESCRIPTION,
-  SITE_LOCALE,
-  SITE_TITLE,
-} from '@/consts';
+import { resolveContentDatabase } from '@/lib/content/database';
+import { DEFAULT_SITE_SETTINGS, getSiteSettings, type SiteSettings } from '@/lib/settings/site';
 import { buildCanonicalUrl, serializeJsonLd } from '@/utils/seo';
 
 interface Props {
@@ -19,11 +14,26 @@ interface Props {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
+async function loadSiteSettings(): Promise<SiteSettings> {
+  try {
+    const database = await resolveContentDatabase();
+    if (!database) {
+      return DEFAULT_SITE_SETTINGS;
+    }
+
+    return await getSiteSettings(database);
+  } catch {
+    return DEFAULT_SITE_SETTINGS;
+  }
+}
+
+const siteSettings = await loadSiteSettings();
+
 const {
-  title = SITE_TITLE,
-  description = SITE_DESCRIPTION,
+  title = siteSettings.title,
+  description = siteSettings.description,
   canonical,
-  image = DEFAULT_OG_IMAGE,
+  image = siteSettings.defaultOgImage,
   type = 'website',
   noindex = false,
   jsonLd,
@@ -32,6 +42,8 @@ const {
 const canonicalUrl = canonical ?? buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname);
 const socialImage = new URL(image, Astro.site ?? Astro.url.origin).href;
 const jsonLdBlocks = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
+const siteLocale = siteSettings.locale;
+const googleSiteVerification = siteSettings.googleSiteVerification;
 ---
 
 <meta charset="utf-8" />
@@ -40,15 +52,15 @@ const jsonLdBlocks = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
 <title>{title}</title>
 <meta name="description" content={description} />
 <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
-{GOOGLE_SITE_VERIFICATION && <meta name="google-site-verification" content={GOOGLE_SITE_VERIFICATION} />}
+{googleSiteVerification && <meta name="google-site-verification" content={googleSiteVerification} />}
 {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
+<link rel="alternate" type="application/rss+xml" title={siteSettings.title} href="/rss.xml" />
 <meta property="og:type" content={type} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
 <meta property="og:image" content={socialImage} />
-<meta property="og:locale" content={SITE_LOCALE.replace('-', '_')} />
+<meta property="og:locale" content={siteLocale.replace('-', '_')} />
 {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={title} />

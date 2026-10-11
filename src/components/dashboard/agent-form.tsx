@@ -3,6 +3,7 @@ import {
   Loader2Icon,
   RefreshCwIcon,
   SaveIcon,
+  Trash2Icon,
   TriangleAlertIcon,
 } from 'lucide-react';
 import { type SubmitEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -211,6 +212,8 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
   const promptTouchedRef = useRef(false);
 
@@ -332,6 +335,27 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       setFormError(message);
       toast.error(message);
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteAgent = async (): Promise<void> => {
+    if (!agentId || isDeleting) {
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      await requestJson<{ id: string; deleted: boolean }>(
+        `${AGENTS_ENDPOINT}/${encodeURIComponent(agentId)}`,
+        { method: 'DELETE' },
+      );
+      toast.success('Agent deleted.');
+      window.location.assign('/dashboard/agents');
+    } catch (error) {
+      toast.error(toErrorMessage(error));
+      setIsDeleting(false);
+      setIsConfirmingDelete(false);
     }
   };
 
@@ -572,6 +596,50 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
               : 'Pick a role, tune the prompt, and set how often the agent should run.'}
           </p>
         </div>
+        {mode === 'edit' ? (
+          isConfirmingDelete ? (
+            <div
+              role="alert"
+              className="flex flex-wrap items-center justify-end gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2"
+            >
+              <span className="text-sm text-destructive">
+                Delete this agent and its run history?
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="whitespace-nowrap"
+                disabled={isDeleting}
+                onClick={() => setIsConfirmingDelete(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="whitespace-nowrap"
+                disabled={isDeleting}
+                onClick={() => void handleDeleteAgent()}
+              >
+                {isDeleting ? <Loader2Icon className="animate-spin" /> : null}
+                {isDeleting ? 'Deleting' : 'Delete agent'}
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="whitespace-nowrap text-destructive hover:text-destructive"
+              onClick={() => setIsConfirmingDelete(true)}
+            >
+              <Trash2Icon />
+              Delete agent
+            </Button>
+          )
+        ) : null}
         <Button asChild variant="ghost" size="sm" className="whitespace-nowrap">
           <a href="/dashboard/agents">
             <ArrowLeftIcon />

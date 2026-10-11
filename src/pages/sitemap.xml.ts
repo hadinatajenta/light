@@ -28,11 +28,18 @@ export const prerender = false;
 
 export const GET: APIRoute = async (context) => {
   const origin = context.site ?? new URL(context.url.origin);
-  const database = await resolveContentDatabase();
-  const [posts, pages] = await Promise.all([
-    getPublishedPostSummaries(),
-    database ? listPublishedPages(database) : Promise.resolve([]),
-  ]);
+  let posts: Awaited<ReturnType<typeof getPublishedPostSummaries>> = [];
+  let pages: Awaited<ReturnType<typeof listPublishedPages>> = [];
+
+  try {
+    const database = await resolveContentDatabase();
+    [posts, pages] = await Promise.all([
+      getPublishedPostSummaries(),
+      database ? listPublishedPages(database) : Promise.resolve([]),
+    ]);
+  } catch (error) {
+    console.error('Sitemap content lookup failed', error);
+  }
 
   const entries: SitemapEntry[] = [
     ...STATIC_PATHS.map((path) => ({ path })),
@@ -52,6 +59,9 @@ export const GET: APIRoute = async (context) => {
   const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 
   return new Response(body, {
-    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=600, s-maxage=3600',
+    },
   });
 };
