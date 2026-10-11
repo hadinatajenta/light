@@ -1,5 +1,5 @@
 export const HOMEPAGE_CACHE_SECONDS = 300;
-export const HOMEPAGE_CACHE_CONTROL = `public, s-maxage=${HOMEPAGE_CACHE_SECONDS}, stale-while-revalidate=600`;
+export const HOMEPAGE_CACHE_CONTROL = `public, max-age=0, s-maxage=${HOMEPAGE_CACHE_SECONDS}, stale-while-revalidate=600`;
 
 interface HomepageCache {
   match(request: Request): Promise<Response | undefined>;
