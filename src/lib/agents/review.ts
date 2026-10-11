@@ -74,9 +74,13 @@ export async function setPostReview(
 }
 
 export async function publishPost(db: D1Database, id: string): Promise<void> {
+  const now = new Date().toISOString();
+
   await db
-    .prepare("UPDATE posts SET status = 'published', updated_at = ? WHERE id = ?")
-    .bind(new Date().toISOString(), id)
+    .prepare(
+      "UPDATE posts SET status = 'published', published_at = COALESCE(published_at, ?), updated_at = ? WHERE id = ?",
+    )
+    .bind(now, now, id)
     .run();
 }
 

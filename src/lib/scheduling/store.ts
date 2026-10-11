@@ -167,9 +167,9 @@ export async function publishDuePosts(
 
     const result = await db
       .prepare(
-        "UPDATE posts SET status = 'published', updated_at = ? WHERE id = ? AND status = 'draft' AND review_status = 'approved'",
+        "UPDATE posts SET status = 'published', published_at = COALESCE(published_at, ?), updated_at = ? WHERE id = ? AND status = 'draft' AND review_status = 'approved'",
       )
-      .bind(updatedAt, post.id)
+      .bind(updatedAt, updatedAt, post.id)
       .run();
 
     if (result.meta.changes !== 1) {

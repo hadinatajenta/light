@@ -187,8 +187,8 @@ describe('publishDuePosts', () => {
     const updates = writeLog.filter((write) => write.sql.includes('UPDATE posts'));
     expect(updates).toHaveLength(2);
     expect(updates[0].sql).toContain("status = 'draft'");
-    expect(updates[0].params).toEqual([NOW.toISOString(), 'first']);
-    expect(updates[1].params).toEqual([NOW.toISOString(), 'second']);
+    expect(updates[0].params).toEqual([NOW.toISOString(), NOW.toISOString(), 'first']);
+    expect(updates[1].params).toEqual([NOW.toISOString(), NOW.toISOString(), 'second']);
   });
 
   it('does not count or record a post when the guarded update changes no rows', async () => {

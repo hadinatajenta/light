@@ -20,6 +20,7 @@ interface PostRow {
   affiliate: number;
   faq: string;
   pub_date: string | null;
+  published_at: string | null;
   updated_date: string | null;
   updated_at: string;
 }
@@ -111,6 +112,23 @@ function toIsoOrNull(value: unknown): string | null {
   return null;
 }
 
+export function resolvePublishedAt(
+  previousStatus: string,
+  nextStatus: string,
+  currentPublishedAt: string | null,
+  nowIso: string,
+): string | null {
+  if (nextStatus !== 'published') {
+    return currentPublishedAt;
+  }
+
+  if (previousStatus === 'published') {
+    return currentPublishedAt;
+  }
+
+  return currentPublishedAt ?? nowIso;
+}
+
 export function createD1Store(db: D1Database) {
   async function requireRow(id: string): Promise<PostRow> {
     const row = await db.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first<PostRow>();
@@ -152,20 +170,22 @@ export function createD1Store(db: D1Database) {
 
       const data = input.data;
       const now = new Date().toISOString();
+      const status = readString(data.status, 'draft');
+      const publishedAt = status === 'published' ? now : null;
 
       await db
         .prepare(
           `INSERT INTO posts (id, title, description, seo_title, status, category, tags, body,
             cover_url, cover_alt, canonical, noindex, focus_keyword, affiliate, faq,
-            pub_date, updated_date, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            pub_date, updated_date, published_at, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           id,
           readString(data.title, id),
           readString(data.description),
           data.seoTitle ? String(data.seoTitle) : null,
-          readString(data.status, 'draft'),
+          status,
           data.category ? String(data.category) : null,
           JSON.stringify(toStringArray(data.tags)),
           input.body,
@@ -178,6 +198,7 @@ export function createD1Store(db: D1Database) {
           JSON.stringify(Array.isArray(data.faq) ? data.faq : []),
           toIsoOrNull(data.pubDate),
           toIsoOrNull(data.updatedDate),
+          publishedAt,
           now,
           now,
         )
@@ -199,19 +220,21 @@ export function createD1Store(db: D1Database) {
 
       const data = input.data;
       const now = new Date().toISOString();
+      const nextStatus = readString(data.status, row.status);
+      const publishedAt = resolvePublishedAt(row.status, nextStatus, row.published_at, now);
 
       await db
         .prepare(
           `UPDATE posts SET title = ?, description = ?, seo_title = ?, status = ?, category = ?,
             tags = ?, body = ?, cover_url = ?, cover_alt = ?, canonical = ?, noindex = ?,
-            focus_keyword = ?, affiliate = ?, faq = ?, pub_date = ?, updated_date = ?, updated_at = ?
+            focus_keyword = ?, affiliate = ?, faq = ?, pub_date = ?, updated_date = ?, published_at = ?, updated_at = ?
            WHERE id = ?`,
         )
         .bind(
           readString(data.title, row.title),
           readString(data.description, row.description),
           data.seoTitle ? String(data.seoTitle) : null,
-          readString(data.status, row.status),
+          nextStatus,
           data.category ? String(data.category) : null,
           JSON.stringify(toStringArray(data.tags)),
           input.body,
@@ -224,6 +247,7 @@ export function createD1Store(db: D1Database) {
           JSON.stringify(Array.isArray(data.faq) ? data.faq : []),
           toIsoOrNull(data.pubDate),
           toIsoOrNull(data.updatedDate) ?? now,
+          publishedAt,
           now,
           id,
         )
