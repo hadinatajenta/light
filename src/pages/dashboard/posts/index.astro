@@ -16,6 +16,24 @@ const initialStatus =
 const initialCategory = searchParams.get('category') ?? '';
 const initialQuery = searchParams.get('q') ?? '';
 const initialPage = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1', 10) || 1);
+const reviewParam = searchParams.get('review') ?? 'all';
+const initialReview =
+  reviewParam === 'pending' ||
+  reviewParam === 'approved' ||
+  reviewParam === 'changes_requested' ||
+  reviewParam === 'none'
+    ? reviewParam
+    : 'all';
+const sortParam = searchParams.get('sort') ?? 'updated_desc';
+const initialSort =
+  sortParam === 'updated_asc' ||
+  sortParam === 'published_desc' ||
+  sortParam === 'title_asc' ||
+  sortParam === 'title_desc'
+    ? sortParam
+    : 'updated_desc';
+const perPageParam = Number.parseInt(searchParams.get('per_page') ?? '20', 10);
+const initialPerPage = perPageParam === 10 || perPageParam === 50 ? perPageParam : 20;
 ---
 
 <DashboardLayout title="Posts">
@@ -25,5 +43,8 @@ const initialPage = Math.max(1, Number.parseInt(searchParams.get('page') ?? '1',
     initialCategory={initialCategory}
     initialQuery={initialQuery}
     initialPage={initialPage}
+    initialReview={initialReview}
+    initialSort={initialSort}
+    initialPerPage={initialPerPage}
   />
 </DashboardLayout>

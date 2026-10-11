@@ -124,6 +124,22 @@ function isActive(href: string): boolean {
         transform: rotate(180deg);
       }
 
+      [data-sidebar-group-open='false'] .sidebar-group-list {
+        display: none;
+      }
+
+      [data-sidebar-group-open='false'] .sidebar-group-chevron {
+        transform: rotate(-90deg);
+      }
+
+      [data-sidebar-collapsed='true'] .sidebar-group-toggle {
+        display: none;
+      }
+
+      [data-sidebar-collapsed='true'] .sidebar-group-list {
+        display: flex;
+      }
+
       @media (max-width: 767px) {
         [data-sidebar-collapsed='true'] .sidebar-shell {
           width: 16rem;
@@ -143,6 +159,18 @@ function isActive(href: string): boolean {
         [data-sidebar-collapsed='true'] .sidebar-link,
         [data-sidebar-collapsed='true'] .sidebar-cta {
           justify-content: flex-start;
+        }
+
+        .sidebar-group-toggle {
+          min-height: 2.75rem;
+        }
+
+        [data-sidebar-collapsed='true'] .sidebar-group-toggle {
+          display: flex;
+        }
+
+        [data-sidebar-collapsed='true'] [data-sidebar-group-open='false'] .sidebar-group-list {
+          display: none;
         }
       }
     </style>
@@ -211,11 +239,36 @@ function isActive(href: string): boolean {
         <nav aria-label="Dashboard" class="flex-1 overflow-y-auto p-2">
           {
             navigationGroups.map((entry) => (
-              <div class="sidebar-group mb-3 first:mt-1">
-                <p class="sidebar-group-label px-3 pb-1.5 text-[0.625rem] font-medium tracking-[0.14em] text-muted-foreground uppercase">
-                  {entry.group}
-                </p>
-                <ul class="flex flex-col gap-0.5">
+              <div
+                class="sidebar-group mb-3 first:mt-1"
+                data-sidebar-group={entry.group}
+                data-sidebar-group-open="true"
+              >
+                <button
+                  type="button"
+                  class="sidebar-group-toggle flex min-h-9 w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-[0.625rem] font-medium tracking-[0.14em] text-muted-foreground uppercase transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  aria-expanded="true"
+                  aria-controls={`dashboard-sidebar-group-${entry.group.toLowerCase()}`}
+                  data-sidebar-group-toggle
+                >
+                  <span class="sidebar-group-label">{entry.group}</span>
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="sidebar-group-chevron size-3 shrink-0 transition-transform duration-200 ease-out"
+                    aria-hidden="true"
+                  >
+                    <path d="m6 9 6 6 6-6"></path>
+                  </svg>
+                </button>
+                <ul
+                  id={`dashboard-sidebar-group-${entry.group.toLowerCase()}`}
+                  class="sidebar-group-list flex flex-col gap-0.5"
+                >
                   {entry.items.map((item) => (
                     <li>
                       <a
@@ -223,9 +276,9 @@ function isActive(href: string): boolean {
                         title={item.label}
                         aria-current={isActive(item.href) ? 'page' : undefined}
                         class:list={[
-                          'sidebar-link relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                          'sidebar-link flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                           isActive(item.href)
-                            ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+                            ? 'bg-sidebar-primary font-medium text-sidebar-primary-foreground'
                             : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                         ]}
                       >
@@ -241,12 +294,6 @@ function isActive(href: string): boolean {
                           set:html={ICONS[item.icon]}
                         />
                         <span class="sidebar-label truncate">{item.label}</span>
-                        {isActive(item.href) && (
-                          <span
-                            class="sidebar-label absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-                            aria-hidden="true"
-                          />
-                        )}
                       </a>
                     </li>
                   ))}
@@ -255,6 +302,59 @@ function isActive(href: string): boolean {
             ))
           }
         </nav>
+
+        <script is:inline>
+          (() => {
+            const storageKey = 'light.dashboard.sidebar-groups';
+            const groups = document.querySelectorAll('[data-sidebar-group]');
+
+            if (groups.length === 0) {
+              return;
+            }
+
+            const readGroupState = () => {
+              try {
+                const stored = localStorage.getItem(storageKey);
+                const parsed = stored ? JSON.parse(stored) : null;
+                return parsed && typeof parsed === 'object' ? parsed : {};
+              } catch {
+                return {};
+              }
+            };
+
+            const saveGroupState = () => {
+              const state = {};
+              groups.forEach((group) => {
+                state[group.dataset.sidebarGroup] = group.dataset.sidebarGroupOpen === 'true';
+              });
+
+              try {
+                localStorage.setItem(storageKey, JSON.stringify(state));
+              } catch {
+                return;
+              }
+            };
+
+            const setGroupOpen = (group, isOpen) => {
+              group.dataset.sidebarGroupOpen = String(isOpen);
+              group
+                .querySelector('[data-sidebar-group-toggle]')
+                ?.setAttribute('aria-expanded', String(isOpen));
+            };
+
+            const storedState = readGroupState();
+
+            groups.forEach((group) => {
+              setGroupOpen(group, storedState[group.dataset.sidebarGroup] !== false);
+              group
+                .querySelector('[data-sidebar-group-toggle]')
+                ?.addEventListener('click', () => {
+                  setGroupOpen(group, group.dataset.sidebarGroupOpen !== 'true');
+                  saveGroupState();
+                });
+            });
+          })();
+        </script>
       </aside>
 
       <div class="flex min-w-0 flex-1 flex-col">

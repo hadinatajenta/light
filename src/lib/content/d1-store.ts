@@ -20,6 +20,7 @@ interface PostRow {
   target_intent: string | null;
   affiliate: number;
   faq: string;
+  review_status: string | null;
   pub_date: string | null;
   published_at: string | null;
   updated_date: string | null;
@@ -57,6 +58,7 @@ function toSummary(row: PostRow): PostSummary {
     tags: parseJsonArray(row.tags).filter((tag): tag is string => typeof tag === 'string'),
     coverUrl: row.cover_url,
     coverAlt: row.cover_alt,
+    reviewStatus: row.review_status,
     pubDate: row.pub_date,
     updatedDate: row.updated_date,
   };
@@ -145,8 +147,8 @@ export function createD1Store(db: D1Database) {
       const result = await db
         .prepare(
           `SELECT id, title, description, status, category, tags, updated_date, updated_at,
-                  pub_date, seo_title, cover_url, cover_alt, canonical, noindex, focus_keyword,
-                  affiliate, faq, body
+                  pub_date, seo_title, cover_url, cover_alt, review_status, canonical, noindex,
+                  focus_keyword, affiliate, faq, body
            FROM posts
            ORDER BY COALESCE(updated_date, pub_date) DESC`,
         )

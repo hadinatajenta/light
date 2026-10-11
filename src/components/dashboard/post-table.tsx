@@ -3,6 +3,7 @@ import {
   ArchiveIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ImageOffIcon,
   InboxIcon,
   Loader2Icon,
   MoreHorizontalIcon,
@@ -39,10 +40,16 @@ import {
 import { isScheduled } from '@/lib/scheduling/store';
 import { formatDate } from '@/utils/date';
 import { DialogSurface } from './dialog-surface';
+import { formatRelativeTime } from './research-notes';
 
-const PER_PAGE = 20;
-const COLUMN_COUNT = 8;
-const DASH = '-';
+const DEFAULT_PER_PAGE = 20;
+const PER_PAGE_OPTIONS = [10, 20, 50] as const;
+const DEFAULT_SORT = 'updated_desc';
+const COLUMN_COUNT = 10;
+const PAGE_NUMBER_COLUMN_WIDTH = 'w-10';
+const SELECT_COLUMN_WIDTH = 'w-12';
+const ACTIONS_COLUMN_WIDTH = 'w-12';
+const DASH = '\u2014';
 const SKELETON_ROWS = [
   'skeleton-1',
   'skeleton-2',
@@ -58,6 +65,9 @@ const SELECT_CLASS =
 type PostStatus = 'draft' | 'published' | 'archived';
 type PostDisplayStatus = PostStatus | 'scheduled';
 type StatusFilter = 'all' | PostDisplayStatus;
+type ReviewStatus = 'pending' | 'approved' | 'changes_requested' | 'none';
+type ReviewFilter = ReviewStatus | 'all';
+type PostSort = 'updated_desc' | 'updated_asc' | 'published_desc' | 'title_asc' | 'title_desc';
 type BulkAction = 'archive' | 'delete';
 
 interface PostSummary {
@@ -68,6 +78,9 @@ interface PostSummary {
   status: PostStatus;
   category: string | null;
   tags: string[];
+  coverUrl?: string | null;
+  coverAlt?: string | null;
+  reviewStatus?: string | null;
   pubDate: string | null;
   updatedDate: string | null;
 }
@@ -109,6 +122,16 @@ interface PostTableProps {
   initialCategory: string;
   initialQuery: string;
   initialPage: number;
+  initialReview?: ReviewFilter;
+  initialSort?: PostSort;
+  initialPerPage?: number;
+}
+
+interface SummaryCounts {
+  total: number;
+  perPage: number;
+  page: number;
+  visibleCount: number;
 }
 
 const STATUS_LABEL: Record<PostDisplayStatus, string> = {
@@ -131,6 +154,36 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'scheduled', label: 'Scheduled' },
   { value: 'published', label: 'Published' },
   { value: 'archived', label: 'Archived' },
+];
+
+const REVIEW_LABEL: Record<ReviewStatus, string> = {
+  pending: 'Pending',
+  approved: 'Approved',
+  changes_requested: 'Changes requested',
+  none: 'Not reviewed',
+};
+
+const REVIEW_VARIANT: Record<ReviewStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  pending: 'secondary',
+  approved: 'default',
+  changes_requested: 'destructive',
+  none: 'outline',
+};
+
+const REVIEW_OPTIONS: { value: ReviewFilter; label: string }[] = [
+  { value: 'all', label: 'All reviews' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'changes_requested', label: 'Changes requested' },
+  { value: 'none', label: 'Not reviewed' },
+];
+
+const SORT_OPTIONS: { value: PostSort; label: string }[] = [
+  { value: 'updated_desc', label: 'Recently updated' },
+  { value: 'updated_asc', label: 'Least recently updated' },
+  { value: 'published_desc', label: 'Newest published' },
+  { value: 'title_asc', label: 'Title A to Z' },
+  { value: 'title_desc', label: 'Title Z to A' },
 ];
 
 class ApiRequestError extends Error {
@@ -199,6 +252,50 @@ function resolveErrorMessage(error: unknown): string {
   return 'Something went wrong. Please try again.';
 }
 
+function resolveReviewStatus(value: string | null | undefined): ReviewStatus | null {
+  if (value === 'pending' || value === 'approved' || value === 'changes_requested') {
+    return value;
+  }
+  return null;
+}
+
+function resolveStatusFilter(value: string): StatusFilter {
+  if (value === 'draft' || value === 'scheduled' || value === 'published' || value === 'archived') {
+    return value;
+  }
+  return 'all';
+}
+
+function resolveReviewFilter(value: string): ReviewFilter {
+  if (
+    value === 'pending' ||
+    value === 'approved' ||
+    value === 'changes_requested' ||
+    value === 'none'
+  ) {
+    return value;
+  }
+  return 'all';
+}
+
+function resolveSort(value: string): PostSort {
+  if (
+    value === 'updated_asc' ||
+    value === 'published_desc' ||
+    value === 'title_asc' ||
+    value === 'title_desc'
+  ) {
+    return value;
+  }
+  return 'updated_desc';
+}
+
+function resolvePerPage(value: number): number {
+  return PER_PAGE_OPTIONS.includes(value as (typeof PER_PAGE_OPTIONS)[number])
+    ? value
+    : DEFAULT_PER_PAGE;
+}
+
 function formatUpdatedDate(value: string | null): string {
   if (!value) {
     return DASH;
@@ -215,6 +312,10 @@ function buildResultMessage(action: BulkAction, count: number): string {
   return action === 'archive' ? `Archived ${count} ${noun}.` : `Deleted ${count} ${noun}.`;
 }
 
+function editsFor(id: string): string {
+  return `/dashboard/posts/${encodeURIComponent(id)}/edit`;
+}
+
 function StatusBadge({
   status,
   pubDate,
@@ -228,26 +329,57 @@ function StatusBadge({
   return <Badge variant={STATUS_VARIANT[displayStatus]}>{STATUS_LABEL[displayStatus]}</Badge>;
 }
 
-function TagList({ tags }: { tags: string[] }) {
+function ReviewBadge({ status }: { status: ReviewStatus }) {
+  return <Badge variant={REVIEW_VARIANT[status]}>{REVIEW_LABEL[status]}</Badge>;
+}
+
+function CoverThumbnail({ url, alt }: { url?: string | null; alt: string }) {
+  const [hasError, setHasError] = React.useState(false);
+
+  if (!url || hasError) {
+    return (
+      <span
+        className="grid h-10 w-14 place-items-center rounded border border-dashed border-border text-muted-foreground"
+        aria-hidden="true"
+      >
+        <ImageOffIcon className="size-4" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="block h-10 w-14 overflow-hidden rounded border border-border bg-muted">
+      <img
+        src={url}
+        alt={alt}
+        width={56}
+        height={40}
+        loading="lazy"
+        decoding="async"
+        className="h-full w-full object-cover"
+        onError={() => setHasError(true)}
+      />
+    </span>
+  );
+}
+
+function TagCount({ tags }: { tags: string[] }) {
   if (tags.length === 0) {
     return <span className="text-muted-foreground">{DASH}</span>;
   }
 
-  const visibleTags = tags.slice(0, 2);
-  const remaining = tags.length - visibleTags.length;
+  return <span className="tabular-nums text-muted-foreground">{tags.length}</span>;
+}
 
-  return (
-    <div className="flex items-center gap-1">
-      {visibleTags.map((tag) => (
-        <Badge key={tag} variant="outline" className="font-normal text-muted-foreground">
-          {tag}
-        </Badge>
-      ))}
-      {remaining > 0 ? (
-        <span className="text-xs tabular-nums text-muted-foreground">+{remaining}</span>
-      ) : null}
-    </div>
-  );
+function SummaryCounts({ total, perPage, page, visibleCount }: SummaryCounts) {
+  const rangeStart = total === 0 ? 0 : (page - 1) * perPage + 1;
+  const rangeEnd = total === 0 ? 0 : (page - 1) * perPage + visibleCount;
+
+  if (total === 0) {
+    return <>{`Showing ${DASH}`}</>;
+  }
+
+  return <>{`Showing ${rangeStart} to ${rangeEnd} of ${total}`}</>;
 }
 
 function SkeletonRows() {
@@ -262,25 +394,168 @@ function SkeletonRows() {
             <Skeleton className="size-4" />
           </TableCell>
           <TableCell>
+            <Skeleton className="h-10 w-14 rounded" />
+          </TableCell>
+          <TableCell>
             <Skeleton className="h-4 w-48" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-5 w-20 rounded-full" />
           </TableCell>
           <TableCell>
-            <Skeleton className="h-4 w-24" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-5 w-24 rounded-full" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-24" />
           </TableCell>
           <TableCell>
-            <Skeleton className="size-8" />
+            <Skeleton className="h-4 w-6" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-20" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="ml-auto size-8" />
           </TableCell>
         </TableRow>
       ))}
+    </>
+  );
+}
+
+interface PostTableRowsProps {
+  postsPage: PostsPage;
+  selected: Map<string, string>;
+  categoryLabels: Map<string, string>;
+  now: Date;
+  isMutating: boolean;
+  onToggleSelection: (id: string, title: string) => void;
+  onOpenRowConfirm: (post: PostSummary, intent: BulkAction) => void;
+}
+
+function PostTableRows({
+  postsPage,
+  selected,
+  categoryLabels,
+  now,
+  isMutating,
+  onToggleSelection,
+  onOpenRowConfirm,
+}: PostTableRowsProps) {
+  return (
+    <>
+      {postsPage.posts.map((post, index) => {
+        const rowNumber = (postsPage.page - 1) * postsPage.perPage + index + 1;
+        const isSelected = selected.has(post.id);
+        const reviewStatus = resolveReviewStatus(post.reviewStatus);
+        const updatedLabel = formatRelativeTime(post.updatedDate);
+        const categoryLabel = post.category
+          ? (categoryLabels.get(post.category) ?? post.category)
+          : DASH;
+        const coverAlt = post.coverAlt?.trim() || post.title;
+
+        return (
+          <TableRow key={post.id} data-state={isSelected ? 'selected' : undefined}>
+            <TableCell className="text-right tabular-nums text-muted-foreground">
+              {rowNumber}
+            </TableCell>
+            <TableCell>
+              <label className="-m-2 grid size-11 cursor-pointer place-items-center">
+                <input
+                  type="checkbox"
+                  className="size-4 rounded border-input accent-primary"
+                  checked={isSelected}
+                  onChange={() => onToggleSelection(post.id, post.title)}
+                  disabled={isMutating}
+                  aria-label={`Select ${post.title}`}
+                />
+              </label>
+            </TableCell>
+            <TableCell>
+              <CoverThumbnail url={post.coverUrl} alt={coverAlt} />
+            </TableCell>
+            <TableCell className="group/title relative max-w-[22rem]">
+              <a href={editsFor(post.id)} className="absolute inset-0 focus-visible:outline-none">
+                <span className="sr-only">{post.title}</span>
+              </a>
+              <span
+                className="block truncate font-medium text-foreground group-hover/title:underline group-hover/title:underline-offset-4"
+                title={post.title}
+              >
+                {post.title}
+              </span>
+            </TableCell>
+            <TableCell aria-current="true">
+              <StatusBadge status={post.status} pubDate={post.pubDate} now={now} />
+            </TableCell>
+            <TableCell>
+              {post.status === 'draft' ? (
+                reviewStatus ? (
+                  <ReviewBadge status={reviewStatus} />
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground">
+                    {REVIEW_LABEL.none}
+                  </Badge>
+                )
+              ) : (
+                <span className="text-muted-foreground">{DASH}</span>
+              )}
+            </TableCell>
+            <TableCell className="text-muted-foreground">{categoryLabel}</TableCell>
+            <TableCell>
+              <TagCount tags={post.tags} />
+            </TableCell>
+            <TableCell className="whitespace-nowrap text-muted-foreground">
+              {post.updatedDate ? (
+                <time dateTime={post.updatedDate} title={formatUpdatedDate(post.updatedDate)}>
+                  {updatedLabel}
+                </time>
+              ) : (
+                DASH
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={isMutating}
+                    aria-label={`Actions for ${post.title}`}
+                  >
+                    <MoreHorizontalIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <a href={editsFor(post.id)}>
+                      <PencilIcon />
+                      Edit
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={post.status === 'archived' || isMutating}
+                    onSelect={() => onOpenRowConfirm(post, 'archive')}
+                  >
+                    <ArchiveIcon />
+                    Archive
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={isMutating}
+                    onSelect={() => onOpenRowConfirm(post, 'delete')}
+                  >
+                    <Trash2Icon />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
+          </TableRow>
+        );
+      })}
     </>
   );
 }
@@ -370,17 +645,23 @@ export default function PostTable({
   initialCategory,
   initialQuery,
   initialPage,
+  initialReview = 'all',
+  initialSort = DEFAULT_SORT,
+  initialPerPage = DEFAULT_PER_PAGE,
 }: PostTableProps) {
   const [status, setStatus] = React.useState<StatusFilter>(initialStatus);
+  const [review, setReview] = React.useState<ReviewFilter>(initialReview);
+  const [sort, setSort] = React.useState<PostSort>(initialSort);
   const [category, setCategory] = React.useState(initialCategory);
   const [searchInput, setSearchInput] = React.useState(initialQuery);
   const [query, setQuery] = React.useState(initialQuery);
   const [page, setPage] = React.useState(initialPage);
+  const [pageSize, setPageSize] = React.useState(resolvePerPage(initialPerPage));
   const [postsPage, setPostsPage] = React.useState<PostsPage>({
     posts: [],
     total: 0,
     page: initialPage,
-    perPage: PER_PAGE,
+    perPage: resolvePerPage(initialPerPage),
     totalPages: 1,
   });
   const [hasLoaded, setHasLoaded] = React.useState(false);
@@ -411,6 +692,8 @@ export default function PostTable({
     try {
       const params = new URLSearchParams();
       params.set('status', status);
+      params.set('review', review);
+      params.set('sort', sort);
       if (category) {
         params.set('category', category);
       }
@@ -418,7 +701,7 @@ export default function PostTable({
         params.set('q', query);
       }
       params.set('page', String(page));
-      params.set('per_page', String(PER_PAGE));
+      params.set('per_page', String(pageSize));
 
       const payload = await requestData<PostsPayload>(`/api/dashboard/posts?${params.toString()}`, {
         signal: controller.signal,
@@ -440,6 +723,9 @@ export default function PostTable({
       if (payload.page !== page) {
         setPage(payload.page);
       }
+      if (payload.per_page !== pageSize) {
+        setPageSize(resolvePerPage(payload.per_page));
+      }
     } catch (error) {
       if (latestRequestRef.current !== requestId || isAbortError(error)) {
         return;
@@ -450,7 +736,7 @@ export default function PostTable({
         setIsFetching(false);
       }
     }
-  }, [status, category, query, page]);
+  }, [status, review, sort, category, query, page, pageSize]);
 
   React.useEffect(() => {
     void loadPosts();
@@ -508,8 +794,17 @@ export default function PostTable({
     if (query) {
       params.set('q', query);
     }
+    if (review !== 'all') {
+      params.set('review', review);
+    }
+    if (sort !== DEFAULT_SORT) {
+      params.set('sort', sort);
+    }
     if (page > 1) {
       params.set('page', String(page));
+    }
+    if (pageSize !== DEFAULT_PER_PAGE) {
+      params.set('per_page', String(pageSize));
     }
     const search = params.toString();
     window.history.replaceState(
@@ -517,7 +812,7 @@ export default function PostTable({
       '',
       `${window.location.pathname}${search ? `?${search}` : ''}`,
     );
-  }, [status, category, query, page]);
+  }, [status, category, query, review, sort, page, pageSize]);
 
   const categoryLabels = React.useMemo(() => {
     const labels = new Map<string, string>();
@@ -538,22 +833,19 @@ export default function PostTable({
     return options;
   }, [categories, category]);
 
-  const pageIds = postsPage.posts.map((post) => post.id);
+  const pageIds = React.useMemo(() => postsPage.posts.map((post) => post.id), [postsPage.posts]);
   const isAllOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selected.has(id));
   const isSomeOnPageSelected = pageIds.some((id) => selected.has(id));
   const selectedCount = selected.size;
   const isMutating = busyAction !== null;
-  const hasActiveFilters = status !== 'all' || category !== '' || searchInput.trim() !== '';
+  const hasActiveFilters =
+    status !== 'all' ||
+    review !== 'all' ||
+    sort !== DEFAULT_SORT ||
+    category !== '' ||
+    searchInput.trim() !== '';
   const isPaginationDisabled = isFetching || isMutating;
   const scheduleNow = new Date();
-
-  const rangeStart = postsPage.total === 0 ? 0 : (postsPage.page - 1) * postsPage.perPage + 1;
-  const rangeEnd =
-    postsPage.total === 0 ? 0 : (postsPage.page - 1) * postsPage.perPage + postsPage.posts.length;
-  const rangeLabel =
-    postsPage.total === 0
-      ? 'No posts'
-      : `Showing ${rangeStart} to ${rangeEnd} of ${postsPage.total}`;
 
   const showInitialSkeleton = !hasLoaded && isFetching;
   const showErrorState = loadError !== null && postsPage.posts.length === 0;
@@ -569,13 +861,6 @@ export default function PostTable({
 
   const reload = () => {
     void loadPosts();
-  };
-
-  const resolveCategoryLabel = (value: string | null): string => {
-    if (!value) {
-      return DASH;
-    }
-    return categoryLabels.get(value) ?? value;
   };
 
   const toggleSelection = (id: string, title: string) => {
@@ -613,18 +898,20 @@ export default function PostTable({
     setConfirmOpen(true);
   };
 
-  const openBulkConfirm = () => {
+  const openBulkConfirm = (intent: BulkAction) => {
     setConfirmTargets(Array.from(selected, ([id, title]) => ({ id, title })));
     setConfirmScope('bulk');
-    setConfirmIntent('archive');
+    setConfirmIntent(intent);
     setConfirmOpen(true);
   };
 
-  const applyOptimisticStatus = (ids: string[], status: PostSummary['status']) => {
+  const applyOptimisticStatus = (ids: string[], statusValue: PostSummary['status']) => {
     const target = new Set(ids);
     setPostsPage((previous) => ({
       ...previous,
-      posts: previous.posts.map((post) => (target.has(post.id) ? { ...post, status } : post)),
+      posts: previous.posts.map((post) =>
+        target.has(post.id) ? { ...post, status: statusValue } : post,
+      ),
     }));
   };
 
@@ -647,6 +934,7 @@ export default function PostTable({
 
     const ids = confirmTargets.map((target) => target.id);
     const total = ids.length;
+    const scope = confirmScope;
 
     if (action === 'delete') {
       applyOptimisticDelete(ids);
@@ -661,7 +949,7 @@ export default function PostTable({
     let failedCount = 0;
 
     try {
-      if (confirmScope === 'row') {
+      if (scope === 'row') {
         const target = ids[0];
         if (!target) {
           return;
@@ -702,7 +990,17 @@ export default function PostTable({
   };
 
   const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatus(event.target.value as StatusFilter);
+    setStatus(resolveStatusFilter(event.target.value));
+    setPage(1);
+  };
+
+  const handleReviewChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setReview(resolveReviewFilter(event.target.value));
+    setPage(1);
+  };
+
+  const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSort(resolveSort(event.target.value));
     setPage(1);
   };
 
@@ -711,10 +1009,17 @@ export default function PostTable({
     setPage(1);
   };
 
+  const handlePageSizeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setPageSize(resolvePerPage(Number.parseInt(event.target.value, 10)));
+    setPage(1);
+  };
+
   const handleResetFilters = () => {
     setSearchInput('');
     setQuery('');
     setStatus('all');
+    setReview('all');
+    setSort(DEFAULT_SORT);
     setCategory('');
     setPage(1);
   };
@@ -725,7 +1030,23 @@ export default function PostTable({
         className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4"
         onSubmit={(event) => event.preventDefault()}
       >
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-[16rem] flex-1 flex-col gap-1.5">
+          <Label htmlFor="posts-search">Search</Label>
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="posts-search"
+              type="search"
+              className="pl-9"
+              placeholder="Search by title or slug"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              disabled={isMutating}
+            />
+          </div>
+        </div>
+
+        <div className="flex min-w-[10rem] flex-col gap-1.5">
           <Label htmlFor="posts-status-filter">Status</Label>
           <select
             id="posts-status-filter"
@@ -742,7 +1063,24 @@ export default function PostTable({
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex min-w-[10rem] flex-col gap-1.5">
+          <Label htmlFor="posts-review-filter">Review</Label>
+          <select
+            id="posts-review-filter"
+            className={SELECT_CLASS}
+            value={review}
+            onChange={handleReviewChange}
+            disabled={isMutating}
+          >
+            {REVIEW_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex min-w-[10rem] flex-col gap-1.5">
           <Label htmlFor="posts-category-filter">Category</Label>
           <select
             id="posts-category-filter"
@@ -760,20 +1098,38 @@ export default function PostTable({
           </select>
         </div>
 
-        <div className="flex min-w-[16rem] flex-1 flex-col gap-1.5">
-          <Label htmlFor="posts-search">Search</Label>
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="posts-search"
-              type="search"
-              className="pl-9"
-              placeholder="Search by title or slug"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              disabled={isMutating}
-            />
-          </div>
+        <div className="flex min-w-[10rem] flex-col gap-1.5">
+          <Label htmlFor="posts-sort-filter">Sort</Label>
+          <select
+            id="posts-sort-filter"
+            className={SELECT_CLASS}
+            value={sort}
+            onChange={handleSortChange}
+            disabled={isMutating}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex min-w-[7rem] flex-col gap-1.5">
+          <Label htmlFor="posts-page-size">Per page</Label>
+          <select
+            id="posts-page-size"
+            className={SELECT_CLASS}
+            value={String(pageSize)}
+            onChange={handlePageSizeChange}
+            disabled={isMutating}
+          >
+            {PER_PAGE_OPTIONS.map((option) => (
+              <option key={option} value={String(option)}>
+                {option}
+              </option>
+            ))}
+          </select>
         </div>
 
         <Button
@@ -808,6 +1164,7 @@ export default function PostTable({
               type="button"
               variant="ghost"
               size="sm"
+              className="whitespace-nowrap"
               onClick={() => setSelected(new Map())}
               disabled={isMutating}
             >
@@ -817,11 +1174,23 @@ export default function PostTable({
               type="button"
               variant="outline"
               size="sm"
-              onClick={openBulkConfirm}
+              className="whitespace-nowrap"
+              onClick={() => openBulkConfirm('archive')}
               disabled={isMutating}
-              aria-label="Archive or delete selected posts"
+            >
+              <ArchiveIcon />
+              Archive selected
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="whitespace-nowrap"
+              onClick={() => openBulkConfirm('delete')}
+              disabled={isMutating}
             >
               <Trash2Icon />
+              Delete selected
             </Button>
           </div>
         </section>
@@ -840,12 +1209,15 @@ export default function PostTable({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-12 text-right">#</TableHead>
-              <TableHead className="w-12">
+              <TableHead className={cn(PAGE_NUMBER_COLUMN_WIDTH, 'text-right')}>
+                <span className="sr-only">Row number</span>
+                <span aria-hidden="true">#</span>
+              </TableHead>
+              <TableHead className={SELECT_COLUMN_WIDTH}>
                 <label className="-m-2 grid size-11 cursor-pointer place-items-center">
                   <input
                     ref={selectAllRef}
@@ -858,12 +1230,16 @@ export default function PostTable({
                   />
                 </label>
               </TableHead>
+              <TableHead className="w-20">
+                <span className="sr-only">Cover</span>
+              </TableHead>
               <TableHead>Title</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Review</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead>Updated</TableHead>
-              <TableHead className="w-10">
+              <TableHead className={cn(ACTIONS_COLUMN_WIDTH, 'text-right')}>
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
@@ -919,92 +1295,17 @@ export default function PostTable({
               </TableRow>
             ) : null}
 
-            {showRows
-              ? postsPage.posts.map((post, index) => {
-                  const rowNumber = (postsPage.page - 1) * postsPage.perPage + index + 1;
-                  const isSelected = selected.has(post.id);
-                  return (
-                    <TableRow key={post.id} data-state={isSelected ? 'selected' : undefined}>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">
-                        {rowNumber}
-                      </TableCell>
-                      <TableCell>
-                        <label className="-m-2 grid size-11 cursor-pointer place-items-center">
-                          <input
-                            type="checkbox"
-                            className="size-4 rounded border-input accent-primary"
-                            checked={isSelected}
-                            onChange={() => toggleSelection(post.id, post.title)}
-                            disabled={isMutating}
-                            aria-label={`Select ${post.title}`}
-                          />
-                        </label>
-                      </TableCell>
-                      <TableCell
-                        className="max-w-[22rem] truncate font-medium text-foreground"
-                        title={post.title}
-                      >
-                        {post.title}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge
-                          status={post.status}
-                          pubDate={post.pubDate}
-                          now={scheduleNow}
-                        />
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {resolveCategoryLabel(post.category)}
-                      </TableCell>
-                      <TableCell>
-                        <TagList tags={post.tags} />
-                      </TableCell>
-                      <TableCell className="tabular-nums text-muted-foreground">
-                        {formatUpdatedDate(post.updatedDate)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              disabled={isMutating}
-                              aria-label={`Actions for ${post.title}`}
-                            >
-                              <MoreHorizontalIcon />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <a href={`/dashboard/posts/${encodeURIComponent(post.id)}/edit`}>
-                                <PencilIcon />
-                                Edit
-                              </a>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={post.status === 'archived' || isMutating}
-                              onSelect={() => openRowConfirm(post, 'archive')}
-                            >
-                              <ArchiveIcon />
-                              Archive
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              variant="destructive"
-                              disabled={isMutating}
-                              onSelect={() => openRowConfirm(post, 'delete')}
-                            >
-                              <Trash2Icon />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              : null}
+            {showRows ? (
+              <PostTableRows
+                postsPage={postsPage}
+                selected={selected}
+                categoryLabels={categoryLabels}
+                now={scheduleNow}
+                isMutating={isMutating}
+                onToggleSelection={toggleSelection}
+                onOpenRowConfirm={openRowConfirm}
+              />
+            ) : null}
           </TableBody>
         </Table>
       </div>
@@ -1012,7 +1313,12 @@ export default function PostTable({
       {showRows ? (
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
           <p className="flex items-center gap-2 tabular-nums">
-            <span>{rangeLabel}</span>
+            <SummaryCounts
+              total={postsPage.total}
+              perPage={postsPage.perPage}
+              page={postsPage.page}
+              visibleCount={postsPage.posts.length}
+            />
             {isFetching && hasLoaded ? (
               <span className="flex items-center gap-1 text-xs" aria-live="polite">
                 <Loader2Icon className="size-3 animate-spin" />

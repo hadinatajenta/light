@@ -15,25 +15,79 @@ const savePostRequestSchema = z.object({
   expectedSha: z.string().optional(),
 });
 
-function sortPosts(posts: PostSummary[]): PostSummary[] {
-  return [...posts].sort((first, second) => {
+const SORT_OPTIONS = [
+  'updated_desc',
+  'updated_asc',
+  'published_desc',
+  'title_asc',
+  'title_desc',
+] as const;
+
+const DEFAULT_SORT = 'updated_desc';
+const DEFAULT_PER_PAGE = 20;
+const MAX_PER_PAGE = 50;
+const REVIEW_FILTER_OPTIONS = ['all', 'pending', 'approved', 'changes_requested', 'none'] as const;
+
+type PostSort = (typeof SORT_OPTIONS)[number];
+
+function resolveSort(value: string | null): PostSort {
+  return value && (SORT_OPTIONS as readonly string[]).includes(value)
+    ? (value as PostSort)
+    : DEFAULT_SORT;
+}
+
+function sortPosts(posts: PostSummary[], sort: PostSort): PostSummary[] {
+  const sorted = [...posts];
+
+  if (sort === 'title_asc' || sort === 'title_desc') {
+    const direction = sort === 'title_asc' ? 1 : -1;
+    return sorted.sort((first, second) => direction * first.title.localeCompare(second.title));
+  }
+
+  if (sort === 'published_desc') {
+    return sorted.sort((first, second) =>
+      (second.pubDate ?? '').localeCompare(first.pubDate ?? ''),
+    );
+  }
+
+  const direction = sort === 'updated_asc' ? 1 : -1;
+  return sorted.sort((first, second) => {
     const firstDate = first.updatedDate ?? first.pubDate ?? '';
     const secondDate = second.updatedDate ?? second.pubDate ?? '';
-    return secondDate.localeCompare(firstDate);
+    return direction * firstDate.localeCompare(secondDate);
   });
+}
+
+function matchesReview(post: PostSummary, review: string): boolean {
+  const status = post.reviewStatus ?? null;
+
+  if (review === 'none') {
+    return status === null;
+  }
+
+  return status === review;
 }
 
 export const GET = withAdmin(async ({ url }, requestId) => {
   const status = url.searchParams.get('status') ?? 'all';
   const category = url.searchParams.get('category');
   const query = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+  const reviewParam = url.searchParams.get('review') ?? 'all';
+  const review = (REVIEW_FILTER_OPTIONS as readonly string[]).includes(reviewParam)
+    ? reviewParam
+    : 'all';
+  const sort = resolveSort(url.searchParams.get('sort'));
   const page = Math.max(1, Number.parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
-  const perPage = Math.min(
-    50,
-    Math.max(1, Number.parseInt(url.searchParams.get('per_page') ?? '20', 10) || 20),
+  const requestedPerPage = Number.parseInt(
+    url.searchParams.get('per_page') ?? String(DEFAULT_PER_PAGE),
+    10,
   );
+  const perPage =
+    requestedPerPage >= 10 && requestedPerPage <= MAX_PER_PAGE
+      ? requestedPerPage
+      : DEFAULT_PER_PAGE;
 
-  const allPosts = sortPosts(await listPosts());
+  const allPosts = sortPosts(await listPosts(), sort);
   const now = new Date();
 
   const filtered = allPosts.filter((post) => {
@@ -45,6 +99,9 @@ export const GET = withAdmin(async ({ url }, requestId) => {
       return false;
     }
     if (category && post.category !== category) {
+      return false;
+    }
+    if (review !== 'all' && !matchesReview(post, review)) {
       return false;
     }
     if (query && !post.title.toLowerCase().includes(query) && !post.id.includes(query)) {

@@ -11,6 +11,7 @@ export interface PostSummary {
   tags: string[];
   coverUrl: string | null;
   coverAlt: string | null;
+  reviewStatus?: string | null;
   pubDate: string | null;
   updatedDate: string | null;
 }

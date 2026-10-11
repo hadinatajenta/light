@@ -19,14 +19,12 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: 'dashboard', group: 'Overview' },
   { label: 'Insights', href: '/dashboard/insights', icon: 'insights', group: 'Overview' },
   { label: 'Posts', href: '/dashboard/posts', icon: 'posts', group: 'Content' },
-  { label: 'Categories', href: '/dashboard/categories', icon: 'categories', group: 'Content' },
   { label: 'Pages', href: '/dashboard/pages', icon: 'pages', group: 'Content' },
   { label: 'Media', href: '/dashboard/media', icon: 'media', group: 'Content' },
-  { label: 'Audit', href: '/dashboard/audit', icon: 'audit', group: 'Content' },
+  { label: 'Categories', href: '/dashboard/categories', icon: 'categories', group: 'Content' },
   { label: 'Agents', href: '/dashboard/agents', icon: 'agents', group: 'Automation' },
   { label: 'SEO', href: '/dashboard/seo', icon: 'seo', group: 'Automation' },
   { label: 'Research', href: '/dashboard/research', icon: 'research', group: 'Automation' },
-  { label: 'Activity', href: '/dashboard/activity', icon: 'activity', group: 'Automation' },
   { label: 'Sharing', href: '/dashboard/sharing', icon: 'sharing', group: 'Automation' },
   {
     label: 'Monetization',
@@ -35,6 +33,8 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
     group: 'Revenue',
   },
   { label: 'Redirects', href: '/dashboard/redirects', icon: 'redirects', group: 'Revenue' },
+  { label: 'Audit', href: '/dashboard/audit', icon: 'audit', group: 'System' },
+  { label: 'Activity', href: '/dashboard/activity', icon: 'activity', group: 'System' },
   { label: 'Settings', href: '/dashboard/settings', icon: 'settings', group: 'System' },
 ];
 

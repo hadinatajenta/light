@@ -1,5 +1,6 @@
 import {
   CheckIcon,
+  DownloadIcon,
   InboxIcon,
   InfoIcon,
   Loader2Icon,
@@ -51,6 +52,158 @@ const FINDER_TABS = [
 
 type FinderTab = (typeof FINDER_TABS)[number]['id'];
 type AsyncStatus = 'idle' | 'loading' | 'error' | 'ready';
+
+const BATCH_COUNT_OPTIONS = [3, 5, 10] as const;
+
+type BatchCount = (typeof BATCH_COUNT_OPTIONS)[number];
+
+const DEFAULT_BATCH_COUNT: BatchCount = 5;
+
+const SELECT_CLASS =
+  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
+
+type ResultImportState =
+  | { status: 'importing' }
+  | { status: 'imported' }
+  | { status: 'failed'; reason: string };
+
+interface BatchProgress {
+  current: number;
+  total: number;
+  activeResultId: string | null;
+}
+
+interface BatchSequenceResult {
+  imported: number;
+  failed: number;
+  total: number;
+}
+
+interface BatchSummary extends BatchSequenceResult {
+  matched: number;
+}
+
+function withResultState(
+  states: Record<string, ResultImportState>,
+  resultId: string,
+  state: ResultImportState,
+): Record<string, ResultImportState> {
+  return { ...states, [resultId]: state };
+}
+
+function resultStateLabel(state: ResultImportState): string {
+  if (state.status === 'importing') {
+    return 'Importing';
+  }
+  if (state.status === 'imported') {
+    return 'In library';
+  }
+  return 'Failed';
+}
+
+function buildResultAccessibilityLabel(
+  result: MediaSearchResult,
+  state: ResultImportState | undefined,
+): string {
+  const label = result.title ? `Select ${result.title}` : 'Select this image';
+  if (!state) {
+    return label;
+  }
+  if (state.status === 'failed') {
+    return `${label}. Failed: ${state.reason}`;
+  }
+  return `${label}. ${resultStateLabel(state)}`;
+}
+
+function ImportStateIcon({ state }: { state: ResultImportState }) {
+  if (state.status === 'importing') {
+    return <Loader2Icon className="mt-0.5 size-3 shrink-0 animate-spin" aria-hidden="true" />;
+  }
+  if (state.status === 'imported') {
+    return <CheckIcon className="mt-0.5 size-3 shrink-0" aria-hidden="true" />;
+  }
+  return <TriangleAlertIcon className="mt-0.5 size-3 shrink-0" aria-hidden="true" />;
+}
+
+function toImportMediaInput(result: MediaSearchResult): ImportMediaInput {
+  const input: ImportMediaInput = { imageUrl: result.imageUrl };
+  if (result.title) {
+    input.title = result.title;
+  }
+  if (result.creator) {
+    input.creator = result.creator;
+  }
+  if (result.creatorUrl) {
+    input.creatorUrl = result.creatorUrl;
+  }
+  if (result.license) {
+    input.license = result.license;
+  }
+  if (result.licenseUrl) {
+    input.licenseUrl = result.licenseUrl;
+  }
+  if (result.sourceUrl) {
+    input.sourceUrl = result.sourceUrl;
+  }
+  return input;
+}
+
+async function importResultsInSequence(
+  resultsToImport: MediaSearchResult[],
+  signal: AbortSignal,
+  onResultStateChange: (resultId: string, state: ResultImportState) => void,
+  onProgressChange: (progress: BatchProgress) => void,
+): Promise<BatchSequenceResult | null> {
+  let importedCount = 0;
+  let failedCount = 0;
+  const total = resultsToImport.length;
+
+  for (const [index, result] of resultsToImport.entries()) {
+    if (signal.aborted) {
+      return null;
+    }
+
+    onProgressChange({ current: index + 1, total, activeResultId: result.id });
+    onResultStateChange(result.id, { status: 'importing' });
+
+    try {
+      await importMedia(toImportMediaInput(result), signal);
+      if (signal.aborted) {
+        return null;
+      }
+      importedCount += 1;
+      onResultStateChange(result.id, { status: 'imported' });
+    } catch (error) {
+      if (signal.aborted || isAbortError(error)) {
+        return null;
+      }
+      failedCount += 1;
+      onResultStateChange(result.id, { status: 'failed', reason: toErrorMessage(error) });
+    }
+  }
+
+  return { imported: importedCount, failed: failedCount, total };
+}
+
+function reportBatchOutcome(outcome: BatchSummary): void {
+  if (outcome.matched === 0) {
+    toast.info('No images match that search.');
+    return;
+  }
+  if (outcome.total === 0) {
+    toast.info('Every matching image is already in the library.');
+    return;
+  }
+  if (outcome.failed === 0) {
+    toast.success(`Imported ${outcome.imported} of ${outcome.total} images.`);
+    return;
+  }
+  if (outcome.imported === 0) {
+    toast.error(`Could not import any of the ${outcome.total} images.`);
+    return;
+  }
+  toast.warning(`Imported ${outcome.imported} of ${outcome.total}, ${outcome.failed} failed.`);
+}
 
 interface MediaFinderProps {
   open: boolean;
@@ -209,12 +362,18 @@ interface SearchPanelProps {
   error: string | null;
   results: MediaSearchResult[];
   selectedResultId: string | null;
-  importError: string | null;
+  resultStates: Record<string, ResultImportState>;
+  batchCount: BatchCount;
+  batchProgress: BatchProgress | null;
+  batchSummary: BatchSummary | null;
   isImporting: boolean;
+  isBatchImporting: boolean;
   onQueryChange: (value: string) => void;
   onSearch: () => void;
   onSelectResult: (id: string) => void;
   onImport: (result: MediaSearchResult) => void;
+  onBatchCountChange: (value: string) => void;
+  onRequestBatchImport: () => void;
 }
 
 function CreditLink({ value, href, label }: { value: string; href: string | null; label: string }) {
@@ -241,15 +400,39 @@ function SearchPanel({
   error,
   results,
   selectedResultId,
-  importError,
+  resultStates,
+  batchCount,
+  batchProgress,
+  batchSummary,
   isImporting,
+  isBatchImporting,
   onQueryChange,
   onSearch,
   onSelectResult,
   onImport,
+  onBatchCountChange,
+  onRequestBatchImport,
 }: SearchPanelProps) {
   const isSearching = status === 'loading';
   const selectedResult = results.find((result) => result.id === selectedResultId) ?? null;
+  const selectedResultState = selectedResult ? resultStates[selectedResult.id] : undefined;
+  const selectedImportError =
+    selectedResultState?.status === 'failed' ? selectedResultState.reason : null;
+  const activeBatchResult = batchProgress?.activeResultId
+    ? (results.find((result) => result.id === batchProgress.activeResultId) ?? null)
+    : null;
+  const isImportBusy = isImporting || isBatchImporting;
+  const batchProgressLabel =
+    batchProgress && batchProgress.current > 0
+      ? `Importing ${batchProgress.current} of ${batchProgress.total}`
+      : null;
+  const batchSummaryLabel = batchSummary
+    ? batchSummary.matched === 0
+      ? 'No images match that search.'
+      : batchSummary.total === 0
+        ? 'Every matching image is already in the library.'
+        : `Imported ${batchSummary.imported} of ${batchSummary.total}${batchSummary.failed > 0 ? `, ${batchSummary.failed} failed` : ''}.`
+    : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -273,10 +456,43 @@ function SearchPanel({
               onChange={(event) => onQueryChange(event.target.value)}
             />
           </div>
-          <Button type="submit" className="whitespace-nowrap" disabled={isSearching}>
+          <Button
+            type="submit"
+            className="whitespace-nowrap"
+            disabled={isSearching || isBatchImporting}
+          >
             {isSearching ? <Loader2Icon className="animate-spin" /> : <SearchIcon />}
             {isSearching ? 'Searching' : 'Search'}
           </Button>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="media-search-batch-count" className="sr-only">
+              Images per batch import
+            </Label>
+            <select
+              id="media-search-batch-count"
+              className={SELECT_CLASS}
+              value={String(batchCount)}
+              disabled={isBatchImporting}
+              onChange={(event) => onBatchCountChange(event.target.value)}
+            >
+              {BATCH_COUNT_OPTIONS.map((option) => (
+                <option key={option} value={String(option)}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              className="whitespace-nowrap"
+              disabled={isImportBusy}
+              onClick={onRequestBatchImport}
+            >
+              {isBatchImporting ? <Loader2Icon className="animate-spin" /> : <DownloadIcon />}
+              {isBatchImporting
+                ? (batchProgressLabel ?? 'Preparing import')
+                : `Auto import ${batchCount}`}
+            </Button>
+          </div>
         </div>
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
           <InfoIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
@@ -292,6 +508,37 @@ function SearchPanel({
             ? `${results.length} ${results.length === 1 ? 'image' : 'images'} found`
             : ''}
       </p>
+
+      {isBatchImporting && batchProgressLabel ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2"
+        >
+          <p className="flex items-center gap-2 text-sm text-foreground tabular-nums">
+            <Loader2Icon className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
+            {batchProgressLabel}
+          </p>
+          {activeBatchResult ? (
+            <p
+              className="min-w-0 truncate text-xs text-muted-foreground"
+              title={activeBatchResult.title ?? undefined}
+            >
+              {activeBatchResult.title || 'Untitled image'}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {batchSummaryLabel ? (
+        <div
+          role="status"
+          aria-live="polite"
+          className="rounded-lg border border-border bg-card px-3 py-2"
+        >
+          <p className="text-sm text-foreground tabular-nums">{batchSummaryLabel}</p>
+        </div>
+      ) : null}
 
       {isSearching ? (
         <ul aria-hidden="true" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -345,12 +592,13 @@ function SearchPanel({
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
             {results.map((result) => {
               const isSelected = result.id === selectedResultId;
+              const resultState = resultStates[result.id];
               return (
                 <li key={result.id} className="min-w-0">
                   <button
                     type="button"
                     aria-pressed={isSelected}
-                    aria-label={result.title ? `Select ${result.title}` : 'Select this image'}
+                    aria-label={buildResultAccessibilityLabel(result, resultState)}
                     onClick={() => onSelectResult(result.id)}
                     className={cn(
                       'flex h-full w-full min-w-0 flex-col gap-2 rounded-lg border p-2 text-left',
@@ -377,6 +625,23 @@ function SearchPanel({
                     {result.creator ? (
                       <span className="truncate text-xs text-muted-foreground">
                         {result.creator}
+                      </span>
+                    ) : null}
+                    {resultState ? (
+                      <span
+                        className={cn(
+                          'flex items-start gap-1 text-xs',
+                          resultState.status === 'failed'
+                            ? 'text-destructive'
+                            : 'text-muted-foreground',
+                        )}
+                      >
+                        <ImportStateIcon state={resultState} />
+                        <span className="line-clamp-2 min-w-0">
+                          {resultState.status === 'failed'
+                            ? `Failed: ${resultState.reason}`
+                            : resultStateLabel(resultState)}
+                        </span>
                       </span>
                     ) : null}
                   </button>
@@ -437,19 +702,26 @@ function SearchPanel({
                   ) : null}
                 </div>
 
-                {importError ? (
+                {selectedImportError ? (
                   <p
                     role="alert"
                     className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                   >
-                    {importError}
+                    {selectedImportError}
+                  </p>
+                ) : null}
+
+                {selectedResultState && selectedResultState.status !== 'failed' ? (
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <ImportStateIcon state={selectedResultState} />
+                    {resultStateLabel(selectedResultState)}
                   </p>
                 ) : null}
 
                 <Button
                   type="button"
                   className="w-full whitespace-nowrap"
-                  disabled={isImporting}
+                  disabled={isImportBusy}
                   onClick={() => onImport(selectedResult)}
                 >
                   {isImporting ? <Loader2Icon className="animate-spin" /> : <PlusIcon />}
@@ -465,6 +737,64 @@ function SearchPanel({
         </div>
       ) : null}
     </div>
+  );
+}
+
+interface BatchImportDialogProps {
+  open: boolean;
+  query: string;
+  plannedCount: number;
+  isCountExact: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  onConfirm: () => void;
+}
+
+function BatchImportDialog({
+  open,
+  query,
+  plannedCount,
+  isCountExact,
+  onOpenChange,
+  onConfirm,
+}: BatchImportDialogProps) {
+  const hasNothingToImport = plannedCount === 0;
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogSurface>
+        <div className="flex flex-col gap-1">
+          <DialogPrimitive.Title className="text-base font-semibold text-foreground">
+            Auto import images
+          </DialogPrimitive.Title>
+          <DialogPrimitive.Description className="text-sm text-muted-foreground">
+            {hasNothingToImport
+              ? `Every result for "${query}" is already in the library.`
+              : isCountExact
+                ? `This imports ${plannedCount} ${plannedCount === 1 ? 'image' : 'images'} for "${query}". Imports use your storage and cannot be undone in bulk.`
+                : `This searches for "${query}", then imports up to ${plannedCount} images. Imports use your storage and cannot be undone in bulk.`}
+          </DialogPrimitive.Description>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="whitespace-nowrap"
+            onClick={() => onOpenChange(false)}
+          >
+            {hasNothingToImport ? 'Close' : 'Cancel'}
+          </Button>
+          <Button
+            type="button"
+            className="whitespace-nowrap"
+            disabled={hasNothingToImport}
+            onClick={onConfirm}
+          >
+            {hasNothingToImport ? 'Nothing to import' : `Import ${plannedCount}`}
+          </Button>
+        </div>
+      </DialogSurface>
+    </DialogPrimitive.Root>
   );
 }
 
@@ -484,13 +814,20 @@ export default function MediaFinder({
   const [searchStatus, setSearchStatus] = useState<AsyncStatus>('idle');
   const [searchError, setSearchError] = useState<string | null>(null);
   const [results, setResults] = useState<MediaSearchResult[]>([]);
+  const [searchedQuery, setSearchedQuery] = useState<string | null>(null);
   const [selectedResultId, setSelectedResultId] = useState<string | null>(null);
+  const [resultStates, setResultStates] = useState<Record<string, ResultImportState>>({});
   const [isImporting, setIsImporting] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
+  const [batchCount, setBatchCount] = useState<BatchCount>(DEFAULT_BATCH_COUNT);
+  const [isBatchConfirmOpen, setIsBatchConfirmOpen] = useState(false);
+  const [isBatchImporting, setIsBatchImporting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
+  const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
 
   const generateAbortRef = useRef<AbortController | null>(null);
   const searchAbortRef = useRef<AbortController | null>(null);
   const importAbortRef = useRef<AbortController | null>(null);
+  const batchAbortRef = useRef<AbortController | null>(null);
   const generateRequestRef = useRef(0);
   const searchRequestRef = useRef(0);
   const wasOpenRef = useRef(false);
@@ -510,9 +847,14 @@ export default function MediaFinder({
       setSearchStatus('idle');
       setSearchError(null);
       setResults([]);
+      setSearchedQuery(null);
       setSelectedResultId(null);
+      setResultStates({});
       setIsImporting(false);
-      setImportError(null);
+      setIsBatchConfirmOpen(false);
+      setIsBatchImporting(false);
+      setBatchProgress(null);
+      setBatchSummary(null);
     }
     wasOpenRef.current = open;
   }, [open, defaultPrompt, defaultQuery]);
@@ -537,6 +879,8 @@ export default function MediaFinder({
     generateAbortRef.current?.abort();
     searchAbortRef.current?.abort();
     importAbortRef.current?.abort();
+    batchAbortRef.current?.abort();
+    setIsBatchConfirmOpen(false);
   }, [open]);
 
   useEffect(() => {
@@ -544,6 +888,7 @@ export default function MediaFinder({
       generateAbortRef.current?.abort();
       searchAbortRef.current?.abort();
       importAbortRef.current?.abort();
+      batchAbortRef.current?.abort();
     };
   }, []);
 
@@ -624,6 +969,9 @@ export default function MediaFinder({
   }, [generatedMedia, applySelectedMedia, onOpenChange]);
 
   const runSearch = useCallback(async () => {
+    if (isBatchImporting) {
+      return;
+    }
     if (isEmptyOrWhitespace(query)) {
       setSearchError('Enter a keyword to search for images.');
       setSearchStatus('error');
@@ -647,6 +995,7 @@ export default function MediaFinder({
         return;
       }
       setResults(payload.results);
+      setSearchedQuery(query.trim());
       setSelectedResultId(payload.results[0]?.id ?? null);
       setSearchStatus('ready');
     } catch (error) {
@@ -660,11 +1009,11 @@ export default function MediaFinder({
       setSearchError(toErrorMessage(error));
       setSearchStatus('error');
     }
-  }, [query]);
+  }, [query, isBatchImporting]);
 
   const runImport = useCallback(
     async (result: MediaSearchResult) => {
-      if (isImporting) {
+      if (isImporting || isBatchImporting) {
         return;
       }
 
@@ -672,33 +1021,14 @@ export default function MediaFinder({
       const controller = new AbortController();
       importAbortRef.current = controller;
       setIsImporting(true);
-      setImportError(null);
-
-      const input: ImportMediaInput = { imageUrl: result.imageUrl };
-      if (result.title) {
-        input.title = result.title;
-      }
-      if (result.creator) {
-        input.creator = result.creator;
-      }
-      if (result.creatorUrl) {
-        input.creatorUrl = result.creatorUrl;
-      }
-      if (result.license) {
-        input.license = result.license;
-      }
-      if (result.licenseUrl) {
-        input.licenseUrl = result.licenseUrl;
-      }
-      if (result.sourceUrl) {
-        input.sourceUrl = result.sourceUrl;
-      }
+      setResultStates((current) => withResultState(current, result.id, { status: 'importing' }));
 
       try {
-        const media = await importMedia(input, controller.signal);
+        const media = await importMedia(toImportMediaInput(result), controller.signal);
         if (controller.signal.aborted) {
           return;
         }
+        setResultStates((current) => withResultState(current, result.id, { status: 'imported' }));
         toast.success('Added the image to the library with its credit.');
         applySelectedMedia(media);
       } catch (error) {
@@ -706,7 +1036,9 @@ export default function MediaFinder({
           return;
         }
         const message = toErrorMessage(error);
-        setImportError(message);
+        setResultStates((current) =>
+          withResultState(current, result.id, { status: 'failed', reason: message }),
+        );
         toast.error(message);
       } finally {
         if (!controller.signal.aborted) {
@@ -714,8 +1046,100 @@ export default function MediaFinder({
         }
       }
     },
-    [isImporting, applySelectedMedia],
+    [isImporting, isBatchImporting, applySelectedMedia],
   );
+
+  const requestBatchImport = useCallback(() => {
+    if (isImporting || isBatchImporting) {
+      return;
+    }
+    if (isEmptyOrWhitespace(query)) {
+      setSearchError('Enter a keyword to search for images.');
+      setSearchStatus('error');
+      return;
+    }
+    setIsBatchConfirmOpen(true);
+  }, [query, isImporting, isBatchImporting]);
+
+  const runBatchImport = useCallback(async () => {
+    if (isImporting || isBatchImporting) {
+      return;
+    }
+
+    const batchQuery = query.trim();
+    if (isEmptyOrWhitespace(batchQuery)) {
+      return;
+    }
+
+    searchAbortRef.current?.abort();
+    searchRequestRef.current += 1;
+    batchAbortRef.current?.abort();
+    const controller = new AbortController();
+    batchAbortRef.current = controller;
+    const targetCount = batchCount;
+
+    setIsBatchConfirmOpen(false);
+    setIsBatchImporting(true);
+    setBatchProgress({ current: 0, total: targetCount, activeResultId: null });
+    setBatchSummary(null);
+    setSearchStatus('loading');
+    setSearchError(null);
+
+    try {
+      const payload = await searchMedia(batchQuery, 1, controller.signal);
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      setResults(payload.results);
+      setSearchedQuery(batchQuery);
+      setSelectedResultId(payload.results[0]?.id ?? null);
+      setSearchStatus('ready');
+
+      const eligibleResults = payload.results
+        .filter((result) => resultStates[result.id]?.status !== 'imported')
+        .slice(0, targetCount);
+
+      setBatchProgress({ current: 0, total: eligibleResults.length, activeResultId: null });
+
+      const outcome = await importResultsInSequence(
+        eligibleResults,
+        controller.signal,
+        (resultId, state) =>
+          setResultStates((current) => withResultState(current, resultId, state)),
+        setBatchProgress,
+      );
+      if (!outcome) {
+        return;
+      }
+
+      const summary: BatchSummary = { ...outcome, matched: payload.results.length };
+      setBatchSummary(summary);
+      reportBatchOutcome(summary);
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) {
+        return;
+      }
+      const message = toErrorMessage(error);
+      setSearchError(message);
+      setSearchStatus('error');
+      toast.error(message);
+    } finally {
+      if (batchAbortRef.current === controller) {
+        batchAbortRef.current = null;
+      }
+      if (!controller.signal.aborted) {
+        setIsBatchImporting(false);
+      }
+    }
+  }, [query, batchCount, isImporting, isBatchImporting, resultStates]);
+
+  const handleBatchCountChange = useCallback((value: string) => {
+    const nextCount = BATCH_COUNT_OPTIONS.find((option) => String(option) === value);
+    if (nextCount) {
+      setBatchCount(nextCount);
+    }
+  }, []);
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     const currentIndex = FINDER_TABS.findIndex((tab) => tab.id === activeTab);
@@ -740,99 +1164,125 @@ export default function MediaFinder({
     tabRefs.current[nextTab]?.focus();
   };
 
+  const trimmedQuery = query.trim();
+  const hasCurrentResults = searchStatus === 'ready' && searchedQuery === trimmedQuery;
+  const eligibleResultCount = results.filter(
+    (result) => resultStates[result.id]?.status !== 'imported',
+  ).length;
+  const plannedBatchCount = hasCurrentResults
+    ? Math.min(batchCount, eligibleResultCount)
+    : batchCount;
+
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogSurface className="flex max-h-[88dvh] max-w-3xl flex-col">
-        <div className="flex flex-col gap-1">
-          <DialogPrimitive.Title className="text-base font-semibold text-foreground">
-            Find images
-          </DialogPrimitive.Title>
-          <DialogPrimitive.Description className="text-sm text-muted-foreground">
-            Generate a new image or find a Creative Commons one, then add it to your library.
-          </DialogPrimitive.Description>
-        </div>
-
-        <div
-          role="tablist"
-          aria-label="Image sources"
-          className="flex gap-1 rounded-lg border border-border p-1"
-        >
-          {FINDER_TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                id={`media-finder-tab-${tab.id}`}
-                aria-selected={isActive}
-                aria-controls={`media-finder-panel-${tab.id}`}
-                tabIndex={isActive ? 0 : -1}
-                ref={(node) => {
-                  tabRefs.current[tab.id] = node;
-                }}
-                onClick={() => setActiveTab(tab.id)}
-                onKeyDown={handleTabKeyDown}
-                className={cn(
-                  'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                )}
-              >
-                {tab.id === 'generate' ? (
-                  <SparklesIcon className="size-4" aria-hidden="true" />
-                ) : (
-                  <SearchIcon className="size-4" aria-hidden="true" />
-                )}
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div
-            role="tabpanel"
-            id="media-finder-panel-generate"
-            aria-labelledby="media-finder-tab-generate"
-            hidden={activeTab !== 'generate'}
-          >
-            <GeneratePanel
-              prompt={prompt}
-              status={generateStatus}
-              error={generateError}
-              media={generatedMedia}
-              addLabel={onSelect ? 'Use this image' : 'Done'}
-              onPromptChange={setPrompt}
-              onGenerate={() => void runGenerate()}
-              onAdd={runAddGenerated}
-            />
+    <>
+      <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+        <DialogSurface className="flex max-h-[88dvh] max-w-3xl flex-col">
+          <div className="flex flex-col gap-1">
+            <DialogPrimitive.Title className="text-base font-semibold text-foreground">
+              Find images
+            </DialogPrimitive.Title>
+            <DialogPrimitive.Description className="text-sm text-muted-foreground">
+              Generate a new image or find a Creative Commons one, then add it to your library.
+            </DialogPrimitive.Description>
           </div>
 
           <div
-            role="tabpanel"
-            id="media-finder-panel-search"
-            aria-labelledby="media-finder-tab-search"
-            hidden={activeTab !== 'search'}
+            role="tablist"
+            aria-label="Image sources"
+            className="flex gap-1 rounded-lg border border-border p-1"
           >
-            <SearchPanel
-              query={query}
-              status={searchStatus}
-              error={searchError}
-              results={results}
-              selectedResultId={selectedResultId}
-              importError={importError}
-              isImporting={isImporting}
-              onQueryChange={setQuery}
-              onSearch={() => void runSearch()}
-              onSelectResult={setSelectedResultId}
-              onImport={(result) => void runImport(result)}
-            />
+            {FINDER_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  id={`media-finder-tab-${tab.id}`}
+                  aria-selected={isActive}
+                  aria-controls={`media-finder-panel-${tab.id}`}
+                  tabIndex={isActive ? 0 : -1}
+                  ref={(node) => {
+                    tabRefs.current[tab.id] = node;
+                  }}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={handleTabKeyDown}
+                  className={cn(
+                    'flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  {tab.id === 'generate' ? (
+                    <SparklesIcon className="size-4" aria-hidden="true" />
+                  ) : (
+                    <SearchIcon className="size-4" aria-hidden="true" />
+                  )}
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
-        </div>
-      </DialogSurface>
-    </DialogPrimitive.Root>
+
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div
+              role="tabpanel"
+              id="media-finder-panel-generate"
+              aria-labelledby="media-finder-tab-generate"
+              hidden={activeTab !== 'generate'}
+            >
+              <GeneratePanel
+                prompt={prompt}
+                status={generateStatus}
+                error={generateError}
+                media={generatedMedia}
+                addLabel={onSelect ? 'Use this image' : 'Done'}
+                onPromptChange={setPrompt}
+                onGenerate={() => void runGenerate()}
+                onAdd={runAddGenerated}
+              />
+            </div>
+
+            <div
+              role="tabpanel"
+              id="media-finder-panel-search"
+              aria-labelledby="media-finder-tab-search"
+              hidden={activeTab !== 'search'}
+            >
+              <SearchPanel
+                query={query}
+                status={searchStatus}
+                error={searchError}
+                results={results}
+                selectedResultId={selectedResultId}
+                resultStates={resultStates}
+                batchCount={batchCount}
+                batchProgress={batchProgress}
+                batchSummary={batchSummary}
+                isImporting={isImporting}
+                isBatchImporting={isBatchImporting}
+                onQueryChange={setQuery}
+                onSearch={() => void runSearch()}
+                onSelectResult={setSelectedResultId}
+                onImport={(result) => void runImport(result)}
+                onBatchCountChange={handleBatchCountChange}
+                onRequestBatchImport={requestBatchImport}
+              />
+            </div>
+          </div>
+        </DialogSurface>
+      </DialogPrimitive.Root>
+
+      <BatchImportDialog
+        open={isBatchConfirmOpen}
+        query={trimmedQuery}
+        plannedCount={plannedBatchCount}
+        isCountExact={hasCurrentResults}
+        onOpenChange={setIsBatchConfirmOpen}
+        onConfirm={() => void runBatchImport()}
+      />
+    </>
   );
 }
