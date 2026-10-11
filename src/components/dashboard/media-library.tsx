@@ -32,6 +32,7 @@ const GENERATE_ENDPOINT = `${MEDIA_ENDPOINT}/generate`;
 const SEARCH_ENDPOINT = `${MEDIA_ENDPOINT}/search`;
 const IMPORT_ENDPOINT = `${MEDIA_ENDPOINT}/import`;
 const AUTO_COVER_ENDPOINT = `${MEDIA_ENDPOINT}/auto-cover`;
+const REGENERATE_ENDPOINT = `${MEDIA_ENDPOINT}/regenerate`;
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
@@ -169,6 +170,16 @@ export async function deleteMediaItem(id: string, signal: AbortSignal): Promise<
   );
 }
 
+export async function regenerateMedia(id: string, signal: AbortSignal): Promise<MediaItem> {
+  const payload = await requestJson<{ media: MediaItem }>(REGENERATE_ENDPOINT, {
+    method: 'POST',
+    body: JSON.stringify({ id }),
+    signal,
+  });
+
+  return payload.media;
+}
+
 interface PendingUpload {
   key: string;
   name: string;
@@ -241,12 +252,24 @@ function toggleId(ids: ReadonlySet<string>, id: string, isPresent: boolean): Rea
 interface MediaCardProps {
   item: MediaItem;
   isSavingAlt: boolean;
+  isRegenerating: boolean;
+  isRegenerateLocked: boolean;
   onSaveAlt: (item: MediaItem, alt: string) => void;
   onCopyUrl: (item: MediaItem) => void;
   onDelete: (item: MediaItem) => void;
+  onRegenerate: (item: MediaItem) => void;
 }
 
-function MediaCard({ item, isSavingAlt, onSaveAlt, onCopyUrl, onDelete }: MediaCardProps) {
+function MediaCard({
+  item,
+  isSavingAlt,
+  isRegenerating,
+  isRegenerateLocked,
+  onSaveAlt,
+  onCopyUrl,
+  onDelete,
+  onRegenerate,
+}: MediaCardProps) {
   const [alt, setAlt] = useState(item.alt);
 
   useEffect(() => {
@@ -355,27 +378,43 @@ function MediaCard({ item, isSavingAlt, onSaveAlt, onCopyUrl, onDelete }: MediaC
         />
       </div>
 
-      <div className="mt-auto flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="flex-1 whitespace-nowrap"
-          onClick={() => onCopyUrl(item)}
-        >
-          <CopyIcon />
-          Copy URL
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="whitespace-nowrap text-destructive hover:text-destructive"
-          onClick={() => onDelete(item)}
-        >
-          <Trash2Icon />
-          Delete
-        </Button>
+      <div className="mt-auto flex flex-col gap-2">
+        {item.source === 'generated' ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full whitespace-nowrap"
+            disabled={isRegenerateLocked}
+            onClick={() => onRegenerate(item)}
+            title="Generate a fresh version of this image and swap it in everywhere it is used"
+          >
+            {isRegenerating ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
+            {isRegenerating ? 'Regenerating' : 'Regenerate'}
+          </Button>
+        ) : null}
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex-1 whitespace-nowrap"
+            onClick={() => onCopyUrl(item)}
+          >
+            <CopyIcon />
+            Copy URL
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="whitespace-nowrap text-destructive hover:text-destructive"
+            onClick={() => onDelete(item)}
+          >
+            <Trash2Icon />
+            Delete
+          </Button>
+        </div>
       </div>
     </article>
   );
@@ -456,6 +495,7 @@ export default function MediaLibrary() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [savingAltIds, setSavingAltIds] = useState<ReadonlySet<string>>(() => new Set<string>());
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -472,6 +512,7 @@ export default function MediaLibrary() {
   const listAbortRef = useRef<AbortController | null>(null);
   const uploadAbortRef = useRef<AbortController | null>(null);
   const mutationAbortRef = useRef<AbortController | null>(null);
+  const regenerateAbortRef = useRef<AbortController | null>(null);
   const autoCoverAbortRef = useRef<AbortController | null>(null);
   const isAutoCoverActiveRef = useRef(false);
   const altAbortRef = useRef(new Map<string, AbortController>());
@@ -521,6 +562,7 @@ export default function MediaLibrary() {
       listAbortRef.current?.abort();
       uploadAbortRef.current?.abort();
       mutationAbortRef.current?.abort();
+      regenerateAbortRef.current?.abort();
       autoCoverAbortRef.current?.abort();
       for (const controller of altControllers.values()) {
         controller.abort();
@@ -657,6 +699,34 @@ export default function MediaLibrary() {
       toast.success('Copied the image URL.');
     } else {
       toast.error('The URL could not be copied. Open the image to copy its address instead.');
+    }
+  };
+
+  const handleRegenerate = async (item: MediaItem) => {
+    if (regeneratingId) {
+      return;
+    }
+
+    regenerateAbortRef.current?.abort();
+    const controller = new AbortController();
+    regenerateAbortRef.current = controller;
+    setRegeneratingId(item.id);
+
+    try {
+      const media = await regenerateMedia(item.id, controller.signal);
+      if (controller.signal.aborted) {
+        return;
+      }
+      setItems((current) => [media, ...current.filter((entry) => entry.id !== item.id)]);
+      toast.success('Generated a fresh version and swapped it in everywhere it was used.');
+    } catch (error) {
+      if (!controller.signal.aborted && !isAbortError(error)) {
+        toast.error(toErrorMessage(error));
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setRegeneratingId(null);
+      }
     }
   };
 
@@ -958,8 +1028,11 @@ export default function MediaLibrary() {
                 <MediaCard
                   item={item}
                   isSavingAlt={savingAltIds.has(item.id)}
+                  isRegenerating={regeneratingId === item.id}
+                  isRegenerateLocked={regeneratingId !== null}
                   onSaveAlt={(target, alt) => void handleSaveAlt(target, alt)}
                   onCopyUrl={(target) => void handleCopyUrl(target)}
+                  onRegenerate={(target) => void handleRegenerate(target)}
                   onDelete={(target) => {
                     setDeleteError(null);
                     setItemToDelete(target);

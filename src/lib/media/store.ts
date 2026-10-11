@@ -43,6 +43,7 @@ export interface MediaPutInput {
 
 export interface MediaStore {
   list(): Promise<MediaItem[]>;
+  get(id: string): Promise<MediaItem>;
   put(input: MediaPutInput): Promise<MediaItem>;
   updateAlt(id: string, alt: string): Promise<MediaItem>;
   remove(id: string): Promise<void>;
@@ -104,6 +105,17 @@ export function createGitMediaStore(config: GithubConfig): MediaStore {
     async list(): Promise<MediaItem[]> {
       const { items } = await readIndex(config);
       return [...items].sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+    },
+
+    async get(id: string): Promise<MediaItem> {
+      const { items } = await readIndex(config);
+      const item = items.find((entry) => entry.id === id);
+
+      if (!item) {
+        throw new ApiError(404, 'MEDIA_NOT_FOUND', 'That media item does not exist.');
+      }
+
+      return item;
     },
 
     async put(input: MediaPutInput): Promise<MediaItem> {

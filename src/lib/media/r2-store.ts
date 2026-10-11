@@ -72,6 +72,19 @@ export function createR2MediaStore(db: D1Database, bucket: R2Bucket): MediaStore
       return (result.results ?? []).map(toItem);
     },
 
+    async get(id: string): Promise<MediaItem> {
+      const row = await db
+        .prepare(`SELECT ${MEDIA_COLUMNS} FROM media WHERE id = ?`)
+        .bind(id)
+        .first<MediaRow>();
+
+      if (!row) {
+        throw new ApiError(404, 'MEDIA_NOT_FOUND', 'That media item does not exist.');
+      }
+
+      return toItem(row);
+    },
+
     async put(input: MediaPutInput): Promise<MediaItem> {
       if (input.bytes.byteLength > MAX_BYTES) {
         throw new ApiError(413, 'FILE_TOO_LARGE', 'Images must be 5 MB or smaller.');
