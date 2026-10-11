@@ -24,13 +24,17 @@ interface BudgetState {
   dailyTokens: number;
   freeCredits: number;
   creditPriceUsd: number;
+  dailyCovers: number;
   searchUsedToday: number;
   searchUsedThisMonth: number;
   tokensUsedToday: number;
+  coversUsedToday: number;
   searchesRemaining: number;
   tokensRemaining: number;
+  coversRemaining: number;
   searchesExhausted: boolean;
   tokensExhausted: boolean;
+  coversExhausted: boolean;
   freeCreditsRemaining: number;
   paidCreditsUsed: number;
   estimatedCostUsd: number;
@@ -44,6 +48,7 @@ interface BudgetFormValues {
   dailyTokens: string;
   freeCredits: string;
   creditPriceUsd: string;
+  dailyCovers: string;
 }
 
 interface BudgetAlert {
@@ -69,6 +74,7 @@ function toFormValues(state: BudgetState): BudgetFormValues {
     dailyTokens: String(state.dailyTokens),
     freeCredits: String(state.freeCredits),
     creditPriceUsd: String(state.creditPriceUsd),
+    dailyCovers: String(state.dailyCovers),
   };
 }
 
@@ -116,6 +122,12 @@ function resolveAlert(state: BudgetState): BudgetAlert | null {
       message: 'The token budget is used up for today. Agent runs are skipped until it resets.',
     };
   }
+  if (state.coversExhausted) {
+    return {
+      tone: 'destructive',
+      message: 'The daily cover generation limit is reached. Auto covers resume tomorrow.',
+    };
+  }
   if (state.warning) {
     return {
       tone: 'warning',
@@ -136,6 +148,7 @@ export default function BudgetCard() {
     dailyTokens: '',
     freeCredits: '',
     creditPriceUsd: '',
+    dailyCovers: '',
   });
   const [paused, setPaused] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -190,12 +203,14 @@ export default function BudgetCard() {
     const dailyTokens = parseCount(values.dailyTokens);
     const freeCredits = parseCount(values.freeCredits);
     const creditPriceUsd = parseDecimal(values.creditPriceUsd);
+    const dailyCovers = parseCount(values.dailyCovers);
 
     if (
       dailySearches === null ||
       monthlySearches === null ||
       dailyTokens === null ||
-      freeCredits === null
+      freeCredits === null ||
+      dailyCovers === null
     ) {
       setSaveError('Enter whole numbers for every count limit.');
       return;
@@ -219,6 +234,7 @@ export default function BudgetCard() {
           dailyTokens,
           freeCredits,
           creditPriceUsd,
+          dailyCovers,
         }),
       });
       applyState(payload);
@@ -330,6 +346,14 @@ export default function BudgetCard() {
         </div>
         <div className="rounded-md border border-border p-3">
           <dt className="text-xs tracking-[0.06em] text-muted-foreground uppercase">
+            Covers today
+          </dt>
+          <dd className="mt-1 tabular-nums text-foreground">
+            {state.coversUsedToday} / {state.dailyCovers}
+          </dd>
+        </div>
+        <div className="rounded-md border border-border p-3">
+          <dt className="text-xs tracking-[0.06em] text-muted-foreground uppercase">
             Free credits this month
           </dt>
           <dd className="mt-1 tabular-nums text-foreground">
@@ -403,6 +427,18 @@ export default function BudgetCard() {
               disabled={isSaving}
               onChange={(event) =>
                 setValues((current) => ({ ...current, dailyTokens: event.target.value }))
+              }
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="budget-daily-covers">Daily covers</Label>
+            <Input
+              id="budget-daily-covers"
+              inputMode="numeric"
+              value={values.dailyCovers}
+              disabled={isSaving}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, dailyCovers: event.target.value }))
               }
             />
           </div>

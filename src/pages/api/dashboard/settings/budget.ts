@@ -12,6 +12,7 @@ const budgetSchema = z.object({
   dailySearches: z.number().int().min(0).max(100_000).optional(),
   monthlySearches: z.number().int().min(0).max(1_000_000).optional(),
   dailyTokens: z.number().int().min(0).max(1_000_000_000).optional(),
+  dailyCovers: z.number().int().min(0).max(1_000).optional(),
   freeCredits: z.number().int().min(0).max(1_000_000).optional(),
   creditPriceUsd: z.number().min(0).max(100).optional(),
 });

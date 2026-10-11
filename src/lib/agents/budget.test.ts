@@ -6,9 +6,11 @@ const BASE = {
   dailySearches: 40,
   monthlySearches: 1500,
   dailyTokens: 1000,
+  dailyCovers: 20,
   searchUsedToday: 0,
   searchUsedThisMonth: 0,
   tokensUsedToday: 0,
+  coversUsedToday: 0,
   freeCredits: 100,
   creditPriceUsd: 0.008,
 };
@@ -33,6 +35,23 @@ describe('buildBudgetState', () => {
 
     expect(state.tokensExhausted).toBe(true);
     expect(state.tokensRemaining).toBe(0);
+  });
+
+  it('keeps covers available under the daily cap', () => {
+    const state = buildBudgetState({ ...BASE, coversUsedToday: 5 });
+
+    expect(state.coversRemaining).toBe(15);
+    expect(state.coversExhausted).toBe(false);
+  });
+
+  it('marks covers exhausted at or over the daily cap', () => {
+    const atCap = buildBudgetState({ ...BASE, coversUsedToday: 20 });
+    const overCap = buildBudgetState({ ...BASE, coversUsedToday: 25 });
+
+    expect(atCap.coversExhausted).toBe(true);
+    expect(atCap.coversRemaining).toBe(0);
+    expect(overCap.coversExhausted).toBe(true);
+    expect(overCap.coversRemaining).toBe(0);
   });
 
   it('never returns a negative remaining count', () => {

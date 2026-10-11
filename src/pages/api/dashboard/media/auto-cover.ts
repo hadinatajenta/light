@@ -1,21 +1,31 @@
 import { recordActivity, toUserActor } from '@/lib/activity/record';
+import { readBudgetState } from '@/lib/agents/budget';
 import { withAdmin } from '@/lib/api/handler';
+import { requireContentDatabase } from '@/lib/content/database';
 import { listPosts } from '@/lib/content/store';
-import { jsonOk } from '@/lib/http';
-import { generateCoverForPost, listPostsMissingCovers } from '@/lib/media/covers';
+import { ApiError, jsonOk } from '@/lib/http';
+import { backfillOneCover, listPostsMissingCovers } from '@/lib/media/covers';
 
 export const prerender = false;
 
 export const POST = withAdmin(async (_context, requestId, user) => {
-  const posts = await listPosts();
-  const missing = listPostsMissingCovers(posts);
-  const target = missing[0];
+  const database = await requireContentDatabase();
+  const budget = await readBudgetState(database);
 
-  if (!target) {
-    return jsonOk({ media: null, post: null, remaining: 0 }, requestId);
+  if (budget.coversExhausted) {
+    throw new ApiError(
+      429,
+      'COVER_BUDGET_REACHED',
+      'The daily cover generation limit has been reached. Raise it in the spending budget to generate more.',
+    );
   }
 
-  const assignment = await generateCoverForPost(target);
+  const missing = listPostsMissingCovers(await listPosts());
+  const assignment = await backfillOneCover(database);
+
+  if (!assignment) {
+    return jsonOk({ media: null, post: null, remaining: 0 }, requestId);
+  }
 
   await recordActivity({
     ...toUserActor(user),
@@ -26,7 +36,11 @@ export const POST = withAdmin(async (_context, requestId, user) => {
   });
 
   return jsonOk(
-    { media: assignment.media, post: assignment.post, remaining: missing.length - 1 },
+    {
+      media: assignment.media,
+      post: assignment.post,
+      remaining: Math.max(missing.length - 1, 0),
+    },
     requestId,
   );
 });

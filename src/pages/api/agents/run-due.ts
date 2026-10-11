@@ -53,9 +53,9 @@ async function tokensMatch(provided: string, expected: string): Promise<boolean>
   return compareBytes(providedDigest, expectedDigest);
 }
 
-async function generateOneCoverQuietly(): Promise<number> {
+async function generateOneCoverQuietly(database: D1Database): Promise<number> {
   try {
-    const assignment = await backfillOneCover();
+    const assignment = await backfillOneCover(database);
     return assignment ? 1 : 0;
   } catch (error) {
     console.error('Cover backfill failed', error);
@@ -102,7 +102,7 @@ export const POST = async (context: APIContext): Promise<Response> => {
     let coversGenerated = 0;
 
     if (due.length === 0) {
-      coversGenerated = await generateOneCoverQuietly();
+      coversGenerated = await generateOneCoverQuietly(database);
     }
 
     for (const agent of due) {
@@ -117,7 +117,7 @@ export const POST = async (context: APIContext): Promise<Response> => {
     }
 
     if (coversGenerated === 0 && runDeadline - Date.now() > COVER_MIN_REMAINING_MS) {
-      coversGenerated = await generateOneCoverQuietly();
+      coversGenerated = await generateOneCoverQuietly(database);
     }
 
     return jsonOk(

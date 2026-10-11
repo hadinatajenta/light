@@ -1,3 +1,4 @@
+import { readBudgetState, recordCoverUsage } from '../agents/budget';
 import { toSlug } from '../content/slug';
 import { listPosts, type PostSummary } from '../content/store';
 import { ApiError } from '../http';
@@ -52,7 +53,12 @@ export async function generateCoverForPost(
   return { media, post: { id: post.id, title: post.title } };
 }
 
-export async function backfillOneCover(): Promise<CoverAssignment | null> {
+export async function backfillOneCover(db: D1Database): Promise<CoverAssignment | null> {
+  const budget = await readBudgetState(db);
+  if (budget.coversExhausted) {
+    return null;
+  }
+
   const posts = await listPosts();
   const target = listPostsMissingCovers(posts)[0];
 
@@ -60,5 +66,8 @@ export async function backfillOneCover(): Promise<CoverAssignment | null> {
     return null;
   }
 
-  return generateCoverForPost(target);
+  const assignment = await generateCoverForPost(target);
+  await recordCoverUsage(db);
+
+  return assignment;
 }

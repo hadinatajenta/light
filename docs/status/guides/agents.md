@@ -103,6 +103,8 @@ Agents call paid services: Tavily for search and DeepSeek for model tokens. The
   Tavily credit, so set this to your free credit balance, 1,500, if you want a
   hard stop and no charges.
 - **Daily tokens**: the most DeepSeek tokens across all runs in one day.
+- **Daily covers**: the most auto-generated cover images in one day, 20 by
+  default, which keeps Workers AI image generation inside the free quota.
 - **Free credits per month**: the Tavily free allowance, 1,500 credits, which
   resets on the calendar month and does not roll over.
 - **Price per credit (USD)**: the rate billed beyond the free allowance, $0.008
