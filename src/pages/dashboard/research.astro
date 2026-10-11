@@ -1,0 +1,10 @@
+---
+import ResearchOverview from '@/components/dashboard/research-overview';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Research">
+  <ResearchOverview client:load />
+</DashboardLayout>

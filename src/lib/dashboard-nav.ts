@@ -24,6 +24,7 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
   { label: 'Media', href: '/dashboard/media', icon: 'media', group: 'Content' },
   { label: 'Audit', href: '/dashboard/audit', icon: 'audit', group: 'Content' },
   { label: 'Agents', href: '/dashboard/agents', icon: 'agents', group: 'Automation' },
+  { label: 'Research', href: '/dashboard/research', icon: 'research', group: 'Automation' },
   { label: 'Activity', href: '/dashboard/activity', icon: 'activity', group: 'Automation' },
   {
     label: 'Monetization',

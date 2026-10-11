@@ -88,6 +88,18 @@ scrapper stops searching and agent runs are recorded as `skipped` with no model
 call, so a run cannot drain a card. Usage is counted in the `usage_counters`
 table and the monthly counter resets on the calendar month.
 
+## Research page
+
+The **Research** page (`/dashboard/research`), in the sidebar under Automation,
+is where the scrapper's output is reviewed. It shows every topic with its
+research status and its note counts (verified, unverified, and coverage gaps),
+every research note across topics with filters by text, kind, and angle and a
+verified-only toggle, the recent scrapper runs with their raw output viewable,
+and current budget usage (searches today and this month, and the estimated cost).
+Notes stay editable per topic from the Topics page, and the Research page links
+into that same dialog. The scrapper runs on its schedule, works one phase at a
+time, and a topic that is not finished stays in Fetched until a later run.
+
 ## Roles
 
 - writer: drafts a new buying guide from a topic, using only verified research.

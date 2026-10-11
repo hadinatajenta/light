@@ -182,6 +182,17 @@ Local timings exist only to make testing fast. Production keeps the real cadence
 - **Edit page run history**: open an agent's edit page to see its last 10 runs, each with the start time, status (Running, Succeeded, Failed), token usage, the summary, and any error.
 - **Activity page**: every run also writes an activity entry (`agent.writer`, `agent.reviewer`, `agent.qc`, `agent.scrapper`) under the agent's name. Filter by Agents, or by a single agent, on `/dashboard/activity`.
 
+## Where to see research
+
+The **Research** page (`/dashboard/research`), in the sidebar under Automation, is where the scrapper's output is reviewed:
+
+- **Topics**: every topic with its research status and its note counts, split into verified, unverified, and coverage gaps.
+- **Notes**: every research note across topics, with filters by text, kind, and angle and a verified-only toggle.
+- **Runs**: the recent scrapper runs, each with its raw output viewable.
+- **Budget**: current usage, with searches today and this month and the estimated cost.
+
+Notes stay editable per topic from the **Topics** page, and the Research page links into that same research notes dialog. The scrapper runs on its schedule, for example every hour at 24 runs per day, and works one phase at a time; a topic that is not finished stays in **Fetched** until a later run.
+
 ## Troubleshooting
 
 - **No DeepSeek key**: runs fail with `DEEPSEEK_KEY_MISSING`, "Add your DeepSeek API key before running an agent." Save a key on the Agents page.
@@ -202,5 +213,5 @@ Local timings exist only to make testing fast. Production keeps the real cadence
 
 - There is no per-agent pause between runs beyond the daily schedule and no run-on-demand queue. A failed run is recorded and then waits for the next scheduled tick.
 - Search calls retry with backoff, but a whole agent run still gets a single attempt. Run-level retry belongs to a later change.
-- There is no cost or spend report. Token counts are shown per run only.
+- There is no per-day history chart. The Spending budget card and the Research page show today's and this month's usage and an estimated cost.
 - Only Tavily and the development fixture provider are wired up. Brave, Serper, and Exa can be added behind the same interface.
