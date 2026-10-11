@@ -362,7 +362,11 @@ async function applyResult(
   };
 }
 
-async function recordAgentActivity(agent: AgentRecord, summary: string): Promise<void> {
+async function recordAgentActivity(
+  agent: AgentRecord,
+  runId: string,
+  summary: string,
+): Promise<void> {
   await recordActivity({
     actorId: agent.id,
     actorType: 'agent',
@@ -371,6 +375,7 @@ async function recordAgentActivity(agent: AgentRecord, summary: string): Promise
     targetType: 'agent',
     targetId: agent.id,
     summary,
+    runId,
   });
 }
 
@@ -382,7 +387,11 @@ interface AgentRunStatusRow {
   status: string;
 }
 
-export async function maybeRecordFailureAlert(db: D1Database, agent: AgentRecord): Promise<void> {
+export async function maybeRecordFailureAlert(
+  db: D1Database,
+  agent: AgentRecord,
+  runId: string,
+): Promise<void> {
   const result = await db
     .prepare('SELECT status FROM agent_runs WHERE agent_id = ? ORDER BY started_at DESC LIMIT 3')
     .bind(agent.id)
@@ -400,6 +409,8 @@ export async function maybeRecordFailureAlert(db: D1Database, agent: AgentRecord
     targetType: 'agent',
     targetId: agent.id,
     summary: `Agent "${agent.name}" failed 3 runs in a row`,
+    runId,
+    metadata: { consecutiveFailures: 3 },
   });
 }
 
@@ -438,7 +449,7 @@ export async function runAgent(
       const summary = budget.paused ? 'Budget is paused' : 'Daily token budget reached';
       await finishAgentRun(db, runId, { status: 'skipped', summary });
       await markAgentRun(db, agent.id, agent.runsPerDay);
-      await recordAgentActivity(agent, summary);
+      await recordAgentActivity(agent, runId, summary);
       return { runId, status: 'skipped', summary, output: '', tokensIn: 0, tokensOut: 0 };
     }
 
@@ -460,7 +471,7 @@ export async function runAgent(
         const summary = 'No topic queued and nothing to revise';
         await finishAgentRun(db, runId, { status: 'succeeded', summary });
         await markAgentRun(db, agent.id, agent.runsPerDay);
-        await recordAgentActivity(agent, summary);
+        await recordAgentActivity(agent, runId, summary);
         return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
       }
     }
@@ -472,7 +483,7 @@ export async function runAgent(
         const summary = 'No topic queued';
         await finishAgentRun(db, runId, { status: 'succeeded', summary });
         await markAgentRun(db, agent.id, agent.runsPerDay);
-        await recordAgentActivity(agent, summary);
+        await recordAgentActivity(agent, runId, summary);
         return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
       }
 
@@ -496,7 +507,7 @@ export async function runAgent(
         await releaseTopic(db, topic.id, outcome.summary, await scrapperResumeStatus(db, topic.id));
         await finishAgentRun(db, runId, { status: 'skipped', summary: outcome.summary });
         await markAgentRun(db, agent.id, agent.runsPerDay);
-        await recordAgentActivity(agent, outcome.summary);
+        await recordAgentActivity(agent, runId, outcome.summary);
         return {
           runId,
           status: 'skipped',
@@ -523,7 +534,7 @@ export async function runAgent(
         tokensOut: outcome.tokensOut,
       });
       await markAgentRun(db, agent.id, agent.runsPerDay);
-      await recordAgentActivity(agent, outcome.summary);
+      await recordAgentActivity(agent, runId, outcome.summary);
 
       return {
         runId,
@@ -544,7 +555,7 @@ export async function runAgent(
       const summary = 'No pending draft to process';
       await finishAgentRun(db, runId, { status: 'succeeded', summary });
       await markAgentRun(db, agent.id, agent.runsPerDay);
-      await recordAgentActivity(agent, summary);
+      await recordAgentActivity(agent, runId, summary);
       return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
     }
 
@@ -582,7 +593,7 @@ export async function runAgent(
         tokensOut: response.tokensOut,
       });
       await markAgentRun(db, agent.id, agent.runsPerDay);
-      await recordAgentActivity(agent, summary);
+      await recordAgentActivity(agent, runId, summary);
 
       return {
         runId,
@@ -612,7 +623,7 @@ export async function runAgent(
       tokensOut: response.tokensOut,
     });
     await markAgentRun(db, agent.id, agent.runsPerDay);
-    await recordAgentActivity(agent, applied.summary);
+    await recordAgentActivity(agent, runId, applied.summary);
 
     return {
       runId,
@@ -659,8 +670,8 @@ export async function runAgent(
       error: message,
     });
     await markAgentRun(db, agent.id, agent.runsPerDay);
-    await recordAgentActivity(agent, `Run failed: ${message}`);
-    await maybeRecordFailureAlert(db, agent);
+    await recordAgentActivity(agent, runId, `Run failed: ${message}`);
+    await maybeRecordFailureAlert(db, agent, runId);
 
     return {
       runId,

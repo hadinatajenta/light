@@ -8,6 +8,8 @@ export interface ActivityEvent {
   targetType?: string | null;
   targetId?: string | null;
   summary: string;
+  runId?: string | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export interface ActivityEntry {
@@ -19,6 +21,8 @@ export interface ActivityEntry {
   targetType: string | null;
   targetId: string | null;
   summary: string;
+  runId: string | null;
+  metadata: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -33,7 +37,15 @@ export interface ActorSummary {
 export interface ActivityQuery {
   actorId?: string;
   actorType?: ActorType;
+  action?: string;
+  targetType?: string;
+  targetId?: string;
+  runId?: string;
+  since?: string;
+  until?: string;
+  search?: string;
   limit?: number;
+  offset?: number;
 }
 
 interface ActivityRow {
@@ -45,6 +57,8 @@ interface ActivityRow {
   target_type: string | null;
   target_id: string | null;
   summary: string;
+  run_id: string | null;
+  metadata: string | null;
   created_at: string;
 }
 
@@ -60,6 +74,21 @@ function readActorType(value: string): ActorType {
   return value === 'agent' ? 'agent' : 'user';
 }
 
+function readMetadata(value: string | null): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function toEntry(row: ActivityRow): ActivityEntry {
   return {
     id: row.id,
@@ -70,6 +99,8 @@ function toEntry(row: ActivityRow): ActivityEntry {
     targetType: row.target_type,
     targetId: row.target_id,
     summary: row.summary,
+    runId: row.run_id,
+    metadata: readMetadata(row.metadata),
     createdAt: row.created_at,
   };
 }
@@ -87,8 +118,8 @@ export async function insertActivity(db: D1Database, event: ActivityEvent): Prom
 
   await db
     .prepare(
-      `INSERT INTO activity (id, actor_id, actor_type, actor_label, action, target_type, target_id, summary, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO activity (id, actor_id, actor_type, actor_label, action, target_type, target_id, summary, run_id, metadata, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       crypto.randomUUID(),
@@ -99,15 +130,26 @@ export async function insertActivity(db: D1Database, event: ActivityEvent): Prom
       event.targetType ?? null,
       event.targetId ?? null,
       event.summary,
+      event.runId ?? null,
+      event.metadata ? JSON.stringify(event.metadata) : null,
       now,
     )
     .run();
 }
 
-export async function listActivity(
-  db: D1Database,
-  query: ActivityQuery = {},
-): Promise<ActivityEntry[]> {
+const DEFAULT_ACTIVITY_LIMIT = 50;
+const MAX_ACTIVITY_LIMIT = 200;
+
+export interface ActivityFilter {
+  where: string;
+  bindings: unknown[];
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
+
+export function buildActivityFilter(query: ActivityQuery): ActivityFilter {
   const conditions: string[] = [];
   const bindings: unknown[] = [];
 
@@ -121,15 +163,94 @@ export async function listActivity(
     bindings.push(query.actorType);
   }
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  const limit = Math.min(Math.max(query.limit ?? 50, 1), 200);
+  if (query.action) {
+    conditions.push('action = ?');
+    bindings.push(query.action);
+  }
+
+  if (query.targetType) {
+    conditions.push('target_type = ?');
+    bindings.push(query.targetType);
+  }
+
+  if (query.targetId) {
+    conditions.push('target_id = ?');
+    bindings.push(query.targetId);
+  }
+
+  if (query.runId) {
+    conditions.push('run_id = ?');
+    bindings.push(query.runId);
+  }
+
+  if (query.since) {
+    conditions.push('created_at >= ?');
+    bindings.push(query.since);
+  }
+
+  if (query.until) {
+    conditions.push('created_at <= ?');
+    bindings.push(query.until);
+  }
+
+  if (query.search) {
+    const pattern = `%${escapeLikePattern(query.search)}%`;
+    conditions.push("(summary LIKE ? ESCAPE '\\' OR actor_label LIKE ? ESCAPE '\\')");
+    bindings.push(pattern, pattern);
+  }
+
+  return {
+    where: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+    bindings,
+  };
+}
+
+function readFiniteNumber(value: number | undefined, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+export function resolveActivityWindow(query: ActivityQuery): { limit: number; offset: number } {
+  const limit = Math.trunc(readFiniteNumber(query.limit, DEFAULT_ACTIVITY_LIMIT));
+  const offset = Math.trunc(readFiniteNumber(query.offset, 0));
+
+  return {
+    limit: Math.min(Math.max(limit, 1), MAX_ACTIVITY_LIMIT),
+    offset: Math.max(offset, 0),
+  };
+}
+
+export async function listActivity(
+  db: D1Database,
+  query: ActivityQuery = {},
+): Promise<ActivityEntry[]> {
+  const { where, bindings } = buildActivityFilter(query);
+  const { limit, offset } = resolveActivityWindow(query);
 
   const result = await db
-    .prepare(`SELECT * FROM activity ${where} ORDER BY created_at DESC LIMIT ?`)
-    .bind(...bindings, limit)
+    .prepare(`SELECT * FROM activity ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+    .bind(...bindings, limit, offset)
     .all<ActivityRow>();
 
   return (result.results ?? []).map(toEntry);
+}
+
+export async function countActivity(db: D1Database, query: ActivityQuery = {}): Promise<number> {
+  const { where, bindings } = buildActivityFilter(query);
+
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS total FROM activity ${where}`)
+    .bind(...bindings)
+    .first<{ total: number }>();
+
+  return row?.total ?? 0;
+}
+
+export async function listActivityActions(db: D1Database): Promise<string[]> {
+  const result = await db
+    .prepare('SELECT DISTINCT action FROM activity ORDER BY action ASC')
+    .all<{ action: string }>();
+
+  return (result.results ?? []).map((row) => row.action);
 }
 
 export async function listActors(db: D1Database): Promise<ActorSummary[]> {

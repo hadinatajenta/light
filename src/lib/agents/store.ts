@@ -137,13 +137,18 @@ export async function listAgents(db: D1Database): Promise<AgentRecord[]> {
   return (result.results ?? []).map(toAgent);
 }
 
-export async function getAgent(db: D1Database, id: string): Promise<AgentRecord> {
+export async function findAgent(db: D1Database, id: string): Promise<AgentRecord | null> {
   const row = await db.prepare('SELECT * FROM agents WHERE id = ?').bind(id).first<AgentRow>();
-  if (!row) {
+  return row ? toAgent(row) : null;
+}
+
+export async function getAgent(db: D1Database, id: string): Promise<AgentRecord> {
+  const agent = await findAgent(db, id);
+  if (!agent) {
     throw new ApiError(404, 'AGENT_NOT_FOUND', 'That agent does not exist.');
   }
 
-  return toAgent(row);
+  return agent;
 }
 
 export async function createAgent(db: D1Database, input: AgentInput): Promise<AgentRecord> {

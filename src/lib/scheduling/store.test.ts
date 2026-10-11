@@ -230,6 +230,8 @@ describe('publishDuePosts', () => {
       'post',
       'first',
       'Published "First post" on schedule',
+      null,
+      null,
       expect.any(String),
     ]);
     expect(activityWrites[1].params).toEqual([
@@ -241,6 +243,8 @@ describe('publishDuePosts', () => {
       'post',
       'second',
       'Published "Second post" on schedule',
+      null,
+      null,
       expect.any(String),
     ]);
   });

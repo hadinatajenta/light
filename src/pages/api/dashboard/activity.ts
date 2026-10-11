@@ -1,5 +1,12 @@
 import { z } from 'astro/zod';
-import { type ActorType, insertActivity, listActivity } from '@/lib/activity/store';
+import {
+  type ActivityQuery,
+  type ActorType,
+  countActivity,
+  insertActivity,
+  listActivity,
+  listActivityActions,
+} from '@/lib/activity/store';
 import { withAdmin } from '@/lib/api/handler';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
@@ -20,21 +27,48 @@ function readActorType(value: string | null): ActorType | undefined {
   return value === 'user' || value === 'agent' ? value : undefined;
 }
 
+function readDateFilter(value: string | null, field: 'since' | 'until'): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    throw new ApiError(400, 'INVALID_DATE', `The ${field} filter must be a valid date.`);
+  }
+
+  return new Date(timestamp).toISOString();
+}
+
 export const GET = withAdmin(async ({ url }, requestId) => {
   const database = await resolveContentDatabase();
   if (!database) {
     throw new ApiError(503, 'DATABASE_UNAVAILABLE', 'The content database is unavailable.');
   }
 
-  const limitParam = Number.parseInt(url.searchParams.get('limit') ?? '50', 10);
+  const limitParam = Number.parseInt(url.searchParams.get('limit') ?? '', 10);
+  const offsetParam = Number.parseInt(url.searchParams.get('offset') ?? '', 10);
 
-  const activity = await listActivity(database, {
+  const query: ActivityQuery = {
     actorId: url.searchParams.get('actor') ?? undefined,
     actorType: readActorType(url.searchParams.get('type')),
-    limit: Number.isFinite(limitParam) ? limitParam : 50,
-  });
+    action: url.searchParams.get('action') ?? undefined,
+    targetType: url.searchParams.get('targetType') ?? undefined,
+    targetId: url.searchParams.get('targetId') ?? undefined,
+    since: readDateFilter(url.searchParams.get('since'), 'since'),
+    until: readDateFilter(url.searchParams.get('until'), 'until'),
+    search: url.searchParams.get('q') ?? undefined,
+    limit: Number.isFinite(limitParam) ? limitParam : undefined,
+    offset: Number.isFinite(offsetParam) ? offsetParam : undefined,
+  };
 
-  return jsonOk({ activity }, requestId);
+  const [activity, total, actions] = await Promise.all([
+    listActivity(database, query),
+    countActivity(database, query),
+    listActivityActions(database),
+  ]);
+
+  return jsonOk({ activity, total, actions }, requestId);
 });
 
 export const POST = withAdmin(async ({ request }, requestId) => {
