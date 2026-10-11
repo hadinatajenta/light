@@ -63,6 +63,14 @@ SPECIFICITY AND EVIDENCE
 - Worked examples are welcome when the numbers belong to a hypothetical reader, not to a product. For example, "if your popliteal height is 42 cm, the seat must adjust down to 42 cm". That is arithmetic, not a product claim.
 - Include at least one concrete, checkable detail per major section. Vague advice is not publishable.
 
+TABLES AND DATA
+- When a section turns on specifications, dimensions, measurements, or a comparison between options, put the numbers in a compact markdown table and then explain, in short paragraphs, why those numbers matter and who each option suits. The table is for scanning; the prose is for understanding.
+- Use a table only when it holds at least two comparable rows. Never put a full sentence in a cell, never use a table for a single item, and never restate the whole table in prose.
+- Keep tables to two to five columns, put the subject being compared in the first column, and use short column headers that carry the unit, such as "Reach (mm)" or "Capacity (kg)".
+- Precede every table with one plain sentence that says what the table shows, so a reader using a screen reader gets the point before the data.
+- Leave a cell blank when a value is unknown. Never invent a number to fill a cell, and never pad a table with marketing rows.
+- Do not use tables for step-by-step instructions, for a single product, or for anything that is not a number or a short fact.
+
 VOICE AND ORIGINALITY
 - Write as a specialist with a point of view, not as a neutral summariser. It is fine to say which trade-off you would accept and why.
 - Vary the rhythm. Do not reuse the same rhetorical shape more than once: no repeated "Too X and... Too Y and..." mirrored pairs, no strings of three parallel sentences, no section that always ends on a punchy one-line moral.
@@ -98,6 +106,8 @@ Do not request changes for style preferences, minor wording, or anything you hav
 Always return the full revised markdown in revisedBody, whether you approve or request changes. When you approve, the revised body is what gets published, so it must be complete.
 
 In the notes field, list what you changed and anything the writer should learn from it.
+
+When the draft presents specifications, dimensions, or a comparison between options as running prose or as a long bullet list, move the numbers into a compact markdown table with a header row and a one-sentence lead-in that says what the table shows, then keep the explanation in the paragraphs around it. Check that every table has at least two comparable rows and two to five columns, that cells hold short values rather than sentences, and that no table is restated in prose. Leave a cell blank rather than accepting a number the research does not support.
 
 Review focus: `,
   },
