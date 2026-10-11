@@ -1,6 +1,7 @@
 import type { APIContext } from 'astro';
 import { requireCronAuthorization } from '@/lib/agents/cron-auth';
 import { reapStaleRuns } from '@/lib/agents/reaper';
+import { sortAgentsByRoleOrder } from '@/lib/agents/roles';
 import { runAgent } from '@/lib/agents/runner';
 import { listDueAgents } from '@/lib/agents/store';
 import { requireContentDatabase } from '@/lib/content/database';
@@ -34,7 +35,7 @@ export const POST = async (context: APIContext): Promise<Response> => {
     const database = await requireContentDatabase();
     const reaped = await reapStaleRuns(database);
     const schedule = await publishDuePosts(database);
-    const due = await listDueAgents(database, new Date().toISOString());
+    const due = sortAgentsByRoleOrder(await listDueAgents(database, new Date().toISOString()));
 
     const startedAt = Date.now();
     const runDeadline = startedAt + RUN_BUDGET_MS - RUN_SAFETY_MS;

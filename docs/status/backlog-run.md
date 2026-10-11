@@ -13,10 +13,10 @@ One session, phase by phase, at most two subagents per wave. Legend:
 
 ## Phase 2 - gates and limits
 
-- [ ] Deterministic preflight before approval: hard content errors send the draft back to the writer (dev)
-- [ ] QC gate: a failed QC run sets `changes_requested` with its issues so the writer revises (dev)
-- [ ] Admin API rate limit beyond Cloudflare Access (dev)
-- [ ] Retention job for `activity` and `agent_runs` (dev)
+- [x] Deterministic preflight before approval: hard content errors send the draft back to the writer (dev)
+- [x] QC gate: a failed QC run sets `changes_requested` with its issues so the writer revises (dev)
+- [x] Admin API rate limit beyond Cloudflare Access (dev)
+- [x] Retention job for `activity` and `agent_runs` (dev)
 
 ## Phase 3 - observability
 

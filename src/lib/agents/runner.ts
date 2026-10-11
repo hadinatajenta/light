@@ -3,6 +3,7 @@ import { ApiError } from '../errors';
 import { readBudgetState, recordModelUsage } from './budget';
 import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
+import { formatPreflightIssues, runPreflight } from './preflight';
 import { runScrapperResearch } from './research';
 import {
   createDraftPost,
@@ -273,6 +274,29 @@ async function applyResult(
     const revisedBody = readString(parsed.revisedBody);
 
     if (decision === 'approve') {
+      const preflightIssues = runPreflight({
+        title: target.title,
+        description: target.description,
+        body: revisedBody || target.body,
+      });
+
+      if (preflightIssues.length > 0) {
+        const blockedNotes = [
+          notes,
+          `Deterministic preflight found:\n${formatPreflightIssues(preflightIssues)}`,
+        ]
+          .filter(Boolean)
+          .join('\n\n');
+
+        await saveReviewNotes(db, target.id, blockedNotes);
+        await setPostReview(db, target.id, 'changes_requested', agent.id);
+
+        return {
+          summary: `Blocked "${target.title}": preflight found ${preflightIssues.length} issue(s)`,
+          output: truncate(blockedNotes, MAX_OUTPUT_CHARS),
+        };
+      }
+
       if (revisedBody) {
         await updateDraftBody(db, target.id, { body: revisedBody });
       }
@@ -311,13 +335,29 @@ async function applyResult(
   }
 
   const parsed = extractJsonObject(content);
-  const issues = readStringArray(parsed.issues, 20);
+  const modelIssues = readStringArray(parsed.issues, 20);
+  const preflightIssues = runPreflight({
+    title: target.title,
+    description: target.description,
+    body: target.body,
+  });
+  const mergedIssues = [
+    ...modelIssues,
+    ...preflightIssues.map((issue) => `${issue.code}: ${issue.message}`),
+  ];
+
+  if (mergedIssues.length > 0) {
+    await saveReviewNotes(db, target.id, mergedIssues.map((issue) => `- ${issue}`).join('\n'));
+    await setPostReview(db, target.id, 'changes_requested', agent.id);
+
+    return {
+      summary: `Blocked "${target.title}": ${mergedIssues.length} issue(s)`,
+      output: truncate(content, MAX_OUTPUT_CHARS),
+    };
+  }
 
   return {
-    summary:
-      issues.length > 0
-        ? `Found ${issues.length} issue(s) in "${target.title}"`
-        : `Passed QC on "${target.title}"`,
+    summary: `Passed QC on "${target.title}"`,
     output: truncate(content, MAX_OUTPUT_CHARS),
   };
 }

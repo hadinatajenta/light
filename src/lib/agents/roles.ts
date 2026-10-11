@@ -2,6 +2,8 @@ export const AGENT_ROLES = ['writer', 'reviewer', 'qc', 'scrapper'] as const;
 
 export type AgentRole = (typeof AGENT_ROLES)[number];
 
+export const AGENT_ROLE_ORDER: readonly AgentRole[] = ['scrapper', 'writer', 'qc', 'reviewer'];
+
 export const AGENT_MODELS = ['deepseek-flash', 'deepseek-v4-pro'] as const;
 
 export type AgentModel = (typeof AGENT_MODELS)[number];
@@ -118,7 +120,7 @@ Review focus: `,
     defaultEffort: 'high',
     canAutoPublish: false,
     defaultPrompt:
-      'Audit the draft below. Check title length (10 to 70 characters), description length (50 to 160 characters), heading structure, word count, presence of placeholder text, and any claim that looks unverifiable. Report every issue you find with a short reason.\n\nExtra checks: ',
+      'Audit the draft below. Check title length (10 to 70 characters), description length (50 to 160 characters), heading structure, word count, presence of placeholder text, and any claim that looks unverifiable.\n\nReport only issues that must block publication: a broken structure, a missing or wrong required field, an invented or unverifiable claim, or a policy problem. Do not report style preferences, wording choices, or anything an editor could fix without changing the facts. Return an empty issues array when the draft is publishable; that is the normal outcome.\n\nExtra checks: ',
   },
   scrapper: {
     id: 'scrapper',
@@ -153,4 +155,26 @@ export function isAgentModel(value: string): value is AgentModel {
 
 export function getRoleDefinition(role: AgentRole): AgentRoleDefinition {
   return AGENT_ROLE_DEFINITIONS[role];
+}
+
+function rankForRole(role: string): number {
+  const rank = AGENT_ROLE_ORDER.indexOf(role as AgentRole);
+
+  return rank === -1 ? AGENT_ROLE_ORDER.length : rank;
+}
+
+export function sortAgentsByRoleOrder<T extends { role: string }>(agents: T[]): T[] {
+  const ranked = agents.map((agent, inputIndex) => ({
+    agent,
+    inputIndex,
+    rank: rankForRole(agent.role),
+  }));
+
+  ranked.sort((left, right) => {
+    const rankDelta = left.rank - right.rank;
+
+    return rankDelta === 0 ? left.inputIndex - right.inputIndex : rankDelta;
+  });
+
+  return ranked.map((entry) => entry.agent);
 }

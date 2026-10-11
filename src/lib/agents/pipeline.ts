@@ -1,11 +1,10 @@
 import { publishDuePosts } from '../scheduling/store';
 import { reapStaleRuns } from './reaper';
-import type { AgentRole } from './roles';
+import { AGENT_ROLE_ORDER, sortAgentsByRoleOrder } from './roles';
 import { runAgent } from './runner';
 import { listDueAgents } from './store';
 import { countTopics } from './topics';
 
-const ROLE_ORDER: AgentRole[] = ['scrapper', 'writer', 'reviewer'];
 const MIN_RUN_MS = 15_000;
 const MIN_ROUND_MS = 20_000;
 
@@ -48,9 +47,9 @@ export async function runPipeline(
 
   while (rounds < roundLimit && Date.now() < deadline - MIN_ROUND_MS) {
     rounds += 1;
-    const agents = await listDueAgents(db, new Date().toISOString());
+    const agents = sortAgentsByRoleOrder(await listDueAgents(db, new Date().toISOString()));
 
-    for (const role of ROLE_ORDER) {
+    for (const role of AGENT_ROLE_ORDER) {
       for (const agent of agents.filter((entry) => entry.role === role)) {
         const remaining = deadline - Date.now();
         if (remaining < MIN_RUN_MS) {

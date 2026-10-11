@@ -1,3 +1,4 @@
+import { runRetention } from '../maintenance/retention';
 import { recordTopicFailure, scrapperResumeStatus } from './topics';
 
 export const STALE_RUN_MS = 20 * 60 * 1000;
@@ -28,9 +29,6 @@ export async function reapStaleRuns(db: D1Database, now: number = Date.now()): P
     .all<StaleRunRow>();
 
   const rows = stale.results ?? [];
-  if (rows.length === 0) {
-    return 0;
-  }
 
   const finishedAt = new Date(now).toISOString();
 
@@ -76,6 +74,12 @@ export async function reapStaleRuns(db: D1Database, now: number = Date.now()): P
         row.id,
       )
       .run();
+  }
+
+  try {
+    await runRetention(db, now);
+  } catch (error) {
+    console.error('Retention run failed', error);
   }
 
   return rows.length;
