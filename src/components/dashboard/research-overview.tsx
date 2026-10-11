@@ -32,6 +32,7 @@ import ResearchNotes, {
 
 const RESEARCH_ENDPOINT = '/api/dashboard/agents/research';
 const ALL_FILTER = 'all';
+const PAGE_SIZE = 10;
 
 const SELECT_CLASS =
   'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
@@ -152,6 +153,44 @@ function StatCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+function Pagination({
+  page,
+  pageCount,
+  onPrevious,
+  onNext,
+  label,
+}: {
+  page: number;
+  pageCount: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  label: string;
+}) {
+  if (pageCount <= 1) {
+    return null;
+  }
+
+  return (
+    <nav aria-label={label} className="flex items-center justify-between gap-2">
+      <Button type="button" variant="outline" size="sm" disabled={page <= 1} onClick={onPrevious}>
+        Previous
+      </Button>
+      <span aria-live="polite" className="text-xs tabular-nums text-muted-foreground">
+        Page {page} of {pageCount}
+      </span>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={page >= pageCount}
+        onClick={onNext}
+      >
+        Next
+      </Button>
+    </nav>
+  );
+}
+
 export default function ResearchOverview() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -160,6 +199,8 @@ export default function ResearchOverview() {
   const [kindFilter, setKindFilter] = useState(ALL_FILTER);
   const [angleFilter, setAngleFilter] = useState(ALL_FILTER);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [notesPage, setNotesPage] = useState(1);
+  const [topicsPage, setTopicsPage] = useState(1);
   const [notesTopic, setNotesTopic] = useState<ResearchTopic | null>(null);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
   const [outputRun, setOutputRun] = useState<ResearchRun | null>(null);
@@ -252,6 +293,17 @@ export default function ResearchOverview() {
     [topics],
   );
 
+  const notesPageCount = Math.max(1, Math.ceil(filteredNotes.length / PAGE_SIZE));
+  const safeNotesPage = Math.min(notesPage, notesPageCount);
+  const pagedNotes = filteredNotes.slice(
+    (safeNotesPage - 1) * PAGE_SIZE,
+    safeNotesPage * PAGE_SIZE,
+  );
+
+  const topicsPageCount = Math.max(1, Math.ceil(topics.length / PAGE_SIZE));
+  const safeTopicsPage = Math.min(topicsPage, topicsPageCount);
+  const pagedTopics = topics.slice((safeTopicsPage - 1) * PAGE_SIZE, safeTopicsPage * PAGE_SIZE);
+
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
     kindFilter !== ALL_FILTER ||
@@ -273,6 +325,7 @@ export default function ResearchOverview() {
     setKindFilter(ALL_FILTER);
     setAngleFilter(ALL_FILTER);
     setVerifiedOnly(false);
+    setNotesPage(1);
   };
 
   if (status === 'loading') {
@@ -401,7 +454,10 @@ export default function ResearchOverview() {
               value={searchQuery}
               autoComplete="off"
               placeholder="Search heading, detail, or topic"
-              onChange={(event) => setSearchQuery(event.target.value)}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setNotesPage(1);
+              }}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -410,7 +466,10 @@ export default function ResearchOverview() {
               id={kindSelectId}
               className={SELECT_CLASS}
               value={kindFilter}
-              onChange={(event) => setKindFilter(event.target.value)}
+              onChange={(event) => {
+                setKindFilter(event.target.value);
+                setNotesPage(1);
+              }}
             >
               <option value={ALL_FILTER}>All kinds</option>
               {kindOptions.map((kind) => (
@@ -426,7 +485,10 @@ export default function ResearchOverview() {
               id={angleSelectId}
               className={SELECT_CLASS}
               value={angleFilter}
-              onChange={(event) => setAngleFilter(event.target.value)}
+              onChange={(event) => {
+                setAngleFilter(event.target.value);
+                setNotesPage(1);
+              }}
             >
               <option value={ALL_FILTER}>All angles</option>
               {angleOptions.map((angle) => (
@@ -444,7 +506,10 @@ export default function ResearchOverview() {
             type="checkbox"
             className="size-4 rounded border-input"
             checked={verifiedOnly}
-            onChange={(event) => setVerifiedOnly(event.target.checked)}
+            onChange={(event) => {
+              setVerifiedOnly(event.target.checked);
+              setNotesPage(1);
+            }}
           />
           Verified only
         </label>
@@ -469,59 +534,70 @@ export default function ResearchOverview() {
             ) : null}
           </div>
         ) : (
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {filteredNotes.map((note) => {
-              const sourceUrl = toSafeUrl(note.url);
+          <div className="flex flex-col gap-3">
+            <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+              {pagedNotes.map((note) => {
+                const sourceUrl = toSafeUrl(note.url);
 
-              return (
-                <li key={note.id} className="flex flex-col gap-2 p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{note.heading}</p>
-                    {note.verified ? <Badge variant="secondary">Verified</Badge> : null}
-                    <Badge variant="outline">Kind: {note.kind}</Badge>
-                    {note.angle ? <Badge variant="outline">Angle: {note.angle}</Badge> : null}
-                    {note.sourceType ? (
-                      <Badge variant="outline">Source type: {note.sourceType}</Badge>
+                return (
+                  <li key={note.id} className="flex flex-col gap-2 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{note.heading}</p>
+                      {note.verified ? <Badge variant="secondary">Verified</Badge> : null}
+                      <Badge variant="outline">Kind: {note.kind}</Badge>
+                      {note.angle ? <Badge variant="outline">Angle: {note.angle}</Badge> : null}
+                      {note.sourceType ? (
+                        <Badge variant="outline">Source type: {note.sourceType}</Badge>
+                      ) : null}
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-medium tracking-[0.06em] uppercase">Topic</span>{' '}
+                      <span className="text-foreground">{note.topicTitle}</span>
+                    </p>
+
+                    <p className="text-sm whitespace-pre-wrap text-muted-foreground">
+                      {note.detail}
+                    </p>
+
+                    {sourceUrl ? (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium tracking-[0.06em] uppercase">Source</span>{' '}
+                        <a
+                          href={sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="break-all text-foreground underline underline-offset-4"
+                        >
+                          {note.url}
+                        </a>
+                      </p>
                     ) : null}
-                  </div>
 
-                  <p className="text-xs text-muted-foreground">
-                    <span className="font-medium tracking-[0.06em] uppercase">Topic</span>{' '}
-                    <span className="text-foreground">{note.topicTitle}</span>
-                  </p>
+                    {note.quote ? (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium tracking-[0.06em] uppercase">Quote</span>{' '}
+                        <span className="text-foreground italic">{note.quote}</span>
+                      </p>
+                    ) : null}
 
-                  <p className="text-sm whitespace-pre-wrap text-muted-foreground">{note.detail}</p>
-
-                  {sourceUrl ? (
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium tracking-[0.06em] uppercase">Source</span>{' '}
-                      <a
-                        href={sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="break-all text-foreground underline underline-offset-4"
-                      >
-                        {note.url}
-                      </a>
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      <time dateTime={note.createdAt} title={formatAbsoluteTime(note.createdAt)}>
+                        {formatRelativeTime(note.createdAt)}
+                      </time>
                     </p>
-                  ) : null}
-
-                  {note.quote ? (
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium tracking-[0.06em] uppercase">Quote</span>{' '}
-                      <span className="text-foreground italic">{note.quote}</span>
-                    </p>
-                  ) : null}
-
-                  <p className="text-xs tabular-nums text-muted-foreground">
-                    <time dateTime={note.createdAt} title={formatAbsoluteTime(note.createdAt)}>
-                      {formatRelativeTime(note.createdAt)}
-                    </time>
-                  </p>
-                </li>
-              );
-            })}
-          </ul>
+                  </li>
+                );
+              })}
+            </ul>
+            <Pagination
+              label="Research notes pagination"
+              page={safeNotesPage}
+              pageCount={notesPageCount}
+              onPrevious={() => setNotesPage((current) => Math.max(current - 1, 1))}
+              onNext={() => setNotesPage((current) => Math.min(current + 1, notesPageCount))}
+            />
+          </div>
         )}
       </section>
 
@@ -549,7 +625,7 @@ export default function ResearchOverview() {
                 </TableCell>
               </TableRow>
             ) : (
-              topics.map((topic) => (
+              pagedTopics.map((topic) => (
                 <TableRow key={topic.id}>
                   <TableCell className="whitespace-normal text-foreground">{topic.title}</TableCell>
                   <TableCell>
@@ -581,6 +657,13 @@ export default function ResearchOverview() {
             )}
           </TableBody>
         </Table>
+        <Pagination
+          label="Topics pagination"
+          page={safeTopicsPage}
+          pageCount={topicsPageCount}
+          onPrevious={() => setTopicsPage((current) => Math.max(current - 1, 1))}
+          onNext={() => setTopicsPage((current) => Math.min(current + 1, topicsPageCount))}
+        />
       </section>
 
       <section
