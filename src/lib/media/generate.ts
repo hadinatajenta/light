@@ -3,13 +3,38 @@ import { ApiError } from '../http';
 
 export const IMAGE_MODEL = '@cf/black-forest-labs/flux-1-schnell';
 export const IMAGE_PROMPT_MAX_LENGTH = 2048;
-export const IMAGE_STEPS = 6;
+export const IMAGE_STEPS = 4;
+export const IMAGE_ERROR_DETAIL_MAX_LENGTH = 300;
+
+const RETRY_DELAY_MS = 800;
 
 export interface ImageModelBinding {
   run(
     model: string,
     input: { prompt: string; steps?: number; seed?: number },
   ): Promise<{ image: string }>;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export async function withRetry<T>(operation: () => Promise<T>, attempts = 2): Promise<T> {
+  const maxAttempts = Math.max(attempts, 1);
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt < maxAttempts - 1) {
+        await sleep(RETRY_DELAY_MS);
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 export async function resolveImageModel(): Promise<ImageModelBinding | null> {
@@ -29,12 +54,18 @@ export async function generateImageBytes(
 ): Promise<Uint8Array> {
   let result: { image: string };
   try {
-    result = await model.run(IMAGE_MODEL, { prompt, steps });
-  } catch {
+    result = await withRetry(() => model.run(IMAGE_MODEL, { prompt, steps }));
+  } catch (error) {
+    console.error('Image model generation failed', error);
+    const cause = (error instanceof Error ? error.message : String(error)).slice(
+      0,
+      IMAGE_ERROR_DETAIL_MAX_LENGTH,
+    );
     throw new ApiError(
       502,
       'IMAGE_GENERATION_FAILED',
       'The image model could not generate an image.',
+      { cause },
     );
   }
 

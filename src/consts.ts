@@ -12,6 +12,7 @@ export const DEFAULT_OG_IMAGE = '/og-default.png';
 export const GOOGLE_SITE_VERIFICATION = '';
 export const COOKIE_CONSENT_STORAGE_KEY = 'light.cookie-consent';
 export const THEME_STORAGE_KEY = 'light-theme';
+export const USE_GOOGLE_CMP = true;
 
 export interface NavigationLink {
   label: string;

@@ -3,7 +3,7 @@ import BaseHead from '@/components/BaseHead.astro';
 import CookieConsent from '@/components/CookieConsent.astro';
 import Footer from '@/components/Footer.astro';
 import Header from '@/components/Header.astro';
-import { SITE_LANGUAGE, THEME_STORAGE_KEY } from '@/consts';
+import { SITE_LANGUAGE, THEME_STORAGE_KEY, USE_GOOGLE_CMP } from '@/consts';
 import '@/styles/global.css';
 
 interface Props {
@@ -53,6 +53,6 @@ const { title, description, canonical, image, type, noindex, jsonLd, contained =
       <slot />
     </main>
     <Footer />
-    <CookieConsent />
+    {!USE_GOOGLE_CMP && <CookieConsent />}
   </body>
 </html>

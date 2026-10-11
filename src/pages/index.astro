@@ -1,5 +1,5 @@
 ---
-import AdBanner from '@/components/AdBanner.astro';
+import AdSlot from '@/components/AdSlot.astro';
 import HomeIntro from '@/components/HomeIntro.astro';
 import PostCard from '@/components/PostCard.astro';
 import SponsoredBlock from '@/components/SponsoredBlock.astro';
@@ -88,7 +88,7 @@ function variantForRank(rank: number): 'feature' | 'text' | 'default' {
   }
 
   <SponsoredBlock />
-  <AdBanner />
+  <AdSlot slotId="home-top" format="leaderboard" />
 </BaseLayout>
 
 <style>

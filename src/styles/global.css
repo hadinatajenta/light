@@ -903,6 +903,9 @@
 .ad-slot-note {
   @apply text-[11px] opacity-85;
 }
+.ad-live {
+  @apply my-10 flex flex-col items-center justify-center;
+}
 .ad-slot-leaderboard {
   @apply min-h-[90px];
 }
