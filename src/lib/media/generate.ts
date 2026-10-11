@@ -3,10 +3,7 @@ import { ApiError } from '../http';
 
 export const IMAGE_MODEL = '@cf/black-forest-labs/flux-1-schnell';
 export const IMAGE_PROMPT_MAX_LENGTH = 2048;
-export const IMAGE_STEPS = 4;
-
-const COVER_PROMPT_MAX_LENGTH = 300;
-const COVER_SUBJECT_MAX_LENGTH = 48;
+export const IMAGE_STEPS = 6;
 
 export interface ImageModelBinding {
   run(
@@ -23,23 +20,6 @@ export async function resolveImageModel(): Promise<ImageModelBinding | null> {
   } catch {
     return null;
   }
-}
-
-function stripProductCodes(subject: string): string {
-  return subject
-    .replace(/\bASIN[:\s-]*[A-Z0-9]+/gi, ' ')
-    .replace(/\bSKU[:\s-]*[A-Z0-9-]+/gi, ' ')
-    .replace(/\bB0[A-Z0-9]{8}\b/gi, ' ')
-    .replace(/\b[A-Z0-9]{8,12}\b/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-export function toCoverPrompt(subject: string): string {
-  const cleaned = stripProductCodes(subject).slice(0, COVER_SUBJECT_MAX_LENGTH);
-  const topic = cleaned.length > 0 ? cleaned : 'a modern home office';
-  const prompt = `Editorial photograph for a home-office buying guide about ${topic}. Clean modern home-office scene, natural window light, shallow depth of field, composition that survives a square crop. No text, no logos, no watermarks, no brand names, no identifiable faces.`;
-  return prompt.slice(0, COVER_PROMPT_MAX_LENGTH);
 }
 
 export async function generateImageBytes(

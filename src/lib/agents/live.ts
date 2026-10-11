@@ -1,3 +1,4 @@
+import { staleRunCutoff } from './reaper';
 import { listAgents } from './store';
 import { countTopics } from './topics';
 
@@ -136,8 +137,9 @@ export async function loadAgentLiveSnapshot(db: D1Database): Promise<AgentLiveSn
       listAgents(db),
       db
         .prepare(
-          "SELECT id, agent_id, started_at FROM agent_runs WHERE status = 'running' ORDER BY started_at DESC",
+          "SELECT id, agent_id, started_at FROM agent_runs WHERE status = 'running' AND started_at >= ? ORDER BY started_at DESC",
         )
+        .bind(staleRunCutoff(now))
         .all<RunningRow>(),
       db
         .prepare(

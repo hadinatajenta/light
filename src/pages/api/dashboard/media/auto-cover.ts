@@ -8,8 +8,8 @@ import {
   generateImageBytes,
   IMAGE_STEPS,
   resolveImageModel,
-  toCoverPrompt,
 } from '@/lib/media/generate';
+import { buildScenePrompt } from '@/lib/media/prompt';
 import { resolveMediaStore } from '@/lib/media/store';
 
 export const prerender = false;
@@ -44,7 +44,7 @@ export const POST = withAdmin(async (_context, requestId, user) => {
     return jsonOk({ media: null, post: null, remaining: 0 }, requestId);
   }
 
-  const prompt = toCoverPrompt(target.title);
+  const prompt = buildScenePrompt(target.title);
   const bytes = await generateImageBytes(model, prompt, IMAGE_STEPS);
   const store = await resolveMediaStore();
   const media = await store.put({

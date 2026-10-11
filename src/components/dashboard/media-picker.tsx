@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { buildScenePrompt } from '@/lib/media/prompt';
 import { cn } from '@/lib/utils';
 import { requestJson, toErrorMessage } from './api-client';
 import { DialogSurface } from './dialog-surface';
@@ -342,7 +343,8 @@ export default function MediaPicker({
         open={isFinderOpen}
         onOpenChange={setIsFinderOpen}
         onSelect={handleFinderSelect}
-        defaultPrompt={suggestedQuery}
+        defaultPrompt={suggestedQuery ? buildScenePrompt(suggestedQuery) : ''}
+        defaultQuery={suggestedQuery ?? ''}
       />
     </DialogPrimitive.Root>
   );
