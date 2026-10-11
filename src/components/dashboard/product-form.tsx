@@ -260,6 +260,20 @@ export default function ProductForm({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isOpen || programs.length === 0) {
+      return;
+    }
+
+    setValues((current) => {
+      if (current.programId.length > 0) {
+        return current;
+      }
+
+      return { ...current, programId: programs[0].id };
+    });
+  }, [isOpen, programs]);
+
   const focusFirstError = (nextErrors: ProductFormErrors) => {
     const order: Array<[keyof ProductFormErrors, { focus: () => void } | null]> = [
       ['slug', slugRef.current],
@@ -326,6 +340,48 @@ export default function ProductForm({
         name: current.name.trim().length > 0 ? current.name : (resolved.name ?? current.name),
         slug: isSlugEdited ? current.slug : (resolved.slug ?? current.slug),
       }));
+
+      const isQuickAdd = product === null && values.name.trim() === '' && values.slug.trim() === '';
+      const nextName = values.name.trim().length > 0 ? values.name : (resolved.name ?? '');
+      const nextSlug = isSlugEdited ? values.slug : (resolved.slug ?? '');
+
+      if (
+        isQuickAdd &&
+        nextName.trim().length > 0 &&
+        nextSlug.trim().length > 0 &&
+        !isSubmitting &&
+        isMountedRef.current
+      ) {
+        setResolveNote('Saving this product...');
+        setIsSubmitting(true);
+
+        const serverErrors = await saveProduct({
+          ...values,
+          target: resolved.target,
+          name: nextName,
+          slug: nextSlug,
+        }).finally(() => {
+          if (isMountedRef.current) {
+            setIsSubmitting(false);
+          }
+        });
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        if (serverErrors) {
+          setErrors(serverErrors);
+          setResolveNote('Could not save automatically. Fix the fields and press Save.');
+          focusFirstError(serverErrors);
+          return;
+        }
+
+        setResolveNote(null);
+        onOpenChange(false);
+        return;
+      }
+
       setResolveNote(
         resolved.target === candidate
           ? null
@@ -335,6 +391,24 @@ export default function ProductForm({
       setResolveNote(toErrorMessage(error));
     }
   };
+
+  const saveProduct = async (formValues: ProductFormValues): Promise<ProductFormErrors | null> =>
+    onSubmit({
+      slug: formValues.slug.trim(),
+      name: formValues.name.trim(),
+      programId: formValues.programId,
+      target: formValues.target.trim(),
+      priceAmount:
+        formValues.priceAmount.trim() === '' ? null : Number(formValues.priceAmount.trim()),
+      priceCurrency:
+        formValues.priceCurrency.trim() === ''
+          ? null
+          : formValues.priceCurrency.trim().toUpperCase(),
+      imageUrl: formValues.imageUrl.trim() || null,
+      topics: formValues.topics,
+      notes: formValues.notes.trim() || null,
+      isActive: formValues.isActive,
+    });
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -350,19 +424,7 @@ export default function ProductForm({
 
     setErrors({});
     setIsSubmitting(true);
-    const serverErrors = await onSubmit({
-      slug: values.slug.trim(),
-      name: values.name.trim(),
-      programId: values.programId,
-      target: values.target.trim(),
-      priceAmount: values.priceAmount.trim() === '' ? null : Number(values.priceAmount.trim()),
-      priceCurrency:
-        values.priceCurrency.trim() === '' ? null : values.priceCurrency.trim().toUpperCase(),
-      imageUrl: values.imageUrl.trim() || null,
-      topics: values.topics,
-      notes: values.notes.trim() || null,
-      isActive: values.isActive,
-    }).finally(() => {
+    const serverErrors = await saveProduct(values).finally(() => {
       if (isMountedRef.current) {
         setIsSubmitting(false);
       }
