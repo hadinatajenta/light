@@ -58,11 +58,7 @@ export interface AdConfig {
 }
 
 export const AD_CONFIG: AdConfig = {
-  network: 'none',
-  adsenseClientId: null,
-  slots: {
-    'in-article-top': '0000000001',
-    'in-article-mid': '0000000002',
-    'in-article-bottom': '0000000003',
-  },
+  network: 'adsense',
+  adsenseClientId: 'ca-pub-5729173430518647',
+  slots: {},
 };

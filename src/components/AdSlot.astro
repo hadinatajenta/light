@@ -12,38 +12,22 @@ const { slotId, format = 'leaderboard', label = 'Advertisement' } = Astro.props;
 const slot = AD_CONFIG.slots[slotId];
 const isLive =
   AD_CONFIG.network === 'adsense' && Boolean(AD_CONFIG.adsenseClientId) && Boolean(slot);
-
-const formatSizes: Record<string, string> = {
-  leaderboard: '728 x 90 Leaderboard',
-  rectangle: '300 x 250 Medium Rectangle',
-  rail: '300 x 600 Half Page',
-};
 ---
 
-<aside class:list={['ad-slot', `ad-slot-${format}`]} aria-label={label}>
-  {
-    isLive ? (
-      <>
-        <ins
-          class="adsbygoogle"
-          style="display:block"
-          data-ad-client={AD_CONFIG.adsenseClientId}
-          data-ad-slot={slot}
-          data-ad-format="auto"
-          data-full-width-responsive="true"
-        />
-        <script is:inline>
-          (window.adsbygoogle = window.adsbygoogle || []).push({});
-        </script>
-      </>
-    ) : (
-      <>
-        <span class="ad-slot-label">{label}</span>
-        <span class="ad-slot-size">{formatSizes[format]}</span>
-        <span class="ad-slot-note">
-          Demo slot. Set network and adsenseClientId in src/config/monetization.ts to go live.
-        </span>
-      </>
-    )
-  }
-</aside>
+{
+  isLive ? (
+    <aside class:list={['ad-slot', `ad-slot-${format}`]} aria-label={label}>
+      <ins
+        class="adsbygoogle"
+        style="display:block"
+        data-ad-client={AD_CONFIG.adsenseClientId}
+        data-ad-slot={slot}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      />
+      <script is:inline>
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </aside>
+  ) : null
+}
