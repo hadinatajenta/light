@@ -5,6 +5,13 @@ import { getRedirectByPath, recordRedirectHit } from '@/lib/redirects/store';
 
 const CANONICAL_HOST = 'lightscripts.com';
 const REDIRECT_HOSTS = new Set(['www.lightscripts.com', 'light.hadinata.me']);
+const PRODUCTION_HOSTS = new Set([
+  CANONICAL_HOST,
+  'www.lightscripts.com',
+  'light.hadinata.me',
+  'admin.lightscripts.com',
+  'admin.hadinata.me',
+]);
 
 const PROTECTED_PREFIXES = ['/dashboard', '/api/dashboard'];
 const REDIRECT_EXCLUDED_PREFIXES = ['/_astro', '/media', '/api', '/go'];
@@ -28,6 +35,12 @@ function hasFileExtension(pathname: string): boolean {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (PRODUCTION_HOSTS.has(context.url.hostname) && context.url.protocol === 'http:') {
+    const target = new URL(context.request.url);
+    target.protocol = 'https:';
+    return Response.redirect(target.toString(), 301);
+  }
+
   if (REDIRECT_HOSTS.has(context.url.hostname)) {
     const target = new URL(context.request.url);
     target.hostname = CANONICAL_HOST;
