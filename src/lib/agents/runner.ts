@@ -326,6 +326,10 @@ async function applyResult(
     const revisedBody = readString(parsed.revisedBody);
 
     if (decision === 'approve') {
+      if (revisedBody) {
+        await updateDraftBody(db, target.id, { body: revisedBody });
+      }
+
       await setPostReview(db, target.id, 'approved', agent.id);
 
       if (agent.autoPublish) {
