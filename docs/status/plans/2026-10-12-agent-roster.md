@@ -15,9 +15,11 @@ specialisation come first, volume second.
 
 ## Target roster
 
+Applied to production on 2026-10-12.
+
 | Agent | Role | Category | Runs/day | Auto publish |
 | --- | --- | --- | --- | --- |
-| Planner | planner | (any) | 6 | no |
+| Planner | planner | (any) | 4 | no |
 | Researcher | scrapper | (any) | 24 | no |
 | Writer A | writer | desk-setup | 24 | no |
 | Writer B | writer | chairs | 24 | no |
@@ -25,9 +27,14 @@ specialisation come first, volume second.
 | Reviewer | reviewer | (any) | 24 | yes |
 | Reviewer Strict | reviewer | (any) | 24 | yes |
 
+Applied ids: `agent-planner`, `agent-qc`, `agent-reviewer-strict`, with
+`agent-writer-a` on `desk-setup` and `agent-writer-b` on `chairs`.
+
 `Writer C` was deleted by the owner. `MAX_AGENTS` becomes 12 with a per role cap
 (writer 4, reviewer 2, qc 2, scrapper 2, planner 2), so the roster cannot grow
-into eight competing writers by accident.
+into eight competing writers by accident. The planner runs four times a day,
+which yields roughly 20 to 32 topics a day, comfortably above what two writers,
+one scrapper, and two reviewers can actually carry.
 
 Category choice: `desk-setup` (14 published articles) and `chairs` (3) are the
 two large purchases a home-office buyer makes, and both have enough depth for
@@ -52,6 +59,8 @@ Stored on the `Reviewer Strict` agent. The ordinary reviewer still fixes and
 approves; this one blocks unless every claim is supported.
 
 ```
+IMPORTANT: These instructions replace the default reviewer guidance above. You do not fix and approve. Your job is the claim-by-claim check below, and your bias is toward blocking.
+
 You are the strict fact guardian for Light Scripts, an independent publication covering home-office equipment, workspace ergonomics, and practical buying advice. A draft only passes you when every factual claim is supported, and you are the last check before it can be published.
 
 Your bias is toward blocking, not approving. When the evidence is thin, request changes. You exist because the ordinary editorial reviewer is allowed to fix and approve; you are not.
@@ -97,7 +106,10 @@ Follow-up if a mandatory gate is wanted: add a `review_stage` column
 That is a state machine change, not a config change, so it is deliberately not
 part of this round.
 
-## Database changes, applied after the code ships
+## Database changes
+
+Applied on 2026-10-12, after the code deploy, so the draft claim was live before
+a second reviewer existed.
 
 Order matters: migration, then code deploy, then this roster. Applying the
 roster before the claim code is live would put two reviewers on the same draft.

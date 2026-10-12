@@ -32,37 +32,52 @@ warning and scrapper runs are recorded as **Skipped** instead of failing.
 Go to **Agents** and click **New agent** (`/dashboard/agents/new`). The form has these fields:
 
 - **Name**: a label for the agent, up to 80 characters.
-- **Role**: Writer, Reviewer, QC, or Scrapper. The description under the field explains the role, and the form prefills the default prompt for the role.
-- **Prompt**: the role prompt. Each role has a default you can edit. Your text is appended to the role's built-in instructions.
+- **Role**: Planner, Writer, Reviewer, QC, or Scrapper. The description under the field explains the role, and the form prefills the default prompt for the role.
+- **Prompt**: the role prompt. Each role has a default you can edit. Your text is appended to the role's built-in instructions. For the Planner, this field is where the seed keywords live.
+- **Category**: shown only for the Writer role. The writer claims topics from that category only, so two writers can work in parallel without competing for the same queue. Leave it empty to let the writer claim any topic.
 - **Model**: `deepseek-flash` (the default) or `deepseek-v4-pro`.
 - **Runs per day**: between 1 and 24.
 - **Enabled**: whether the schedule runs this agent.
 - **Auto publish approved drafts**: shown only for the Reviewer role. Ignored and forced off for the other roles.
 
-You can create at most **6 agents**. When you reach the limit, the New agent button is disabled and reads "You reached the limit of 6 agents. Delete one to add another."
+You can create at most **12 agents**, with a per role cap: planner 2, scrapper 2,
+writer 4, qc 2, reviewer 2. When a cap is reached, the New agent button is
+disabled and names the role limit that was hit.
 
-## The four roles
+## The five roles
 
 Each run of an agent does one job, based on its role.
+
+### Planner
+
+- Runs first in the tick. It does not claim a topic, it creates them.
+- Reads the categories the enabled writers cover, the queued topic titles, and the published article titles. When no writer has a category yet it falls back to the categories that already have published posts.
+- Asks the model for 5 to 8 topics in those categories, each with a title, a category, an intent, and 2 to 5 lowercase keyword phrases.
+- Drops any proposal with an unknown category, a duplicate title (against queued topics and published articles alike), or fewer than 2 keywords, and caps a run at 8 topics. Each accepted topic is queued with the planner recorded as its author, which is what the scorecard counts as topics proposed.
+- The keywords you put in the agent's **Prompt** field are the seeds. Broaden them into the questions a buyer would actually ask.
+- Model effort: **high**.
 
 ### Writer
 
 - Produces a **draft** post, never a published one.
+- Claims the oldest queued topic **in its own category** when it has one, otherwise the oldest queued topic of any category. When the queue is empty it looks for a draft whose review status is `changes_requested` and revises that instead.
 - The prompt topic tells it what to write about. The writer is also given the titles of the last 12 published posts and told not to duplicate them.
 - It returns a title, a description, 2 to 4 tags, and a markdown body. The body is saved as a new post with status `draft` and review status `pending`.
 - Model effort: **high**.
 
 ### Reviewer
 
-- Works on the **oldest pending draft** (a draft whose review status is empty or `pending`).
+- Claims the **oldest pending draft** (a draft whose review status is empty or `pending`) atomically, so two reviewers never work on the same draft at the same time. The claim is `in_review` while the model runs, released on failure or by the reaper after twenty minutes.
 - Decides to approve or request changes. On "request changes" it writes the revised body back to the draft and sets the review status to `changes_requested`.
-- On approve it sets the review status to `approved`. If **Auto publish approved drafts** is enabled on this reviewer, it then publishes the post. Otherwise the post stays a draft until a human publishes it.
+- A deterministic preflight runs before every approval. While the draft still has a hard error (title or description length, a body under 600 words, an H1 heading, fewer than three H2 sections, or placeholder text) the reviewer refuses to approve and sends the draft back with the issue list instead.
+- On approve it sets the review status to `approved`. If **Auto publish approved drafts** is enabled on this reviewer, it publishes immediately. Otherwise the scheduled publisher publishes it on the next tick once its publication date has passed.
 - Model effort: **high**.
 
 ### QC
 
-- Audits the **oldest pending draft** for title length, description length, heading structure, word count, placeholder text, and any claim that looks unverifiable.
-- Reports the issues it finds. It does **not** change the draft or its review status, so a reviewer still sees the same draft as pending.
+- Claims a pending draft, so the QC and a reviewer cannot audit the same draft at once.
+- Audits it for title length, description length, heading structure, word count, placeholder text, and any claim that looks unverifiable, and merges the model findings with the deterministic preflight.
+- When anything is flagged it sets the review status to `changes_requested` with the issue list as the review notes, so the writer revises it and no reviewer sees it as pending. When nothing is flagged the claim is released and the draft stays pending.
 - Model effort: **high**.
 
 ### Scrapper
@@ -89,7 +104,7 @@ A writer only ever produces drafts. A draft becomes published only when **both**
 1. A reviewer approves it, and
 2. That reviewer has **Auto publish approved drafts** enabled.
 
-This is enforced in the server code, not in the browser. The writer, QC, and Scrapper roles can never publish, and turning on auto publish has no effect on them. If you want a human to publish every post, leave auto publish off and click Publish in the post editor yourself.
+This is enforced in the server code, not in the browser. The planner, writer, QC, and Scrapper roles can never publish, and turning on auto publish has no effect on them. If you want every post to wait for you, keep the review status at `pending` and publish by hand from the post editor: once a reviewer approves a draft, the scheduled publisher publishes it as soon as its publication date has passed, whether or not auto publish is enabled.
 
 A second gate protects against unverified research. The writer only receives research notes marked **Verified**. If a topic has no verified note, the writer is told to return `NEEDS RESEARCH` and the topic is blocked. A reviewer approves the draft but skips auto publish when the draft's topic has no verified source. The scheduler enforces the same gate, so an approved draft whose topic has no verified source is not published on the schedule either. A draft can never reach the site on unverified research unless a human publishes it by hand.
 
@@ -148,7 +163,7 @@ This button is the fastest way to test a prompt without waiting for the schedule
 
 ## Run and publish
 
-The Agents page also has a **Run & publish** button. It runs the enabled agents in role order (scrapper, then writer, then reviewer) and publishes any draft that passes the verified research gate, without waiting for the next 15 minute tick.
+The Agents page also has a **Run & publish** button. It runs the enabled agents in role order (planner, scrapper, writer, qc, reviewer) and publishes any draft that passes the verified research gate, without waiting for the next 15 minute tick.
 
 - It runs in the background and the request returns immediately. Watch progress on the Activity page, which shows the live board.
 - It never publishes a draft whose topic has no verified research. Those stay in review for a human.
@@ -181,8 +196,9 @@ Local timings exist only to make testing fast. Production keeps the real cadence
 
 ## Where to see history
 
+- **Scorecard**: the Agents page shows a table per agent over a selectable window (7, 30, or 90 days): runs, success rate, tokens in and out, articles, topics proposed, tokens per article, drafts reviewed, approvals, and revisions requested. Use it to decide which agent deserves its schedule.
 - **Edit page run history**: open an agent's edit page to see its last 10 runs, each with the start time, status (Running, Succeeded, Failed), token usage, the summary, and any error.
-- **Activity page**: every run also writes an activity entry (`agent.writer`, `agent.reviewer`, `agent.qc`, `agent.scrapper`) under the agent's name. Filter by Agents, or by a single agent, on `/dashboard/activity`.
+- **Activity page**: every run also writes an activity entry (`agent.planner`, `agent.writer`, `agent.reviewer`, `agent.qc`, `agent.scrapper`) under the agent's name. The page filters by scope, actor, action, target, text, and date range, and each agent entry links to the run detail, where the full output is visible and a failed run can be retried.
 
 ## Where to see research
 
@@ -203,8 +219,8 @@ Notes stay editable per topic from the **Topics** page, and the Research page li
 - **Rate limit (429)**: `DEEPSEEK_RATE_LIMITED`, "DeepSeek rate limit reached." Wait and run again, or lower the runs per day.
 - **Timeout**: `DEEPSEEK_TIMEOUT`, "The DeepSeek request timed out." The request has a 180 second limit. Try again or simplify the prompt.
 - **Unreachable**: `DEEPSEEK_UNREACHABLE`, "Could not reach the DeepSeek API." Likely a temporary network problem.
-- **Agent limit reached**: `AGENT_LIMIT_REACHED`, "You can create at most 6 agents." Delete an agent before creating another.
-- **Nothing to do**: a reviewer or QC run with no pending draft returns "No pending draft to process". That is a success, not an error.
+- **Agent limit reached**: `AGENT_LIMIT_REACHED`, either "You can create at most 12 agents." or a message naming the role limit (planner 2, scrapper 2, writer 4, qc 2, reviewer 2). Delete an agent before creating another, or change the role of the one you have.
+- **Nothing to do**: a reviewer or QC run with no pending draft returns "No pending draft to review". That is a success, not an error.
 - **Skipped**: a scrapper run with no search provider configured is recorded as **Skipped**, and the topic is left alone. It makes no model call, so a skipped run costs nothing. Connect a provider on the Agents page.
 - **Search rejected the key**: `SEARCH_UNAUTHORIZED`. Replace the provider key on the Agents page.
 - **Search rate limited**: `SEARCH_RATE_LIMITED`. The scrapper retries a few times with backoff, then blocks the topic. Wait and run again, or lower the runs per day.
@@ -213,7 +229,9 @@ Notes stay editable per topic from the **Topics** page, and the Research page li
 
 ## Not built yet
 
-- There is no per-agent pause between runs beyond the daily schedule and no run-on-demand queue. A failed run is recorded and then waits for the next scheduled tick.
-- Search calls retry with backoff, but a whole agent run still gets a single attempt. Run-level retry belongs to a later change.
-- There is no per-day history chart. The Spending budget card and the Research page show today's and this month's usage and an estimated cost.
+- There is no automatic run-level retry. A failed run is recorded, and you can retry it from its Activity run detail, or wait for the next scheduled tick.
+- There is no per agent spending cap yet. The Spending budget is global, so the token limit is shared by every agent.
+- There is no per-day history chart. The scorecard is a table over 7, 30, or 90 days, and the Spending budget card and the Research page show today's and this month's usage with an estimated cost.
+- There is no mandatory fact-check stage before the editorial review. A draft is reviewed by whichever reviewer claims it first, so the strict reviewer raises the bar on the drafts it takes rather than gating every draft. A `review_stage` column would make that mandatory.
+- There is no search volume data behind the planner. Topics come from the seed keywords in the prompt plus the model, not from measured search volume.
 - Only Tavily and the development fixture provider are wired up. Brave, Serper, and Exa can be added behind the same interface.
