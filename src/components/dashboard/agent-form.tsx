@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, requestJson, toErrorMessage } from './api-client';
 
 const AGENTS_ENDPOINT = '/api/dashboard/agents';
+const CATEGORIES_ENDPOINT = '/api/dashboard/categories';
 const PROMPT_ROWS = 10;
 
 const SELECT_CLASS =
@@ -37,6 +38,7 @@ interface AgentRecord {
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
+  category: string | null;
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
@@ -83,6 +85,7 @@ interface AgentInput {
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
+  category: string | null;
 }
 
 interface AgentFormValues {
@@ -93,6 +96,7 @@ interface AgentFormValues {
   runsPerDay: string;
   enabled: boolean;
   autoPublish: boolean;
+  category: string;
 }
 
 interface AgentFormProps {
@@ -165,6 +169,7 @@ function createDefaultValues(meta: AgentsMeta): AgentFormValues {
     runsPerDay: String(meta.minRunsPerDay),
     enabled: true,
     autoPublish: false,
+    category: '',
   };
 }
 
@@ -177,6 +182,7 @@ function toFormValues(agent: AgentRecord): AgentFormValues {
     runsPerDay: String(agent.runsPerDay),
     enabled: agent.enabled,
     autoPublish: agent.autoPublish,
+    category: agent.category ?? '',
   };
 }
 
@@ -210,6 +216,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [meta, setMeta] = useState<AgentsMeta | null>(null);
   const [runs, setRuns] = useState<AgentRunRecord[]>([]);
+  const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
   const [values, setValues] = useState<AgentFormValues | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -232,6 +239,27 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
         AGENTS_ENDPOINT,
         { signal: controller.signal },
       );
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      try {
+        const categoriesPayload = await requestJson<{
+          categories: Array<{ slug: string | null }>;
+        }>(CATEGORIES_ENDPOINT, { signal: controller.signal });
+        if (!controller.signal.aborted) {
+          setCategorySlugs(
+            categoriesPayload.categories
+              .map((category) => category.slug)
+              .filter((slug): slug is string => typeof slug === 'string' && slug.length > 0),
+          );
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setCategorySlugs([]);
+        }
+      }
+
       if (controller.signal.aborted) {
         return;
       }
@@ -264,7 +292,6 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       setStatus('error');
     }
   }, [mode, agentId]);
-
   useEffect(() => {
     void loadData();
     return () => controllerRef.current?.abort();
@@ -308,6 +335,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       runsPerDay: Number.isNaN(runsPerDay) ? 0 : runsPerDay,
       enabled: values.enabled,
       autoPublish: values.role === 'reviewer' ? values.autoPublish : false,
+      category: values.role === 'writer' ? values.category.trim() || null : null,
     };
 
     setIsSubmitting(true);
@@ -384,6 +412,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
 
     const nameError = fieldErrors.name;
     const roleError = fieldErrors.role;
+    const categoryError = fieldErrors.category;
     const promptError = fieldErrors.prompt;
     const modelError = fieldErrors.model;
     const runsError = fieldErrors.runsPerDay;
@@ -441,6 +470,45 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
             </p>
           ) : null}
         </div>
+
+        {values.role === 'writer' ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="agent-category">Category</Label>
+            <Input
+              id="agent-category"
+              list={categorySlugs.length > 0 ? 'agent-category-options' : undefined}
+              value={values.category}
+              autoComplete="off"
+              maxLength={60}
+              placeholder="e.g. home-office"
+              aria-invalid={Boolean(categoryError)}
+              aria-describedby={
+                categoryError ? 'agent-category-error agent-category-help' : 'agent-category-help'
+              }
+              onChange={(event) =>
+                setValues((current) =>
+                  current ? { ...current, category: event.target.value } : current,
+                )
+              }
+            />
+            {categorySlugs.length > 0 ? (
+              <datalist id="agent-category-options">
+                {categorySlugs.map((slug) => (
+                  <option key={slug} value={slug} />
+                ))}
+              </datalist>
+            ) : null}
+            {categoryError ? (
+              <p id="agent-category-error" className="text-sm text-destructive">
+                {categoryError}
+              </p>
+            ) : null}
+            <p id="agent-category-help" className="text-xs text-muted-foreground">
+              The writer only claims topics from that category, and the planner only proposes topics
+              in the categories the enabled writers cover. Leave it empty to claim any topic.
+            </p>
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="agent-prompt">Prompt</Label>

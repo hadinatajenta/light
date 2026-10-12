@@ -3,13 +3,16 @@ import { ApiError } from '../errors';
 import { readBudgetState, recordModelUsage } from './budget';
 import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
+import { type PlannerTopic, parsePlannerTopics } from './planner';
 import { formatPreflightIssues, runPreflight } from './preflight';
 import { runScrapperResearch } from './research';
 import {
+  claimPendingDraft,
   createDraftPost,
-  findPendingDraft,
+  type DraftTarget,
   listRecentPublishedTitles,
   publishPost,
+  releaseClaimedDraft,
   setPostReview,
   updateDraftBody,
 } from './review';
@@ -37,7 +40,9 @@ import {
   blockTopic,
   claimTopicForScrapper,
   claimTopicForWriter,
+  createTopic,
   findTopicByPost,
+  listTopics,
   markTopicFetched,
   markTopicResearched,
   markTopicUsed,
@@ -122,6 +127,58 @@ function buildSystemPrompt(agent: AgentRecord): string {
   return `${role.defaultPrompt}\n\nAgent focus: ${agent.prompt}\n\nRespond with a single JSON object and nothing else.`;
 }
 
+async function loadPlannerCategories(db: D1Database): Promise<string[]> {
+  const writers = await db
+    .prepare(
+      `SELECT DISTINCT category FROM agents
+       WHERE role = 'writer' AND enabled = 1 AND category IS NOT NULL AND TRIM(category) <> ''`,
+    )
+    .all<{ category: string }>();
+  const writerCategories = (writers.results ?? []).map((row) => row.category.trim());
+
+  if (writerCategories.length > 0) {
+    return [...new Set(writerCategories)];
+  }
+
+  const posts = await db
+    .prepare(
+      `SELECT DISTINCT category FROM posts
+       WHERE status = 'published' AND category IS NOT NULL AND TRIM(category) <> ''`,
+    )
+    .all<{ category: string }>();
+
+  return [...new Set((posts.results ?? []).map((row) => row.category.trim()))];
+}
+
+function buildPlannerMessage(
+  categories: readonly string[],
+  topicTitles: readonly string[],
+  publishedTitles: readonly string[],
+): string {
+  const categoryList = categories.length > 0 ? categories.join(', ') : 'general';
+  const queued =
+    topicTitles.length > 0
+      ? `\n\nQueued topics already waiting, do not duplicate:\n- ${topicTitles.join('\n- ')}`
+      : '';
+  const published =
+    publishedTitles.length > 0
+      ? `\n\nArticles already published, do not duplicate:\n- ${publishedTitles.join('\n- ')}`
+      : '';
+
+  return `Allowed categories, choose exactly one per topic: ${categoryList}.${queued}${published}
+
+Return a single JSON object with key "topics": an array of 5 to 8 objects, each with keys title (string, 10 to 70 characters), category (string, from the allowed list), intent ("informational", "commercial", "transactional", or "navigational"), keywords (array of 2 to 5 lowercase long-tail search phrases), and rationale (string, one sentence).`;
+}
+
+function summarizePlannedTopics(topics: readonly PlannerTopic[]): string {
+  const categories = [...new Set(topics.map((topic) => topic.category))];
+  const label = topics.length === 1 ? 'topic' : 'topics';
+
+  return categories.length > 0
+    ? `Proposed ${topics.length} ${label} for ${categories.join(', ')}`
+    : `Proposed ${topics.length} ${label}`;
+}
+
 async function loadCatalogSlice(db: D1Database, topic: TopicRecord): Promise<string> {
   const result = await db
     .prepare(
@@ -152,6 +209,7 @@ async function buildUserMessage(
   agent: AgentRecord,
   topic: TopicRecord | null,
   revisionTarget: RevisionTarget | null,
+  draft: DraftTarget | null,
 ): Promise<string> {
   if (agent.role === 'writer') {
     if (revisionTarget) {
@@ -197,25 +255,24 @@ ${catalog}
 Return JSON with keys: title (string, 10 to 70 characters), description (string, 50 to 160 characters), tags (array of 2 to 4 lowercase slugs), body (markdown string, no H1), editorNotes (string).${avoid}`;
   }
 
-  const target = await findPendingDraft(db);
-  if (!target) {
+  if (!draft) {
     return '';
   }
 
-  const draft = `Title: ${target.title}\n\nDescription: ${target.description}\n\n${truncate(target.body, MAX_DRAFT_CHARS)}`;
+  const renderedDraft = `Title: ${draft.title}\n\nDescription: ${draft.description}\n\n${truncate(draft.body, MAX_DRAFT_CHARS)}`;
 
   if (agent.role === 'reviewer') {
-    return `Return JSON with keys: decision ("approve" or "changes_requested"), notes (string), revisedBody (string, the full revised markdown, or an empty string when approving).\n\nDraft:\n${draft}`;
+    return `Return JSON with keys: decision ("approve" or "changes_requested"), notes (string), revisedBody (string, the full revised markdown, or an empty string when approving).\n\nDraft:\n${renderedDraft}`;
   }
 
-  const topicForDraft = await findTopicByPost(db, target.id);
+  const topicForDraft = await findTopicByPost(db, draft.id);
   const sources = topicForDraft ? await listVerifiedSources(db, topicForDraft.id) : [];
   const research = renderSourcesForPrompt(sources);
   const researchBlock = research
     ? `\n\nResearch notes the draft was supposed to be based on:\n${research}`
     : '\n\nNo research notes are linked to this draft.';
 
-  return `Return JSON with keys: passed (boolean), issues (array of strings).\n\nDraft:\n${draft}${researchBlock}`;
+  return `Return JSON with keys: passed (boolean), issues (array of strings).\n\nDraft:\n${renderedDraft}${researchBlock}`;
 }
 
 async function applyResult(
@@ -224,6 +281,7 @@ async function applyResult(
   content: string,
   topic: TopicRecord | null,
   revisionTarget: RevisionTarget | null,
+  draft: DraftTarget | null,
 ): Promise<AppliedResult> {
   if (agent.role === 'writer') {
     const parsed = extractJsonObject(content);
@@ -262,7 +320,7 @@ async function applyResult(
     };
   }
 
-  const target = await findPendingDraft(db);
+  const target = draft;
   if (!target) {
     return { summary: 'No pending draft to process', output: '' };
   }
@@ -356,6 +414,8 @@ async function applyResult(
     };
   }
 
+  await releaseClaimedDraft(db, target.id);
+
   return {
     summary: `Passed QC on "${target.title}"`,
     output: truncate(content, MAX_OUTPUT_CHARS),
@@ -442,6 +502,7 @@ export async function runAgent(
   const effectiveDeadline = deadline ?? Date.now() + SCRAPPER_RESEARCH_BUDGET_MS;
   let topic: TopicRecord | null = null;
   let revisionTarget: RevisionTarget | null = null;
+  let draft: DraftTarget | null = null;
 
   try {
     const budget = await readBudgetState(db);
@@ -456,8 +517,71 @@ export async function runAgent(
     const apiKey = await requireDeepseekKey(db);
     const role = getRoleDefinition(agent.role);
 
+    if (agent.role === 'planner') {
+      const [categories, existingTopics, publishedTitles] = await Promise.all([
+        loadPlannerCategories(db),
+        listTopics(db, { limit: 200 }),
+        listRecentPublishedTitles(db, 200),
+      ]);
+      const existingTitles = existingTopics.map((entry) => entry.title);
+      const knownTitles = [...existingTitles, ...publishedTitles];
+      const userMessage = buildPlannerMessage(categories, existingTitles, publishedTitles);
+
+      const response = await createChatCompletion({
+        apiKey,
+        model: agent.model,
+        messages: [
+          { role: 'system', content: buildSystemPrompt(agent) },
+          { role: 'user', content: userMessage },
+        ],
+        effort: role.defaultEffort,
+        userId: agent.id,
+        jsonMode: true,
+        maxTokens: 32_000,
+        signal,
+      });
+
+      await recordModelUsage(db, response.tokensIn, response.tokensOut);
+
+      const parsed = extractJsonObject(response.content);
+      const planned = parsePlannerTopics(parsed, categories, knownTitles).topics;
+
+      for (const entry of planned) {
+        await createTopic(
+          db,
+          {
+            title: entry.title,
+            keywords: entry.keywords,
+            category: entry.category,
+            intent: entry.intent,
+          },
+          agent.id,
+        );
+      }
+
+      const summary = summarizePlannedTopics(planned);
+      await finishAgentRun(db, runId, {
+        status: 'succeeded',
+        summary,
+        output: truncate(response.content, MAX_OUTPUT_CHARS),
+        tokensIn: response.tokensIn,
+        tokensOut: response.tokensOut,
+      });
+      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await recordAgentActivity(agent, runId, summary);
+
+      return {
+        runId,
+        status: 'succeeded',
+        summary,
+        output: truncate(response.content, MAX_OUTPUT_CHARS),
+        tokensIn: response.tokensIn,
+        tokensOut: response.tokensOut,
+      };
+    }
+
     if (agent.role === 'writer') {
-      topic = await claimTopicForWriter(db, agent.id);
+      topic = await claimTopicForWriter(db, agent.id, agent.category);
 
       if (!topic) {
         const candidate = await findRevisionTarget(db);
@@ -546,7 +670,19 @@ export async function runAgent(
       };
     }
 
-    const userMessage = await buildUserMessage(db, agent, topic, revisionTarget);
+    if (agent.role === 'reviewer' || agent.role === 'qc') {
+      draft = await claimPendingDraft(db, agent.id);
+
+      if (!draft) {
+        const summary = 'No pending draft to review';
+        await finishAgentRun(db, runId, { status: 'succeeded', summary });
+        await markAgentRun(db, agent.id, agent.runsPerDay);
+        await recordAgentActivity(agent, runId, summary);
+        return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
+      }
+    }
+
+    const userMessage = await buildUserMessage(db, agent, topic, revisionTarget, draft);
 
     if (!userMessage) {
       if (topic) {
@@ -605,7 +741,7 @@ export async function runAgent(
       };
     }
 
-    const applied = await applyResult(db, agent, response.content, topic, revisionTarget);
+    const applied = await applyResult(db, agent, response.content, topic, revisionTarget, draft);
 
     if (topic) {
       if (applied.postId) {
@@ -662,6 +798,10 @@ export async function runAgent(
         )
         .bind(new Date().toISOString(), revisionTarget.id)
         .run();
+    }
+
+    if (draft) {
+      await releaseClaimedDraft(db, draft.id);
     }
 
     await finishAgentRun(db, runId, {

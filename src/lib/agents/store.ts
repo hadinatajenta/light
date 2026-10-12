@@ -4,6 +4,7 @@ import {
   type AgentModel,
   type AgentRole,
   MAX_AGENTS,
+  MAX_AGENTS_BY_ROLE,
   MAX_RUNS_PER_DAY,
   MIN_RUNS_PER_DAY,
 } from './roles';
@@ -13,6 +14,7 @@ export interface AgentRecord {
   name: string;
   role: AgentRole;
   prompt: string;
+  category: string | null;
   model: AgentModel;
   runsPerDay: number;
   enabled: boolean;
@@ -27,6 +29,7 @@ export interface AgentInput {
   name: string;
   role: AgentRole;
   prompt: string;
+  category?: string | null;
   model: AgentModel;
   runsPerDay: number;
   enabled: boolean;
@@ -51,6 +54,7 @@ interface AgentRow {
   name: string;
   role: string;
   prompt: string;
+  category: string | null;
   model: string;
   runs_per_day: number;
   enabled: number;
@@ -82,6 +86,7 @@ function toAgent(row: AgentRow): AgentRecord {
     name: row.name,
     role: row.role as AgentRole,
     prompt: row.prompt,
+    category: row.category ?? null,
     model: row.model as AgentModel,
     runsPerDay: row.runs_per_day,
     enabled: row.enabled === 1,
@@ -131,6 +136,15 @@ export async function countAgents(db: D1Database): Promise<number> {
   return row?.total ?? 0;
 }
 
+async function countAgentsByRole(db: D1Database, role: AgentRole): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS total FROM agents WHERE role = ?')
+    .bind(role)
+    .first<{ total: number }>();
+
+  return row?.total ?? 0;
+}
+
 export async function listAgents(db: D1Database): Promise<AgentRecord[]> {
   const result = await db.prepare('SELECT * FROM agents ORDER BY created_at ASC').all<AgentRow>();
 
@@ -152,8 +166,19 @@ export async function getAgent(db: D1Database, id: string): Promise<AgentRecord>
 }
 
 export async function createAgent(db: D1Database, input: AgentInput): Promise<AgentRecord> {
-  if ((await countAgents(db)) >= MAX_AGENTS) {
+  const [total, byRole] = await Promise.all([countAgents(db), countAgentsByRole(db, input.role)]);
+  const roleLimit = MAX_AGENTS_BY_ROLE[input.role];
+
+  if (total >= MAX_AGENTS) {
     throw new ApiError(409, 'AGENT_LIMIT_REACHED', `You can create at most ${MAX_AGENTS} agents.`);
+  }
+
+  if (byRole >= roleLimit) {
+    throw new ApiError(
+      409,
+      'AGENT_LIMIT_REACHED',
+      `You can create at most ${roleLimit} ${input.role} agents.`,
+    );
   }
 
   const now = new Date();
@@ -161,15 +186,16 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
 
   await db
     .prepare(
-      `INSERT INTO agents (id, name, role, prompt, model, runs_per_day, enabled, auto_publish,
+      `INSERT INTO agents (id, name, role, prompt, category, model, runs_per_day, enabled, auto_publish,
         last_run_at, next_run_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
     )
     .bind(
       id,
       input.name,
       input.role,
       input.prompt,
+      input.category ?? null,
       input.model,
       input.runsPerDay,
       input.enabled ? 1 : 0,
@@ -192,13 +218,14 @@ export async function updateAgent(
 
   await db
     .prepare(
-      `UPDATE agents SET name = ?, role = ?, prompt = ?, model = ?, runs_per_day = ?,
+      `UPDATE agents SET name = ?, role = ?, prompt = ?, category = ?, model = ?, runs_per_day = ?,
         enabled = ?, auto_publish = ?, next_run_at = ?, updated_at = ? WHERE id = ?`,
     )
     .bind(
       input.name,
       input.role,
       input.prompt,
+      input.category ?? null,
       input.model,
       input.runsPerDay,
       input.enabled ? 1 : 0,

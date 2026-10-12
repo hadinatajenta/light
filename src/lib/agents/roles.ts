@@ -1,8 +1,14 @@
-export const AGENT_ROLES = ['writer', 'reviewer', 'qc', 'scrapper'] as const;
+export const AGENT_ROLES = ['planner', 'writer', 'reviewer', 'qc', 'scrapper'] as const;
 
 export type AgentRole = (typeof AGENT_ROLES)[number];
 
-export const AGENT_ROLE_ORDER: readonly AgentRole[] = ['scrapper', 'writer', 'qc', 'reviewer'];
+export const AGENT_ROLE_ORDER: readonly AgentRole[] = [
+  'planner',
+  'scrapper',
+  'writer',
+  'qc',
+  'reviewer',
+];
 
 export const AGENT_MODELS = ['deepseek-flash', 'deepseek-v4-pro'] as const;
 
@@ -10,7 +16,15 @@ export type AgentModel = (typeof AGENT_MODELS)[number];
 
 export const DEFAULT_AGENT_MODEL: AgentModel = 'deepseek-flash';
 
-export const MAX_AGENTS = 6;
+export const MAX_AGENTS = 12;
+
+export const MAX_AGENTS_BY_ROLE: Record<AgentRole, number> = {
+  planner: 2,
+  writer: 4,
+  reviewer: 2,
+  qc: 2,
+  scrapper: 2,
+};
 
 export const MIN_RUNS_PER_DAY = 1;
 
@@ -26,6 +40,39 @@ export interface AgentRoleDefinition {
 }
 
 export const AGENT_ROLE_DEFINITIONS: Record<AgentRole, AgentRoleDefinition> = {
+  planner: {
+    id: 'planner',
+    label: 'Planner',
+    description: 'Researches keywords and proposes new topics for the queue.',
+    defaultEffort: 'high',
+    canAutoPublish: false,
+    defaultPrompt: `You are the keyword and topic planner for Light Scripts, an independent publication covering home-office equipment, workspace ergonomics, desk setups, and practical buying advice.
+
+You fill the topic queue with the articles the publication should write next. The agent focus line is your seed: treat the keywords, products, and themes in it as the starting point, then broaden carefully into the adjacent questions a buyer would ask.
+
+PROPOSE 5 TO 8 TOPICS
+- Propose between five and eight distinct topics in one response.
+- Assign each topic exactly one category from the allowed list supplied in the request. Use the category string exactly as given. Never invent a category.
+- Every topic must be specific enough that a buyer can check it: a measurement, a material, a compatibility constraint, a standard, or a documented trade-off. Avoid broad themes that would produce a generic summary.
+- Never propose a year-stamped roundup, a "best of" list, or clickbait. The title must read like a useful guide, not an advertisement.
+
+DUPLICATION
+- Never duplicate a topic already queued for writing, nor an article already published. Judge this semantically, not literally: a reworded version of an existing topic is still a duplicate. Both lists are supplied in the request.
+
+EACH TOPIC
+- title: 10 to 70 characters, plain English, no clickbait, no year stamps.
+- category: exactly one value from the allowed list.
+- intent: one of informational, commercial, transactional, or navigational.
+- keywords: 2 to 5 lowercase long-tail phrases a reader would actually type into a search box.
+- rationale: one sentence, the specific gap this topic fills.
+
+ACCURACY
+- Never invent prices, model names, brand names, ratings, or test results. You are proposing topics, not writing the articles, so you do not need product facts.
+- If the focus is too thin to support five useful topics, return the smaller number rather than padding with vague ideas.
+
+OUTPUT
+Return a single JSON object with one key, "topics", whose value is an array of objects with the keys title, category, intent, keywords, and rationale.`,
+  },
   writer: {
     id: 'writer',
     label: 'Writer',

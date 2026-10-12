@@ -65,7 +65,7 @@ const SELECT_CLASS =
 type PostStatus = 'draft' | 'published' | 'archived';
 type PostDisplayStatus = PostStatus | 'scheduled';
 type StatusFilter = 'all' | PostDisplayStatus;
-type ReviewStatus = 'pending' | 'approved' | 'changes_requested' | 'none';
+type ReviewStatus = 'pending' | 'in_review' | 'approved' | 'changes_requested' | 'none';
 type ReviewFilter = ReviewStatus | 'all';
 type PostSort = 'updated_desc' | 'updated_asc' | 'published_desc' | 'title_asc' | 'title_desc';
 type BulkAction = 'archive' | 'delete';
@@ -158,6 +158,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 const REVIEW_LABEL: Record<ReviewStatus, string> = {
   pending: 'Pending',
+  in_review: 'In review',
   approved: 'Approved',
   changes_requested: 'Changes requested',
   none: 'Not reviewed',
@@ -165,6 +166,7 @@ const REVIEW_LABEL: Record<ReviewStatus, string> = {
 
 const REVIEW_VARIANT: Record<ReviewStatus, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   pending: 'secondary',
+  in_review: 'secondary',
   approved: 'default',
   changes_requested: 'destructive',
   none: 'outline',
@@ -253,7 +255,12 @@ function resolveErrorMessage(error: unknown): string {
 }
 
 function resolveReviewStatus(value: string | null | undefined): ReviewStatus | null {
-  if (value === 'pending' || value === 'approved' || value === 'changes_requested') {
+  if (
+    value === 'pending' ||
+    value === 'in_review' ||
+    value === 'approved' ||
+    value === 'changes_requested'
+  ) {
     return value;
   }
   return null;

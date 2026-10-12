@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_RUNS_PER_DAY, MIN_RUNS_PER_DAY } from './roles';
+import { AGENT_ROLES, MAX_AGENTS_BY_ROLE, MAX_RUNS_PER_DAY, MIN_RUNS_PER_DAY } from './roles';
 import { computeNextRunAt, hasRepeatedFailures } from './store';
 
 const FROM = new Date('2026-10-11T00:00:00.000Z');
@@ -54,5 +54,21 @@ describe('hasRepeatedFailures', () => {
 
   it('requires exactly the three newest runs', () => {
     expect(hasRepeatedFailures(['failed', 'failed', 'failed', 'failed'])).toBe(false);
+  });
+});
+
+describe('MAX_AGENTS_BY_ROLE', () => {
+  it('caps writers at four and every other role at two', () => {
+    expect(MAX_AGENTS_BY_ROLE.writer).toBe(4);
+    expect(MAX_AGENTS_BY_ROLE.planner).toBe(2);
+    expect(MAX_AGENTS_BY_ROLE.scrapper).toBe(2);
+    expect(MAX_AGENTS_BY_ROLE.qc).toBe(2);
+    expect(MAX_AGENTS_BY_ROLE.reviewer).toBe(2);
+  });
+
+  it('defines a limit for every agent role', () => {
+    for (const role of AGENT_ROLES) {
+      expect(MAX_AGENTS_BY_ROLE[role]).toBeGreaterThan(0);
+    }
   });
 });

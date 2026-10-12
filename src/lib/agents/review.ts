@@ -3,7 +3,7 @@ import { createPost } from '../content/store';
 import { notifyIndexNow } from '../seo/indexnow';
 import type { AgentRecord } from './store';
 
-export type ReviewStatus = 'pending' | 'approved' | 'changes_requested';
+export type ReviewStatus = 'pending' | 'in_review' | 'approved' | 'changes_requested';
 
 export interface DraftTarget {
   id: string;
@@ -49,6 +49,39 @@ export async function findPendingDraft(db: D1Database): Promise<DraftTarget | nu
   return row
     ? { id: row.id, title: row.title, description: row.description, body: row.body }
     : null;
+}
+
+export async function claimPendingDraft(
+  db: D1Database,
+  agentId: string,
+): Promise<DraftTarget | null> {
+  const now = new Date().toISOString();
+  const row = await db
+    .prepare(
+      `UPDATE posts SET review_status = 'in_review', reviewed_by = ?, reviewed_at = ?
+       WHERE id = (
+         SELECT id FROM posts
+         WHERE status = 'draft' AND (review_status IS NULL OR review_status = 'pending')
+         ORDER BY created_at ASC LIMIT 1
+       )
+         AND status = 'draft' AND (review_status IS NULL OR review_status = 'pending')
+       RETURNING id, title, description, body`,
+    )
+    .bind(agentId, now)
+    .first<DraftRow>();
+
+  return row
+    ? { id: row.id, title: row.title, description: row.description, body: row.body }
+    : null;
+}
+
+export async function releaseClaimedDraft(db: D1Database, id: string): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE posts SET review_status = 'pending', updated_at = ? WHERE id = ? AND review_status = 'in_review'",
+    )
+    .bind(new Date().toISOString(), id)
+    .run();
 }
 
 export async function listRecentPublishedTitles(db: D1Database, limit = 12): Promise<string[]> {

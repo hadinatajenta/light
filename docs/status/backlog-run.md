@@ -4,6 +4,20 @@ One session, phase by phase, at most two subagents per wave. Legend:
 `[x]` done, `[~]` in progress, `[ ]` not started, `[!]` deferred with reason,
 `(you)` needs the owner, `(dev)` engineering.
 
+## Round 2 - agent roster and quality
+
+Plan and rationale: `docs/status/plans/2026-10-12-agent-roster.md`.
+
+- [~] Planner role that fills the topic queue with keyword driven topics (dev)
+- [~] Writer specialisation: a category per writer, and writers only claim their own category (dev)
+- [~] Raise `MAX_AGENTS` to 12 with a per role cap so writers cannot stack (dev)
+- [~] Draft claiming for reviewers and QC so two reviewers cannot review the same draft (dev)
+- [~] Per agent scorecard: runs, success rate, tokens, articles, tokens per article, approvals, revisions (dev)
+- [ ] Second reviewer with a strict fact guardian prompt, created in production (dev)
+- [ ] Writer A on `desk-setup` and Writer B on `chairs`, set in production (dev)
+- [ ] Create the QC agent so the QC gate actually runs in production (you, dev)
+- [ ] Per agent spending cap: deliberately after this round (dev)
+
 ## Phase 1 - stability
 
 - [x] Run lock: claim the agent before running so overlapping ticks cannot run the same agent twice (dev)

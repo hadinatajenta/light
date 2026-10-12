@@ -64,6 +64,13 @@ export async function reapStaleRuns(db: D1Database, now: number = Date.now()): P
 
     await db
       .prepare(
+        "UPDATE posts SET review_status = 'pending', updated_at = ? WHERE review_status = 'in_review' AND reviewed_by = ?",
+      )
+      .bind(finishedAt, row.agent_id)
+      .run();
+
+    await db
+      .prepare(
         `UPDATE agent_runs SET status = 'failed', summary = ?, error = ?, finished_at = ?
          WHERE id = ? AND status = 'running'`,
       )

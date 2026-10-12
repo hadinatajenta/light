@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isTopicClaimable, MAX_TOPIC_ATTEMPTS, topicRetryDelayMs } from './topics';
+import {
+  isDuplicateTopicTitle,
+  isTopicClaimable,
+  MAX_TOPIC_ATTEMPTS,
+  normalizeTopicTitle,
+  topicRetryDelayMs,
+} from './topics';
 
 const NOW_ISO = '2026-10-11T08:00:00.000Z';
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
@@ -54,5 +60,49 @@ describe('isTopicClaimable', () => {
     expect(isTopicClaimable('used', null, NOW_ISO)).toBe(false);
     expect(isTopicClaimable('blocked', null, NOW_ISO)).toBe(false);
     expect(isTopicClaimable('dead', null, NOW_ISO)).toBe(false);
+  });
+});
+
+describe('normalizeTopicTitle', () => {
+  it('lowercases the title', () => {
+    expect(normalizeTopicTitle('Office Chair')).toBe('office chair');
+  });
+
+  it('turns punctuation into spaces and collapses whitespace', () => {
+    expect(normalizeTopicTitle('  Standing   Desks: Which Fit?  ')).toBe(
+      'standing desks which fit',
+    );
+  });
+
+  it('keeps letters and numbers from any script', () => {
+    expect(normalizeTopicTitle('Desk 2.0 (2026)')).toBe('desk 2 0 2026');
+  });
+
+  it('returns an empty string for punctuation only', () => {
+    expect(normalizeTopicTitle(' -- ')).toBe('');
+  });
+});
+
+describe('isDuplicateTopicTitle', () => {
+  it('matches titles that differ only in case and punctuation', () => {
+    expect(isDuplicateTopicTitle('Choosing an Office Chair!', ['choosing an office chair'])).toBe(
+      true,
+    );
+  });
+
+  it('matches titles that differ only in whitespace', () => {
+    expect(isDuplicateTopicTitle('office   chair', ['office chair'])).toBe(true);
+  });
+
+  it('does not match genuinely different titles', () => {
+    expect(isDuplicateTopicTitle('office chair height', ['office chair materials'])).toBe(false);
+  });
+
+  it('treats an empty candidate as not a duplicate', () => {
+    expect(isDuplicateTopicTitle('   ', ['office chair'])).toBe(false);
+  });
+
+  it('returns false against an empty known list', () => {
+    expect(isDuplicateTopicTitle('office chair', [])).toBe(false);
   });
 });

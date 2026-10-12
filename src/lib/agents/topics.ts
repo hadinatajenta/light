@@ -39,6 +39,7 @@ export interface TopicRecord {
   status: TopicStatus;
   assignedAgentId: string | null;
   usedPostId: string | null;
+  createdByAgentId: string | null;
   note: string | null;
   attempts: number;
   nextAttemptAt: string | null;
@@ -72,6 +73,7 @@ interface TopicRow {
   status: string;
   assigned_agent_id: string | null;
   used_post_id: string | null;
+  created_by_agent_id: string | null;
   note: string | null;
   attempts: number;
   next_attempt_at: string | null;
@@ -114,6 +116,24 @@ export function isTopicClaimable(
   return nextAttemptAt === null || nextAttemptAt <= nowIso;
 }
 
+export function normalizeTopicTitle(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function isDuplicateTopicTitle(candidate: string, known: readonly string[]): boolean {
+  const normalizedCandidate = normalizeTopicTitle(candidate);
+
+  if (!normalizedCandidate) {
+    return false;
+  }
+
+  return known.some((title) => normalizeTopicTitle(title) === normalizedCandidate);
+}
+
 function toTopic(row: TopicRow): TopicRecord {
   return {
     id: row.id,
@@ -124,6 +144,7 @@ function toTopic(row: TopicRow): TopicRecord {
     status: readStatus(row.status),
     assignedAgentId: row.assigned_agent_id,
     usedPostId: row.used_post_id,
+    createdByAgentId: row.created_by_agent_id ?? null,
     note: row.note,
     attempts: row.attempts ?? 0,
     nextAttemptAt: row.next_attempt_at ?? null,
@@ -183,16 +204,29 @@ export async function countTopics(db: D1Database): Promise<TopicCounts> {
   return counts;
 }
 
-export async function createTopic(db: D1Database, input: TopicInput): Promise<TopicRecord> {
+export async function createTopic(
+  db: D1Database,
+  input: TopicInput,
+  createdByAgentId: string | null = null,
+): Promise<TopicRecord> {
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
 
   await db
     .prepare(
-      `INSERT INTO topics (id, title, keywords, category, intent, status, assigned_agent_id, used_post_id, note, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'queued', NULL, NULL, NULL, ?, ?)`,
+      `INSERT INTO topics (id, title, keywords, category, intent, status, assigned_agent_id, used_post_id, created_by_agent_id, note, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'queued', NULL, NULL, ?, NULL, ?, ?)`,
     )
-    .bind(id, input.title, JSON.stringify(input.keywords), input.category, input.intent, now, now)
+    .bind(
+      id,
+      input.title,
+      JSON.stringify(input.keywords),
+      input.category,
+      input.intent,
+      createdByAgentId,
+      now,
+      now,
+    )
     .run();
 
   return getTopic(db, id);
@@ -222,6 +256,7 @@ async function claimTopicWithStatus(
   db: D1Database,
   agentId: string,
   statuses: TopicStatus[],
+  category: string | null = null,
 ): Promise<TopicRecord | null> {
   const nowIso = new Date().toISOString();
   const placeholders = statuses.map(() => '?').join(', ');
@@ -229,9 +264,10 @@ async function claimTopicWithStatus(
     .prepare(
       `SELECT id, status, next_attempt_at FROM topics
        WHERE status IN (${placeholders}) AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+         AND (? IS NULL OR category = ?)
        ORDER BY created_at ASC LIMIT 1`,
     )
-    .bind(...statuses, nowIso)
+    .bind(...statuses, nowIso, category, category)
     .first<{ id: string; status: string; next_attempt_at: string | null }>();
 
   if (
@@ -244,9 +280,10 @@ async function claimTopicWithStatus(
   const result = await db
     .prepare(
       `UPDATE topics SET status = 'in_progress', assigned_agent_id = ?, updated_at = ?
-       WHERE id = ? AND status = ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?)`,
+       WHERE id = ? AND status = ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
+         AND (? IS NULL OR category = ?)`,
     )
-    .bind(agentId, nowIso, candidate.id, candidate.status, nowIso)
+    .bind(agentId, nowIso, candidate.id, candidate.status, nowIso, category, category)
     .run();
 
   const changed = (result.meta as { changes?: number } | undefined)?.changes ?? 0;
@@ -261,11 +298,15 @@ export function claimTopicForScrapper(
   db: D1Database,
   agentId: string,
 ): Promise<TopicRecord | null> {
-  return claimTopicWithStatus(db, agentId, ['queued', 'fetched']);
+  return claimTopicWithStatus(db, agentId, ['queued', 'fetched'], null);
 }
 
-export function claimTopicForWriter(db: D1Database, agentId: string): Promise<TopicRecord | null> {
-  return claimTopicWithStatus(db, agentId, ['researched']);
+export function claimTopicForWriter(
+  db: D1Database,
+  agentId: string,
+  category: string | null,
+): Promise<TopicRecord | null> {
+  return claimTopicWithStatus(db, agentId, ['researched'], category);
 }
 
 export async function markTopicResearched(db: D1Database, id: string): Promise<void> {
