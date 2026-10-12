@@ -628,7 +628,7 @@ export async function runAgent(
         signal,
       });
 
-      if (outcome.status === 'skipped') {
+      if (outcome.status === 'skipped' || outcome.status === 'deferred') {
         await releaseTopic(db, topic.id, outcome.summary, await scrapperResumeStatus(db, topic.id));
         await finishAgentRun(db, runId, { status: 'skipped', summary: outcome.summary });
         await markAgentRun(db, agent.id, agent.runsPerDay);

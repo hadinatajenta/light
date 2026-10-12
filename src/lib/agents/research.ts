@@ -543,6 +543,16 @@ export async function runScrapperResearch(input: {
     });
 
     if (discovered.length === 0) {
+      if (budget.searchesRemaining < plan.queries.length) {
+        return {
+          status: 'deferred',
+          summary: 'Search budget ran out mid research; it resumes when the budget resets',
+          output: '',
+          tokensIn,
+          tokensOut,
+        };
+      }
+
       return {
         status: 'blocked',
         summary: `Search returned no usable sources for "${topic.title}"`,
