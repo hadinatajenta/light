@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -529,10 +530,9 @@ function ChannelFormDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="sharing-channel-provider">Provider</Label>
-              <select
+              <Select
                 id="sharing-channel-provider"
                 ref={registerField('provider')}
-                className="select-control"
                 value={values.provider}
                 disabled={isSubmitting}
                 onChange={handleProviderChange}
@@ -542,7 +542,7 @@ function ChannelFormDialog({
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="sharing-channel-daily-cap">Daily cap</Label>
@@ -1291,9 +1291,9 @@ export default function SharingManager() {
             <Label htmlFor="sharing-job-limit" className="text-xs text-muted-foreground">
               Jobs to show
             </Label>
-            <select
+            <Select
               id="sharing-job-limit"
-              className={cn('select-control', 'w-auto')}
+              className="w-auto"
               value={jobLimit}
               disabled={isRefreshing}
               onChange={(event) => setJobLimit(Number(event.target.value))}
@@ -1303,7 +1303,7 @@ export default function SharingManager() {
                   {option}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 

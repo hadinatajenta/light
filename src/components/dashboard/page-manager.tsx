@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -329,9 +330,8 @@ export default function PageManager() {
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={statusSelectId}>Status</Label>
-            <select
+            <Select
               id={statusSelectId}
-              className="select-control"
               value={statusFilter}
               onChange={(event) => {
                 setStatusFilter(event.target.value as StatusFilter);
@@ -343,14 +343,13 @@ export default function PageManager() {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={footerSelectId}>Footer</Label>
-            <select
+            <Select
               id={footerSelectId}
-              className="select-control"
               value={footerFilter}
               onChange={(event) => {
                 setFooterFilter(event.target.value as FooterFilter);
@@ -362,14 +361,13 @@ export default function PageManager() {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={sortSelectId}>Order by</Label>
-            <select
+            <Select
               id={sortSelectId}
-              className="select-control"
               value={sortOption}
               onChange={(event) => {
                 setSortOption(event.target.value as SortOption);
@@ -381,7 +379,7 @@ export default function PageManager() {
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div className="flex min-w-[16rem] flex-1 flex-col gap-1.5">

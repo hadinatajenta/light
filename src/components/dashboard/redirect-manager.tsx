@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -610,9 +611,8 @@ export default function RedirectManager() {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="redirect-status">Status code</Label>
-              <select
+              <Select
                 id="redirect-status"
-                className="select-control"
                 value={values.statusCode}
                 onChange={(event) =>
                   setValues((current) => ({
@@ -628,7 +628,7 @@ export default function RedirectManager() {
                     {code === 302 ? ' temporary' : null}
                   </option>
                 ))}
-              </select>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 Use 301 for a permanent move, 302 or 307 for a temporary one.
               </p>

@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -175,9 +176,8 @@ function CategoryField({
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>Category</Label>
-      <select
+      <Select
         id={id}
-        className="select-control"
         value={value}
         disabled={loadError !== null}
         aria-describedby={loadError ? `${id}-error` : `${id}-help`}
@@ -189,7 +189,7 @@ function CategoryField({
             {option.label}
           </option>
         ))}
-      </select>
+      </Select>
       {loadError ? (
         <p id={`${id}-error`} className="text-sm text-destructive">
           {loadError}{' '}
@@ -493,9 +493,8 @@ function CreateTopicDialog({
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="topic-intent">Intent</Label>
-            <select
+            <Select
               id="topic-intent"
-              className="select-control"
               value={intent}
               aria-describedby="topic-intent-help"
               onChange={(event) => setIntent(event.target.value)}
@@ -506,7 +505,7 @@ function CreateTopicDialog({
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
             <p id="topic-intent-help" className="text-xs text-muted-foreground">
               Match the topic to what the searcher wants
             </p>

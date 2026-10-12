@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -1052,9 +1053,8 @@ export default function PostTable({
 
         <div className="flex min-w-[10rem] flex-col gap-1.5">
           <Label htmlFor="posts-status-filter">Status</Label>
-          <select
+          <Select
             id="posts-status-filter"
-            className="select-control"
             value={status}
             onChange={handleStatusChange}
             disabled={isMutating}
@@ -1064,14 +1064,13 @@ export default function PostTable({
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[10rem] flex-col gap-1.5">
           <Label htmlFor="posts-review-filter">Review</Label>
-          <select
+          <Select
             id="posts-review-filter"
-            className="select-control"
             value={review}
             onChange={handleReviewChange}
             disabled={isMutating}
@@ -1081,14 +1080,13 @@ export default function PostTable({
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[10rem] flex-col gap-1.5">
           <Label htmlFor="posts-category-filter">Category</Label>
-          <select
+          <Select
             id="posts-category-filter"
-            className="select-control"
             value={category}
             onChange={handleCategoryChange}
             disabled={isMutating}
@@ -1099,14 +1097,13 @@ export default function PostTable({
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[10rem] flex-col gap-1.5">
           <Label htmlFor="posts-sort-filter">Sort</Label>
-          <select
+          <Select
             id="posts-sort-filter"
-            className="select-control"
             value={sort}
             onChange={handleSortChange}
             disabled={isMutating}
@@ -1116,14 +1113,13 @@ export default function PostTable({
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[7rem] flex-col gap-1.5">
           <Label htmlFor="posts-page-size">Per page</Label>
-          <select
+          <Select
             id="posts-page-size"
-            className="select-control"
             value={String(pageSize)}
             onChange={handlePageSizeChange}
             disabled={isMutating}
@@ -1133,7 +1129,7 @@ export default function PostTable({
                 {option}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <Button

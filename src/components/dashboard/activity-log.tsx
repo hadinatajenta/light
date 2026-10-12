@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/utils/date';
@@ -338,9 +339,8 @@ export default function ActivityLog() {
       >
         <div className="flex min-w-[9rem] flex-1 flex-col gap-1.5">
           <Label htmlFor="activity-scope">Scope</Label>
-          <select
+          <Select
             id="activity-scope"
-            className="select-control"
             value={filters.scope}
             disabled={isBusy}
             onChange={(event) => {
@@ -356,14 +356,13 @@ export default function ActivityLog() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[12rem] flex-1 flex-col gap-1.5">
           <Label htmlFor="activity-actor">Actor</Label>
-          <select
+          <Select
             id="activity-actor"
-            className="select-control"
             value={filters.actorId}
             disabled={isBusy}
             onChange={(event) => updateFilters({ actorId: event.target.value })}
@@ -374,14 +373,13 @@ export default function ActivityLog() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[10rem] flex-1 flex-col gap-1.5">
           <Label htmlFor="activity-action">Action</Label>
-          <select
+          <Select
             id="activity-action"
-            className="select-control"
             value={filters.action}
             disabled={isBusy}
             onChange={(event) => updateFilters({ action: event.target.value })}
@@ -392,14 +390,13 @@ export default function ActivityLog() {
                 {action}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[10rem] flex-1 flex-col gap-1.5">
           <Label htmlFor="activity-target-type">Target</Label>
-          <select
+          <Select
             id="activity-target-type"
-            className="select-control"
             value={filters.targetType}
             disabled={isBusy}
             onChange={(event) => updateFilters({ targetType: event.target.value })}
@@ -410,7 +407,7 @@ export default function ActivityLog() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div className="flex min-w-[12rem] flex-[2] flex-col gap-1.5">
@@ -435,7 +432,6 @@ export default function ActivityLog() {
           <input
             id="activity-since"
             type="date"
-            className="select-control"
             value={filters.since}
             disabled={isBusy}
             onChange={(event) => updateFilters({ since: event.target.value })}
@@ -447,7 +443,6 @@ export default function ActivityLog() {
           <input
             id="activity-until"
             type="date"
-            className="select-control"
             value={filters.until}
             disabled={isBusy}
             onChange={(event) => updateFilters({ until: event.target.value })}

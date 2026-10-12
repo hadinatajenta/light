@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ApiRequestError, requestJson, toErrorMessage } from './api-client';
@@ -527,10 +528,9 @@ function ProgramFormDialog({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="program-network">Network</Label>
-              <select
+              <Select
                 id="program-network"
                 ref={networkRef}
-                className="select-control"
                 value={values.network}
                 aria-invalid={Boolean(errors.network)}
                 aria-describedby={errors.network ? 'program-network-error' : undefined}
@@ -541,7 +541,7 @@ function ProgramFormDialog({
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </Select>
               {errors.network ? (
                 <p id="program-network-error" className="text-sm text-destructive">
                   {errors.network}
@@ -551,10 +551,9 @@ function ProgramFormDialog({
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="program-status">Status</Label>
-              <select
+              <Select
                 id="program-status"
                 ref={statusRef}
-                className="select-control"
                 value={values.status}
                 aria-invalid={Boolean(errors.status)}
                 aria-describedby={errors.status ? 'program-status-error' : 'program-status-help'}
@@ -565,7 +564,7 @@ function ProgramFormDialog({
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </Select>
               <p id="program-status-help" className="text-xs text-muted-foreground">
                 Links are only built while the status is approved.
               </p>

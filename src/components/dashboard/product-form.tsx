@@ -5,6 +5,7 @@ import TagInput from '@/components/dashboard/tag-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { requestJson, toErrorMessage } from './api-client';
 import { DialogSurface } from './dialog-surface';
 import type { AffiliateNetwork, ProgramRecord } from './program-manager';
@@ -550,10 +551,9 @@ export default function ProductForm({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="product-program">Program</Label>
-          <select
+          <Select
             id="product-program"
             ref={programRef}
-            className="select-control"
             value={values.programId}
             aria-invalid={Boolean(errors.programId)}
             aria-describedby={errors.programId ? 'product-program-error' : undefined}
@@ -567,7 +567,7 @@ export default function ProductForm({
                 {program.name}
               </option>
             ))}
-          </select>
+          </Select>
           {errors.programId ? (
             <p id="product-program-error" className="text-sm text-destructive">
               {errors.programId}

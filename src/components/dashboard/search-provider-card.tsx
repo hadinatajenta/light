@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { requestJson, toErrorMessage } from './api-client';
 
@@ -197,9 +198,8 @@ export default function SearchProviderCard() {
       <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate aria-busy={isSaving}>
         <div className="flex flex-col gap-2">
           <Label htmlFor="search-provider">Provider</Label>
-          <select
+          <Select
             id="search-provider"
-            className="select-control"
             value={providerId}
             disabled={isSaving}
             onChange={(event) => setProviderId(event.target.value as ProviderId)}
@@ -209,7 +209,7 @@ export default function SearchProviderCard() {
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
           {selected?.help ? (
             <p className="text-xs text-muted-foreground">
               Get a key at{' '}

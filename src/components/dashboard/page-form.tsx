@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toSlug } from '@/lib/content/slug';
 import { ApiRequestError, requestJson, toErrorMessage } from './api-client';
@@ -533,9 +534,8 @@ export default function PageForm({ mode, pageId }: PageFormProps) {
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="page-status">Status</Label>
-              <select
+              <Select
                 id="page-status"
-                className="select-control"
                 value={values.status}
                 disabled={isSubmitting}
                 aria-invalid={Boolean(statusError)}
@@ -549,7 +549,7 @@ export default function PageForm({ mode, pageId }: PageFormProps) {
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
-              </select>
+              </Select>
               {statusError ? (
                 <p id="page-status-error" className="text-sm text-destructive">
                   {statusError}

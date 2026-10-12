@@ -2,6 +2,7 @@ import { CircleCheckIcon, CircleIcon } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
@@ -331,12 +332,11 @@ export default function SeoPanel({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="post-target-intent">Search intent</Label>
-        <select
+        <Select
           id="post-target-intent"
           value={frontmatter.targetIntent}
           onChange={(event) => onChange({ targetIntent: event.target.value })}
           disabled={disabled}
-          className="select-control"
         >
           <option value="">Not set</option>
           {INTENT_OPTIONS.map((option) => (
@@ -344,7 +344,7 @@ export default function SeoPanel({
               {option.label}
             </option>
           ))}
-        </select>
+        </Select>
         <p className="text-xs text-muted-foreground">
           Match the article to what the searcher wants
         </p>

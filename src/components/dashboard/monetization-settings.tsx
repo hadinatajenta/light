@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -367,9 +368,8 @@ export default function MonetizationSettings() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="ads-network">Network</Label>
-            <select
+            <Select
               id="ads-network"
-              className="select-control"
               value={settings.ads.network}
               disabled={isSaving}
               onChange={(event) => updateAds({ network: event.target.value as AdNetwork })}
@@ -379,7 +379,7 @@ export default function MonetizationSettings() {
                   {network.label}
                 </option>
               ))}
-            </select>
+            </Select>
             <p className="text-xs text-muted-foreground">
               Setting this to no ads removes every ad slot from the site.
             </p>

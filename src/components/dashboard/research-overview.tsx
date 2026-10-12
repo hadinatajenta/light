@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -461,9 +462,8 @@ export default function ResearchOverview() {
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor={kindSelectId}>Kind</Label>
-            <select
+            <Select
               id={kindSelectId}
-              className="select-control"
               value={kindFilter}
               onChange={(event) => {
                 setKindFilter(event.target.value);
@@ -476,13 +476,12 @@ export default function ResearchOverview() {
                   {kind}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor={angleSelectId}>Angle</Label>
-            <select
+            <Select
               id={angleSelectId}
-              className="select-control"
               value={angleFilter}
               onChange={(event) => {
                 setAngleFilter(event.target.value);
@@ -495,7 +494,7 @@ export default function ResearchOverview() {
                   {angle}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
 

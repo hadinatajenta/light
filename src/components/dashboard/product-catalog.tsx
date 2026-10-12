@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -380,10 +381,9 @@ function BulkImportDialog({
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="import-program">Program</Label>
-          <select
+          <Select
             id="import-program"
             ref={programRef}
-            className="select-control"
             value={programId}
             disabled={programs.length === 0}
             aria-invalid={Boolean(fieldErrors.programId)}
@@ -396,7 +396,7 @@ function BulkImportDialog({
                 {program.name}
               </option>
             ))}
-          </select>
+          </Select>
           {fieldErrors.programId ? (
             <p id="import-program-error" className="text-sm text-destructive">
               {fieldErrors.programId}
@@ -1034,9 +1034,8 @@ export default function ProductCatalog({
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="catalog-program">Program</Label>
-          <select
+          <Select
             id="catalog-program"
-            className="select-control"
             value={programFilter}
             onChange={(event) => {
               setProgramFilter(event.target.value);
@@ -1052,14 +1051,13 @@ export default function ProductCatalog({
             {programFilter && !programs.some((program) => program.id === programFilter) ? (
               <option value={programFilter}>{programFilter}</option>
             ) : null}
-          </select>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="catalog-active">Status</Label>
-          <select
+          <Select
             id="catalog-active"
-            className="select-control"
             value={activeFilter}
             onChange={(event) => {
               setActiveFilter(event.target.value as ActiveFilter);
@@ -1069,7 +1067,7 @@ export default function ProductCatalog({
             <option value="all">All statuses</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-          </select>
+          </Select>
         </div>
 
         <Button

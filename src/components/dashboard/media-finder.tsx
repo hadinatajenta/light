@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { ApiRequestError, toErrorMessage } from './api-client';
@@ -468,9 +469,9 @@ function SearchPanel({
             <Label htmlFor="media-search-batch-count" className="sr-only">
               Images per batch import
             </Label>
-            <select
+            <Select
               id="media-search-batch-count"
-              className={cn('select-control', 'w-auto')}
+              className="w-auto"
               value={String(batchCount)}
               disabled={isBatchImporting}
               onChange={(event) => onBatchCountChange(event.target.value)}
@@ -480,7 +481,7 @@ function SearchPanel({
                   {option}
                 </option>
               ))}
-            </select>
+            </Select>
             <Button
               type="button"
               className="whitespace-nowrap"

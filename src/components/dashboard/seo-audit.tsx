@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -752,9 +753,8 @@ export default function SeoAudit() {
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor={statusSelectId}>Status</Label>
-                <select
+                <Select
                   id={statusSelectId}
-                  className="select-control"
                   value={statusFilter}
                   onChange={(event) => {
                     setStatusFilter(event.target.value);
@@ -766,13 +766,12 @@ export default function SeoAudit() {
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor={severitySelectId}>Severity</Label>
-                <select
+                <Select
                   id={severitySelectId}
-                  className="select-control"
                   value={severityFilter}
                   onChange={(event) => {
                     setSeverityFilter(event.target.value);
@@ -784,13 +783,12 @@ export default function SeoAudit() {
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor={sortSelectId}>Order by</Label>
-                <select
+                <Select
                   id={sortSelectId}
-                  className="select-control"
                   value={sortOption}
                   onChange={(event) => {
                     setSortOption(event.target.value as SortOption);
@@ -802,7 +800,7 @@ export default function SeoAudit() {
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
           </div>

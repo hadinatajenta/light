@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiRequestError, requestJson, toErrorMessage } from './api-client';
 
@@ -480,9 +481,8 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="agent-role">Role</Label>
-          <select
+          <Select
             id="agent-role"
-            className="select-control"
             value={values.role}
             aria-invalid={Boolean(roleError)}
             aria-describedby={roleError ? 'agent-role-error agent-role-help' : 'agent-role-help'}
@@ -493,7 +493,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
                 {role.label}
               </option>
             ))}
-          </select>
+          </Select>
           <p id="agent-role-help" className="text-xs text-muted-foreground">
             {activeRole?.description ?? 'Choose how this agent works on the content pipeline.'}
           </p>
@@ -586,9 +586,8 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
             <Label htmlFor="agent-model">Model</Label>
-            <select
+            <Select
               id="agent-model"
-              className="select-control"
               value={values.model}
               aria-invalid={Boolean(modelError)}
               aria-describedby={modelError ? 'agent-model-error' : undefined}
@@ -603,7 +602,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
                   {model}
                 </option>
               ))}
-            </select>
+            </Select>
             {modelError ? (
               <p id="agent-model-error" className="text-sm text-destructive">
                 {modelError}
