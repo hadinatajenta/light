@@ -137,13 +137,43 @@ for when the budget resets. When the token limit is reached, agent runs are
 recorded as **Skipped** and make no model call. Lower the limits at any time; the
 counts reset on the calendar day and month.
 
+The daily search cap is the real limit on research, not the scrapper's runs per
+day. One scrapper run costs three to five searches, so the default cap of 40 is
+reached after roughly eight to thirteen runs, and later runs that day are
+recorded as **Skipped**. Keep the scrapper's runs per day near `daily searches / 4`
+(for example 10 runs for a cap of 40), or raise the cap within the monthly free
+allowance. Tokens are usually far from their cap: a normal day of drafting and
+reviewing spends well under a tenth of the default two million.
+
+Planner runs are cheap in tokens but expensive in queue: one run proposes up to
+eight topics, while the scrapper can only research about `daily searches / 4`
+topics a day. Set the planner to one or two runs a day and let research be the
+pace, so the queue stays short instead of filling with topics nothing can reach.
+
 ## How scheduling works
 
 - A separate cron Worker (`light-agents`) runs every 15 minutes.
 - On each tick it calls `POST https://lightscripts.com/api/agents/run-due` with a bearer token.
 - The endpoint finds every **enabled** agent whose `nextRunAt` is due or empty, and runs them in order.
 - A newly created enabled agent has `nextRunAt` set to its creation time, so it is **due immediately** and runs on the next 15-minute tick.
-- After each run, the next run time is set to now plus `24 hours / runs per day`. A 24-per-day agent is spaced one hour apart; a 1-per-day agent once a day.
+- After each run, the next run time is set to now plus `24 hours / runs per day`. The interval is anchored to the moment the run is claimed, not to the clock, so a slow run does not push the next slot back.
+
+| Runs per day | Interval |
+| --- | --- |
+| 1 | daily |
+| 2 | every 12h |
+| 3 | every 8h |
+| 4 | every 6h |
+| 6 | every 4h |
+| 8 | every 3h |
+| 12 | every 2h |
+| 24 | hourly |
+| 48 | every 30m |
+| 96 | every 15m (the tick rate, so effectively "every tick") |
+
+The cron ticks every 15 minutes and picks up an agent at the **first tick after its interval has passed**, so the real cadence is the interval rounded up to a 15 minute boundary. Editing an agent recomputes its next run from that moment.
+
+- Within one tick, roles run in this order: **planner, scrapper, writer, qc, reviewer**. A topic must exist before anything can research it, the writer needs verified research before it can draft, and QC gates a draft before a reviewer approves it. The order only matters inside a single tick; the real throughput comes from each agent's own cadence.
 - The endpoint has a 240 second budget with a 30 second safety margin, so each agent gets about 210 seconds. Each run also gets its own deadline, so a slow model call is cancelled cleanly and the run is recorded as failed instead of being killed mid-run. If many agents are due at once, it processes as many as fit and reports how many were left.
 - A scrapper run advances the research as far as its budget allows. A topic can rest in **Fetched** for one or more ticks, then becomes **Researched** on a later run once its notes are written. This is normal, not a stall.
 - Any run still marked as running after 20 minutes is closed automatically as failed, and the topic it had claimed is released back to the queue. This is what keeps the Activity page honest after a hard interruption.
@@ -193,6 +223,18 @@ Never test the schedule against production. The cron Worker is the same code in 
    While testing, a one minute `crons` value (`["*/1 * * * *"]`) saves you waiting; put back `["*/15 * * * *"]` before deploying.
 
 Local timings exist only to make testing fast. Production keeps the real cadence.
+
+## See the pipeline flow
+
+The top of the **Agents** page shows the pipeline as six stages: planner,
+researcher, writer, qc, reviewer, published. Each stage shows how much work is
+waiting there, how much is in progress, and how much it finished today, together
+with the agents that own it and their cadence. A connector animates only while
+the upstream stage has work to move, so a still graph means the pipeline is idle
+rather than broken. Users who ask for reduced motion get a static graph.
+
+QC and the reviewer both pull from the same pending drafts, which is why those
+two stages show the same waiting count.
 
 ## Where to see history
 

@@ -10,6 +10,7 @@ Plan and rationale: `docs/status/plans/2026-10-12-agent-roster.md`.
 
 - [x] Planner role that fills the topic queue with keyword driven topics (dev)
 - [x] Writer specialisation: a category per writer, and writers only claim their own category (dev)
+- [x] Animated flow graph so the pipeline stages and cadences are visible (dev)
 - [x] Writer beats: several categories per writer so no category is left unowned (dev)
 - [x] Raise `MAX_AGENTS` to 12 with a per role cap so writers cannot stack (dev)
 - [x] Draft claiming for reviewers and QC so two reviewers cannot review the same draft (dev)
