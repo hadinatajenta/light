@@ -1,0 +1,206 @@
+---
+import type { FeaturedProduct } from '@/lib/affiliate/featured';
+
+interface Props {
+  products: FeaturedProduct[];
+  disclosure: string;
+  variant?: 'article' | 'rail';
+}
+
+const { products, disclosure, variant = 'article' } = Astro.props;
+---
+
+{
+  variant === 'rail' ? (
+    <div class="rail-card">
+      <div class="rail-card-head">
+        <span>Products</span>
+        <span>{String(products.length).padStart(2, '0')}</span>
+      </div>
+      <div class="rail-card-body">
+        <h4>In this guide</h4>
+        <ul class="product-rail-list">
+          {products.map((product) => (
+            <li>
+              <a
+                href={`/go/${product.slug}`}
+                rel="sponsored nofollow noopener"
+                target="_blank"
+                class="product-rail-link"
+              >
+                <span class="product-rail-name">{product.label}</span>
+                <span class="product-rail-cta">Check price on Amazon</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  ) : (
+    <section class="product-list" aria-labelledby="product-list-heading">
+      <header class="product-list-head">
+        <span class="label">Shopping list</span>
+        <h2 id="product-list-heading">Products in this guide</h2>
+        <p class="product-list-lead">
+          The options named above, each with a link to the current price and availability on
+          Amazon. We check prices there rather than here, because they change.
+        </p>
+      </header>
+
+      <ul class="product-list-items">
+        {products.map((product) => (
+          <li class="product-list-item">
+            <div class="product-list-detail">
+              <h3>{product.label}</h3>
+              {product.note ? <p>{product.note}</p> : null}
+            </div>
+            <a
+              class="btn btn-primary btn-sm product-list-cta"
+              href={`/go/${product.slug}`}
+              rel="sponsored nofollow noopener"
+              target="_blank"
+            >
+              Check price on Amazon
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <p class="product-list-disclosure">{disclosure}</p>
+    </section>
+  )
+}
+
+<style>
+  .product-list {
+    margin: 40px 0;
+    border: 1px solid var(--ink-12);
+    border-radius: 3px;
+    background: var(--paper-raised);
+    padding: 24px;
+  }
+
+  .product-list-head {
+    margin-bottom: 18px;
+  }
+
+  .product-list-head h2 {
+    margin: 6px 0 0;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .product-list-lead {
+    margin: 8px 0 0;
+    max-width: 62ch;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--ink-55);
+  }
+
+  .product-list-items {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .product-list-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    padding: 16px 0;
+    border-top: 1px solid var(--ink-12);
+  }
+
+  .product-list-detail {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  .product-list-detail h3 {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .product-list-detail p {
+    margin: 4px 0 0;
+    max-width: 62ch;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ink-55);
+  }
+
+  .product-list-cta {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .product-list-disclosure {
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--ink-12);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--ink-55);
+  }
+
+  .product-rail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .product-rail-link {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 0;
+    border-top: 1px solid var(--ink-12);
+    text-decoration: none;
+  }
+
+  .product-rail-list li:first-child .product-rail-link {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .product-rail-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+
+  .product-rail-cta {
+    font-size: 0.78rem;
+    color: var(--brand-strong);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .product-rail-link:hover .product-rail-name {
+    color: var(--brand-strong);
+  }
+
+  @media (max-width: 620px) {
+    .product-list {
+      padding: 18px;
+    }
+
+    .product-list-cta {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

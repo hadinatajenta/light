@@ -25,6 +25,11 @@
   "ai": {
     "binding": "AI"
   },
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ],
   "routes": [
     { "pattern": "light.hadinata.me", "custom_domain": true },
     { "pattern": "admin.hadinata.me", "custom_domain": true },

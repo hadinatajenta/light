@@ -4,7 +4,7 @@ export const SITE_DESCRIPTION =
 export const SITE_HOME_TITLE = 'Home-office buying guides that hold up after the unboxing';
 export const SITE_TAGLINE =
   'A reading room for people who would rather research once and buy well, than buy twice and regret it.';
-export const SITE_AUTHOR = 'Light Scripts Editorial Team';
+export const SITE_AUTHOR = 'Hadinata Jenta';
 export const SITE_LOCALE = 'en-US';
 export const SITE_LANGUAGE = 'en';
 export const POSTS_PER_PAGE = 9;
@@ -45,11 +45,16 @@ export const TOPICS: Topic[] = [
   { label: 'Audio', slug: 'audio' },
   { label: 'Desk Setup', slug: 'desk-setup' },
   { label: 'Chairs', slug: 'chairs' },
-  { label: 'Laptops', slug: 'laptops' },
-  { label: 'Lighting', slug: 'lighting' },
-  { label: 'Storage', slug: 'storage' },
   { label: 'Buying Basics', slug: 'buying-basics' },
   { label: 'Accessories', slug: 'accessories' },
+  { label: 'Standing Desks', slug: 'standing-desks' },
+  { label: 'Lighting', slug: 'lighting' },
+  { label: 'Laptops', slug: 'laptops' },
+  { label: 'Tablets', slug: 'tablets' },
+  { label: 'Data Storage', slug: 'data-storage' },
+  { label: 'Networking', slug: 'networking' },
+  { label: 'Printers & Scanners', slug: 'printers' },
+  { label: 'Meeting Gear', slug: 'meeting-gear' },
 ];
 
 export interface FooterSection {

@@ -36,12 +36,15 @@ function createFakeDatabase(options: {
 }): {
   database: D1Database;
   writeLog: FakeWrite[];
+  queryLog: string[];
 } {
   const writeLog: FakeWrite[] = [];
+  const queryLog: string[] = [];
   let updateIndex = 0;
 
   const database = {
     prepare(sql: string) {
+      queryLog.push(sql);
       let params: unknown[] = [];
       const statement = {
         bind(...values: unknown[]) {
@@ -68,7 +71,7 @@ function createFakeDatabase(options: {
     },
   };
 
-  return { database: database as unknown as D1Database, writeLog };
+  return { database: database as unknown as D1Database, writeLog, queryLog };
 }
 
 describe('isScheduled', () => {
@@ -284,5 +287,32 @@ describe('publishDuePosts', () => {
     const { published } = await publishDuePosts(database, NOW);
 
     expect(published).toEqual(['gated']);
+  });
+});
+
+describe('review stage gate', () => {
+  it('only lists approved drafts that passed the fact check', async () => {
+    const { database, queryLog } = createFakeDatabase({ rows: [], updateChanges: [] });
+
+    await listDueScheduledPosts(database, NOW);
+
+    const select = queryLog.find((sql) =>
+      sql.includes('SELECT id, title, status, pub_date, review_status FROM posts'),
+    );
+    expect(select).toContain("review_status = 'approved'");
+    expect(select).toContain("review_stage = 'fact_check_passed'");
+  });
+
+  it('guards the publish update on the fact-check stage', async () => {
+    const { database, writeLog } = createFakeDatabase({
+      rows: [postRow('staged', 'draft', PAST_PUB_DATE)],
+      updateChanges: [1],
+    });
+
+    await publishDuePosts(database, NOW);
+
+    const update = writeLog.find((write) => write.sql.includes('UPDATE posts'));
+    expect(update?.sql).toContain("review_status = 'approved'");
+    expect(update?.sql).toContain("review_stage = 'fact_check_passed'");
   });
 });

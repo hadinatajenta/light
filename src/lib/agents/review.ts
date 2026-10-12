@@ -1,6 +1,7 @@
 import { toSlug } from '../content/slug';
 import { createPost } from '../content/store';
 import { notifyIndexNow } from '../seo/indexnow';
+import { type ReviewClaimStage, type ReviewStage, reviewStageFilter } from './review-stages';
 import type { AgentRecord } from './store';
 
 export type ReviewStatus = 'pending' | 'in_review' | 'approved' | 'changes_requested';
@@ -54,17 +55,21 @@ export async function findPendingDraft(db: D1Database): Promise<DraftTarget | nu
 export async function claimPendingDraft(
   db: D1Database,
   agentId: string,
+  stage: ReviewClaimStage,
 ): Promise<DraftTarget | null> {
   const now = new Date().toISOString();
+  const stageFilter = reviewStageFilter(stage);
   const row = await db
     .prepare(
       `UPDATE posts SET review_status = 'in_review', reviewed_by = ?, reviewed_at = ?
        WHERE id = (
          SELECT id FROM posts
          WHERE status = 'draft' AND (review_status IS NULL OR review_status = 'pending')
+           AND ${stageFilter}
          ORDER BY created_at ASC LIMIT 1
        )
          AND status = 'draft' AND (review_status IS NULL OR review_status = 'pending')
+         AND ${stageFilter}
        RETURNING id, title, description, body`,
     )
     .bind(agentId, now)
@@ -104,6 +109,24 @@ export async function setPostReview(
   await db
     .prepare('UPDATE posts SET review_status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?')
     .bind(status, reviewerId, new Date().toISOString(), id)
+    .run();
+}
+
+export async function setPostStage(db: D1Database, id: string, stage: ReviewStage): Promise<void> {
+  await db
+    .prepare('UPDATE posts SET review_stage = ?, updated_at = ? WHERE id = ?')
+    .bind(stage, new Date().toISOString(), id)
+    .run();
+}
+
+export async function schedulePostPublish(
+  db: D1Database,
+  id: string,
+  pubDateIso: string,
+): Promise<void> {
+  await db
+    .prepare('UPDATE posts SET pub_date = ?, updated_at = ? WHERE id = ?')
+    .bind(pubDateIso, new Date().toISOString(), id)
     .run();
 }
 

@@ -26,6 +26,12 @@ const TOPIC_LABELS: Record<string, string> = {
   storage: 'Storage',
   'buying-basics': 'Buying Basics',
   accessories: 'Accessories',
+  'standing-desks': 'Standing Desks',
+  tablets: 'Tablets',
+  'data-storage': 'Data Storage',
+  networking: 'Networking',
+  printers: 'Printers & Scanners',
+  'meeting-gear': 'Meeting Gear',
   ergonomics: 'Ergonomics',
   'home-office': 'Home Office',
 };
@@ -95,11 +101,53 @@ const TOPIC_CONTENT: Record<string, TopicContent> = {
       'A home office in a small space means every choice does double duty. These guides cover compact desks, storage, lighting, and noise for rooms that are not only offices.',
   },
   laptops: {
-    title: 'Laptop desk guides: stands, risers, and cooling',
+    title: 'Laptop guides: thermals, battery, and ports',
     description:
-      'Raise a laptop to eye height without wrecking your wrists, and keep it cool and connected at a desk.',
+      'Choose a work laptop on sustained performance, battery behaviour, and the ports you will actually need day to day.',
     intro:
-      'A laptop at desk height is a compromise between the screen and your hands. These guides cover stands, risers, external keyboards, and cooling.',
+      'A laptop is a set of compromises between sustained performance, battery life, weight, and ports, and most of them only show up after the first month. These guides work through the trade-offs.',
+  },
+  tablets: {
+    title: 'Tablet guides: reading, notes, and a second screen',
+    description:
+      'Tablets and e-readers judged on the reading experience, handwriting latency, and whether they replace a second screen.',
+    intro:
+      'A tablet earns its place when it does one job well: reading, taking handwritten notes, or holding a reference beside your main screen. These guides cover where each option stops being enough.',
+  },
+  'standing-desks': {
+    title: 'Standing desk guides: height range, travel, and stability',
+    description:
+      'Choose a standing desk by its height range and how steady it stays at full extension, not by the size of its motor.',
+    intro:
+      'A standing desk only helps if it reaches your standing elbow height and stays steady there. These guides cover height range, travel, stability, and the presets worth paying for.',
+  },
+  'data-storage': {
+    title: 'Data storage guides: SSDs, drives, and backup',
+    description:
+      'Pick storage by interface, sustained speed, and whether the backup actually restores, not by headline capacity.',
+    intro:
+      'Storage decisions turn on interfaces, sustained speeds, and recovery rather than the largest number on the box. These guides cover SSDs, external drives, and backup you can restore from.',
+  },
+  networking: {
+    title: 'Home office networking guides: routers and mesh',
+    description:
+      'Coverage, wired backhaul, and the settings that decide whether a video call survives a busy evening.',
+    intro:
+      'Most home office network problems are coverage and contention problems, not speed problems. These guides cover routers, mesh systems, wired backhaul, and keeping calls stable.',
+  },
+  printers: {
+    title: 'Printer guides: cost per page and running costs',
+    description:
+      'Printers judged on cost per page, cartridge behaviour, and what happens when you only print twice a month.',
+    intro:
+      'The purchase price of a printer says very little about what it costs to own. These guides cover cost per page, cartridge and toner behaviour, and printers that survive irregular use.',
+  },
+  'meeting-gear': {
+    title: 'Meeting gear guides: webcams and call lighting',
+    description:
+      'Look right on a video call: sensor size, field of view, mounting height, and lighting that does not fight your screen.',
+    intro:
+      'A video call looks right when the framing and the light are right, and both are geometry problems before they are hardware problems. These guides cover webcams, fields of view, mounting height, and call lighting.',
   },
   lighting: {
     title: 'Desk lighting guides: task light and eye strain',

@@ -1,11 +1,16 @@
 import { recordActivity } from '../activity/record';
 import { ApiError } from '../errors';
+import { describeDeepseekFailure } from '../notifications/deepseek-failure';
+import { notify } from '../notifications/notify';
+import { readLastPublishedAt } from '../scheduling/store';
 import { readBudgetState, recordModelUsage } from './budget';
 import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
+import { formatDemandBrief, loadDemandBrief } from './demand';
 import { stripWriterEnvelope } from './envelope';
 import { type PlannerTopic, parsePlannerTopics } from './planner';
 import { formatPreflightIssues, runPreflight } from './preflight';
+import { nextPublishSlot, readQuotaSettings, shouldPublishNow } from './quota';
 import { runScrapperResearch } from './research';
 import {
   claimPendingDraft,
@@ -14,9 +19,12 @@ import {
   listRecentPublishedTitles,
   publishPost,
   releaseClaimedDraft,
+  schedulePostPublish,
   setPostReview,
+  setPostStage,
   updateDraftBody,
 } from './review';
+import { resolveReviewClaimStage, reviewStageAfterPass } from './review-stages';
 import {
   claimRevisionTarget,
   findRevisionTarget,
@@ -156,6 +164,7 @@ function buildPlannerMessage(
   categories: readonly string[],
   topicTitles: readonly string[],
   publishedTitles: readonly string[],
+  demandBrief: string | null,
 ): string {
   const categoryList = categories.length > 0 ? categories.join(', ') : 'general';
   const queued =
@@ -166,8 +175,9 @@ function buildPlannerMessage(
     publishedTitles.length > 0
       ? `\n\nArticles already published, do not duplicate:\n- ${publishedTitles.join('\n- ')}`
       : '';
+  const demand = demandBrief ? `\n\n${demandBrief}` : '';
 
-  return `Allowed categories, choose exactly one per topic: ${categoryList}.${queued}${published}
+  return `Allowed categories, choose exactly one per topic: ${categoryList}.${queued}${published}${demand}
 
 Return a single JSON object with key "topics": an array of 5 to 8 objects, each with keys title (string, 10 to 70 characters), category (string, from the allowed list), intent ("informational", "commercial", "transactional", or "navigational"), keywords (array of 2 to 5 lowercase long-tail search phrases), and rationale (string, one sentence).`;
 }
@@ -332,6 +342,7 @@ async function applyResult(
     const decision = parsed.decision === 'approve' ? 'approve' : 'changes_requested';
     const notes = readString(parsed.notes);
     const revisedBody = stripWriterEnvelope(readString(parsed.revisedBody));
+    const claimStage = resolveReviewClaimStage(agent.role, agent.autoPublish) ?? 'fact_check';
 
     if (decision === 'approve') {
       const preflightIssues = runPreflight({
@@ -361,27 +372,52 @@ async function applyResult(
         await updateDraftBody(db, target.id, { body: revisedBody });
       }
 
-      await setPostReview(db, target.id, 'approved', agent.id);
+      if (claimStage === 'fact_check') {
+        await setPostReview(db, target.id, 'approved', agent.id);
+        await setPostStage(db, target.id, reviewStageAfterPass('fact_check'));
 
-      if (agent.autoPublish) {
         const linkedTopic = await findTopicByPost(db, target.id);
         const canPublish = linkedTopic ? await hasVerifiedSources(db, linkedTopic.id) : true;
 
         if (!canPublish) {
           return {
-            summary: `Approved "${target.title}" but auto publish was skipped: no verified research`,
+            summary: `Passed fact check on "${target.title}" but auto publish was skipped: no verified research`,
             output: truncate(notes, MAX_OUTPUT_CHARS),
           };
         }
 
-        await publishPost(db, target.id);
+        const [quotaSettings, lastPublishedAt] = await Promise.all([
+          readQuotaSettings(db),
+          readLastPublishedAt(db),
+        ]);
+        const now = new Date();
+        const minGapMs = quotaSettings.minGapMinutes * 60_000;
+        const lastPublished = lastPublishedAt ? new Date(lastPublishedAt) : null;
+
+        if (shouldPublishNow(lastPublished, minGapMs, now)) {
+          await publishPost(db, target.id);
+          return {
+            summary: `Passed fact check and published "${target.title}"`,
+            output: truncate(notes, MAX_OUTPUT_CHARS),
+          };
+        }
+
+        const slot = nextPublishSlot(lastPublished, minGapMs, now);
+        await schedulePostPublish(db, target.id, slot.toISOString());
+
         return {
-          summary: `Approved and published "${target.title}"`,
+          summary: `Passed fact check; scheduled "${target.title}" for ${slot.toISOString()} to space out publishing`,
           output: truncate(notes, MAX_OUTPUT_CHARS),
         };
       }
 
-      return { summary: `Approved "${target.title}"`, output: truncate(notes, MAX_OUTPUT_CHARS) };
+      await setPostStage(db, target.id, reviewStageAfterPass('editorial'));
+      await releaseClaimedDraft(db, target.id);
+
+      return {
+        summary: `Cleared the editorial pass on "${target.title}"`,
+        output: truncate(notes, MAX_OUTPUT_CHARS),
+      };
     }
 
     await updateDraftBody(db, target.id, revisedBody ? { body: revisedBody } : {});
@@ -416,6 +452,7 @@ async function applyResult(
     };
   }
 
+  await setPostStage(db, target.id, reviewStageAfterPass('qc'));
   await releaseClaimedDraft(db, target.id);
 
   return {
@@ -474,6 +511,52 @@ export async function maybeRecordFailureAlert(
     runId,
     metadata: { consecutiveFailures: 3 },
   });
+
+  await notify({
+    event: 'agent.alert',
+    title: `Agent "${agent.name}" failed 3 runs in a row`,
+    body: 'The agent needs attention. Review the recent runs for the failure cause.',
+    link: '/dashboard/activity',
+    actorLabel: agent.name,
+    runId,
+    dedupeSubject: agent.id,
+    metadata: { consecutiveFailures: 3, role: agent.role },
+  });
+}
+
+async function recordRunFailureNotification(
+  agent: AgentRecord,
+  runId: string,
+  error: unknown,
+  message: string,
+): Promise<void> {
+  const code = error instanceof ApiError ? error.code : null;
+  const hint = code ? describeDeepseekFailure(code) : null;
+
+  if (code && hint) {
+    await notify({
+      event: 'deepseek.unavailable',
+      title: `DeepSeek failure: ${code}`,
+      body: `${hint}\nAgent: ${agent.name}\nDetails: ${message}`,
+      link: '/dashboard/agents',
+      actorLabel: agent.name,
+      runId,
+      dedupeSubject: code,
+      metadata: { role: agent.role, code },
+    });
+    return;
+  }
+
+  await notify({
+    event: 'agent.run.failed',
+    title: `Agent "${agent.name}" run failed`,
+    body: message,
+    link: '/dashboard/activity',
+    actorLabel: agent.name,
+    runId,
+    dedupeSubject: `${agent.id}:${code ?? 'unmapped'}`,
+    metadata: { role: agent.role, code },
+  });
 }
 
 export interface RunAgentOptions {
@@ -483,6 +566,28 @@ export interface RunAgentOptions {
 }
 
 export async function runAgent(
+  db: D1Database,
+  agent: AgentRecord,
+  options: RunAgentOptions = {},
+): Promise<RunAgentResult> {
+  const result = await executeAgentRun(db, agent, options);
+
+  if (result.status === 'succeeded') {
+    await notify({
+      event: 'agent.run.succeeded',
+      title: `Agent "${agent.name}" finished a run`,
+      body: result.summary,
+      link: '/dashboard/activity',
+      actorLabel: agent.name,
+      runId: result.runId,
+      metadata: { role: agent.role, tokensIn: result.tokensIn, tokensOut: result.tokensOut },
+    });
+  }
+
+  return result;
+}
+
+async function executeAgentRun(
   db: D1Database,
   agent: AgentRecord,
   options: RunAgentOptions = {},
@@ -502,6 +607,7 @@ export async function runAgent(
 
   const runId = await createAgentRun(db, agent.id);
   const effectiveDeadline = deadline ?? Date.now() + SCRAPPER_RESEARCH_BUDGET_MS;
+
   let topic: TopicRecord | null = null;
   let revisionTarget: RevisionTarget | null = null;
   let draft: DraftTarget | null = null;
@@ -519,15 +625,32 @@ export async function runAgent(
     const apiKey = await requireDeepseekKey(db);
     const role = getRoleDefinition(agent.role);
 
+    await notify({
+      event: 'agent.run.started',
+      title: `Agent "${agent.name}" started a run`,
+      body: `Role: ${agent.role}. Model: ${agent.model}.`,
+      link: '/dashboard/activity',
+      actorLabel: agent.name,
+      runId,
+      metadata: { role: agent.role, model: agent.model },
+    });
+
     if (agent.role === 'planner') {
-      const [categories, existingTopics, publishedTitles] = await Promise.all([
+      const [categories, existingTopics, publishedTitles, search] = await Promise.all([
         loadPlannerCategories(db),
         listTopics(db, { limit: 200 }),
         listRecentPublishedTitles(db, 200),
+        resolveSearchProvider(db),
       ]);
       const existingTitles = existingTopics.map((entry) => entry.title);
       const knownTitles = [...existingTitles, ...publishedTitles];
-      const userMessage = buildPlannerMessage(categories, existingTitles, publishedTitles);
+      const demandBrief = formatDemandBrief(await loadDemandBrief({ db, search, signal }));
+      const userMessage = buildPlannerMessage(
+        categories,
+        existingTitles,
+        publishedTitles,
+        demandBrief,
+      );
 
       const response = await createChatCompletion({
         apiKey,
@@ -673,7 +796,8 @@ export async function runAgent(
     }
 
     if (agent.role === 'reviewer' || agent.role === 'qc') {
-      draft = await claimPendingDraft(db, agent.id);
+      const claimStage = resolveReviewClaimStage(agent.role, agent.autoPublish);
+      draft = claimStage ? await claimPendingDraft(db, agent.id, claimStage) : null;
 
       if (!draft) {
         const summary = 'No pending draft to review';
@@ -814,6 +938,7 @@ export async function runAgent(
     await markAgentRun(db, agent.id, agent.runsPerDay);
     await recordAgentActivity(agent, runId, `Run failed: ${message}`);
     await maybeRecordFailureAlert(db, agent, runId);
+    await recordRunFailureNotification(agent, runId, error, message);
 
     return {
       runId,

@@ -1,0 +1,48 @@
+---
+import NotificationList from '@/components/dashboard/notification-list';
+import NotificationSettings from '@/components/dashboard/notification-settings';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { resolveContentDatabase } from '@/lib/content/database';
+import { countUnreadNotifications, listNotifications } from '@/lib/notifications/store';
+import { formatRelativeTime } from '@/utils/date';
+
+export const prerender = false;
+
+const database = await resolveContentDatabase();
+const unreadCount = database ? await countUnreadNotifications(database) : 0;
+const latestPage = database ? await listNotifications(database, { limit: 1 }) : null;
+const latestEntry = latestPage?.items.at(0) ?? null;
+---
+
+<DashboardLayout title="Notifications">
+  <div class="flex flex-col gap-6">
+    <header class="flex flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+          Notifications
+        </h2>
+        <p class="mt-0.5 text-xs text-muted-foreground">
+          {
+            latestEntry
+              ? `Last event ${formatRelativeTime(latestEntry.createdAt)}.`
+              : 'No events recorded yet.'
+          }
+        </p>
+      </div>
+      <p class="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium tabular-nums">
+        <span
+          class:list={[
+            'size-1.5 rounded-full',
+            unreadCount > 0 ? 'bg-destructive' : 'bg-muted-foreground',
+          ]}
+          aria-hidden="true"
+        />
+        {unreadCount === 1 ? '1 unread' : `${unreadCount} unread`}
+      </p>
+    </header>
+
+    <NotificationList client:load />
+
+    <NotificationSettings client:load />
+  </div>
+</DashboardLayout>

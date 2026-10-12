@@ -51,9 +51,25 @@ describe('createChatCompletion', () => {
     expect(result).toEqual({
       content: 'answer',
       reasoning: 'thinking',
+      finishReason: null,
       tokensIn: 12,
       tokensOut: 7,
     });
+  });
+
+  it('reports the finish reason when the provider sends one', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse({
+          choices: [{ message: { content: '{}' }, finish_reason: 'length' }],
+        }),
+      ),
+    );
+
+    const result = await createChatCompletion(BASE_REQUEST);
+
+    expect(result.finishReason).toBe('length');
   });
 
   it('sends thinking mode, user id, and json mode in the body', async () => {

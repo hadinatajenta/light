@@ -1,5 +1,5 @@
 ---
-import { LineChart } from '@/components/dashboard/line-chart';
+import { ChartPanel } from '@/components/dashboard/chart-panel';
 import Sparkline from '@/components/dashboard/sparkline.astro';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import { buildCadenceDatasets } from '@/lib/analytics/cadence';
@@ -172,7 +172,7 @@ const mediaSize =
 
     <section aria-label="Publishing activity" class="grid gap-4 lg:grid-cols-3">
       <div class="lg:col-span-2">
-        <LineChart client:visible datasets={cadenceDatasets} defaultDatasetId="30d" />
+        <ChartPanel client:visible datasets={cadenceDatasets} defaultDatasetId="30d" />
       </div>
 
       <div class="rounded-xl border border-border bg-card p-6">

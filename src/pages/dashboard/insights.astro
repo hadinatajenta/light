@@ -1,17 +1,20 @@
 ---
-import { LineChart } from '@/components/dashboard/line-chart';
+import { ChartPanel } from '@/components/dashboard/chart-panel';
+import ViewsPanel from '@/components/dashboard/views-panel';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import { buildCadenceDatasets } from '@/lib/analytics/cadence';
 import { loadAnalyticsSnapshot, loadTopicHighlights } from '@/lib/analytics/store';
+import { loadViewSnapshot } from '@/lib/analytics/views';
 import { requireContentDatabase } from '@/lib/content/database';
 import { formatRelativeTime } from '@/utils/date';
 
 export const prerender = false;
 
 const database = await requireContentDatabase();
-const [snapshot, topics] = await Promise.all([
+const [snapshot, topics, views] = await Promise.all([
   loadAnalyticsSnapshot(database),
   loadTopicHighlights(database),
+  loadViewSnapshot(database, { days: 30 }),
 ]);
 
 const { content, pipeline, agents, affiliate, activity, media } = snapshot;
@@ -68,12 +71,14 @@ const mediaSize =
       </a>
     </div>
 
+    <ViewsPanel client:load initial={views} />
+
     <section aria-label="Content performance" class="flex flex-col gap-4">
       <h3 class="text-sm font-medium">Content performance</h3>
 
       <div class="grid gap-4 lg:grid-cols-3">
         <div class="lg:col-span-2">
-          <LineChart client:visible datasets={cadenceDatasets} defaultDatasetId="30d" />
+          <ChartPanel client:visible datasets={cadenceDatasets} defaultDatasetId="30d" />
         </div>
 
         <div class="rounded-xl border border-border bg-card p-6">

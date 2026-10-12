@@ -4,10 +4,24 @@ One session, phase by phase, at most two subagents per wave. Legend:
 `[x]` done, `[~]` in progress, `[ ]` not started, `[!]` deferred with reason,
 `(you)` needs the owner, `(dev)` engineering.
 
+## Round 4 - 5 PEAK (owner decision 2026-10-12)
+
+Quality first at five published articles a day. Phase A is applied in
+production; Phase B ships in code.
+
+- [x] Budgets: 50 searches/day, 1,500/month, 2M tokens/day (dev)
+- [x] Cadences: Planner 2, Researcher 20, Writer A 3, Writer B 3, QC 8, Reviewer 6, Reviewer Strict 6 (dev)
+- [x] Planner focus now demands at least three topics per writer beat per run; blocked topic "Standing desk mats" requeued (dev)
+- [x] Deep research: 6-7 queries per round plus a gap round (9 per topic), 24 pages, 30 notes, quality bar of 10 verified notes over 4 of 5 angles (dev)
+- [x] Review stages: qc_passed, editorial_passed, fact_check_passed; the publisher only takes fact-checked drafts (dev)
+- [x] Demand-aware planner: season line plus two news probes per run, weak signals only (dev)
+- [ ] Deploy, apply migrations 0023 and 0024, then set Reviewer auto publish to 0 so Reviewer Strict is the final gate (you)
+- [ ] Watch 24h: five publishes a day, searches within the caps, no writer starving on its beat (you)
+
 ## Round 3 - cadence (owner decision 2026-10-12)
 
 - [x] Today only: Researcher raised from 24 to 48 runs/day so the first research backlog clears faster (dev)
-- [ ] 2026-10-13: halve the runs per day of every enabled agent (dev)
+- [!] 2026-10-13: halve the runs per day of every enabled agent (superseded by Round 4 - 5 PEAK)
 
 Halving command, run with `npx wrangler d1 execute light-content --remote --command "<sql>"`:
 

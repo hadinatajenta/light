@@ -28,5 +28,50 @@
     "slug": "buying-basics",
     "label": "Buying Basics",
     "description": "How to read a spec sheet without being fooled."
+  },
+  {
+    "slug": "accessories",
+    "label": "Accessories",
+    "description": "Desk organisers, trays, stands, and the small parts that earn their place."
+  },
+  {
+    "slug": "standing-desks",
+    "label": "Standing Desks",
+    "description": "Standing desks and converters, and the height range that actually fits you."
+  },
+  {
+    "slug": "lighting",
+    "label": "Lighting",
+    "description": "Desk lamps and monitor light bars that are kind to your eyes."
+  },
+  {
+    "slug": "laptops",
+    "label": "Laptops",
+    "description": "Work laptops, and the thermal, battery, and port trade-offs that show up later."
+  },
+  {
+    "slug": "tablets",
+    "label": "Tablets",
+    "description": "Tablets and e-readers for reading, notes, and a second screen."
+  },
+  {
+    "slug": "data-storage",
+    "label": "Data Storage",
+    "description": "SSDs, external drives, and backup that survives a bad day."
+  },
+  {
+    "slug": "networking",
+    "label": "Networking",
+    "description": "Routers and mesh systems that hold up when the whole house is online."
+  },
+  {
+    "slug": "printers",
+    "label": "Printers & Scanners",
+    "description": "Printers that are cheap to run, not just cheap to buy."
+  },
+  {
+    "slug": "meeting-gear",
+    "label": "Meeting Gear",
+    "description": "Webcams, call lighting, and the setup for looking right on video calls."
   }
 ]

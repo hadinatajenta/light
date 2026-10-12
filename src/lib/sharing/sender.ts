@@ -1,5 +1,6 @@
 import { insertActivity } from '../activity/store';
 import { todayKey } from '../agents/budget';
+import { notify } from '../notifications/notify';
 import { blueskyAdapter } from './adapters/bluesky';
 import { discordAdapter } from './adapters/discord';
 import { mastodonAdapter } from './adapters/mastodon';
@@ -279,6 +280,17 @@ async function applyAdapterResult(
       error: error ?? 'The channel needs attention.',
     });
     await setChannelNeedsAttention(db, channel.id, true, error);
+
+    await notify({
+      event: 'share.channel.attention',
+      title: `Sharing channel "${channel.label}" needs attention`,
+      body: error ?? 'The channel rejected the stored credentials or configuration.',
+      link: '/dashboard/sharing',
+      actorLabel: channel.label,
+      dedupeSubject: channel.id,
+      metadata: { channelId: channel.id, provider: channel.provider },
+    });
+
     return 'deferred';
   }
 

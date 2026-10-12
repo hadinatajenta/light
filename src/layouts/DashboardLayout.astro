@@ -1,5 +1,6 @@
 ---
 import ThemeToggle from '@/components/ThemeToggle.astro';
+import NotificationBell from '@/components/dashboard/notification-bell';
 import { Toaster } from '@/components/ui/sonner';
 import { SITE_LANGUAGE, SITE_TITLE, THEME_STORAGE_KEY } from '@/consts';
 import { groupNavigation } from '@/lib/dashboard-nav';
@@ -35,6 +36,7 @@ const ICONS: Record<string, string> = {
   insights:
     '<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/>',
   activity: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
   sharing:
     '<circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="m8.2 10.8 7.6-3.6M8.2 13.2l7.6 3.6"/>',
   audit:
@@ -402,6 +404,7 @@ function isActive(href: string): boolean {
             >
               View site
             </a>
+            <NotificationBell client:load />
             <ThemeToggle />
             <details class="relative">
               <summary

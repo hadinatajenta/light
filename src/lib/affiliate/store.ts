@@ -1,6 +1,12 @@
 import { z } from 'astro/zod';
-import type { AffiliateNetwork, AffiliateProgram, AffiliateStatus } from '@/config/monetization';
+import {
+  AFFILIATE_DISCLOSURE_SETTING,
+  type AffiliateNetwork,
+  type AffiliateProgram,
+  type AffiliateStatus,
+} from '@/config/monetization';
 import { ApiError } from '../errors';
+import { getSetting } from '../settings/store';
 import { buildAffiliateUrl, isSafeLinkTemplate, isSafeTarget, isSafeTrackingId } from './links';
 
 export const AFFILIATE_NETWORKS = [
@@ -619,14 +625,22 @@ export interface AffiliateContext {
   disclosure: string;
 }
 
+export interface AffiliateContext {
+  links: Map<string, string>;
+  disclosure: string;
+  products: AffiliateProduct[];
+}
+
 export async function loadAffiliateContext(db: D1Database): Promise<AffiliateContext> {
-  const [programs, products] = await Promise.all([
+  const [programs, products, storedDisclosure] = await Promise.all([
     listPrograms(db),
     listProducts(db, { activeOnly: true }),
+    getSetting(db, AFFILIATE_DISCLOSURE_SETTING),
   ]);
 
   const programById = new Map(programs.map((program) => [program.id, program]));
   const links = new Map<string, string>();
+  const linkable: AffiliateProduct[] = [];
   const disclosures = new Set<string>();
 
   for (const product of products) {
@@ -641,10 +655,18 @@ export async function loadAffiliateContext(db: D1Database): Promise<AffiliateCon
     }
 
     links.set(product.slug, url);
+    linkable.push(product);
+
     if (program.disclosure) {
       disclosures.add(program.disclosure);
     }
   }
 
-  return { links, disclosure: [...disclosures].join(' ') };
+  const disclosure = (storedDisclosure ?? '').trim();
+
+  return {
+    links,
+    products: linkable,
+    disclosure: disclosure === '' ? [...disclosures].join(' ') : disclosure,
+  };
 }

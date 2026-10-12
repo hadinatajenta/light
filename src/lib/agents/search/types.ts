@@ -13,6 +13,8 @@ export interface SearchQueryInput {
   limit: number;
   apiKey: string | null;
   signal?: AbortSignal;
+  topic?: 'general' | 'news';
+  days?: number;
 }
 
 export interface SearchProvider {

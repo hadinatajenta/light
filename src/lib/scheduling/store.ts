@@ -1,5 +1,6 @@
 import { insertActivity } from '../activity/store';
 import { postPassesResearchGate } from '../agents/sources';
+import { notify } from '../notifications/notify';
 import { notifyIndexNow } from '../seo/indexnow';
 
 export interface ScheduledPost {
@@ -79,7 +80,9 @@ export function isDue(status: string, pubDate: string | null | undefined, now: D
 }
 
 async function listDraftRows(db: D1Database, onlyApproved: boolean): Promise<PostScheduleRow[]> {
-  const condition = onlyApproved ? "AND review_status = 'approved'" : '';
+  const condition = onlyApproved
+    ? "AND review_status = 'approved' AND review_stage = 'fact_check_passed'"
+    : '';
   const result = await db
     .prepare(
       `SELECT id, title, status, pub_date, review_status FROM posts
@@ -168,7 +171,7 @@ export async function publishDuePosts(
 
     const result = await db
       .prepare(
-        "UPDATE posts SET status = 'published', published_at = COALESCE(published_at, ?), updated_at = ? WHERE id = ? AND status = 'draft' AND review_status = 'approved'",
+        "UPDATE posts SET status = 'published', published_at = COALESCE(published_at, ?), updated_at = ? WHERE id = ? AND status = 'draft' AND review_status = 'approved' AND review_stage = 'fact_check_passed'",
       )
       .bind(updatedAt, updatedAt, post.id)
       .run();
@@ -180,6 +183,16 @@ export async function publishDuePosts(
     published.push(post.id);
     await recordPublishActivity(db, post);
 
+    await notify({
+      event: 'post.published',
+      title: `Published "${post.title}"`,
+      body: 'The post was published automatically on its schedule.',
+      link: `/dashboard/posts/${post.id}/edit`,
+      actorLabel: 'Scheduler',
+      dedupeSubject: post.id,
+      metadata: { postId: post.id, source: 'schedule' },
+    });
+
     try {
       await notifyIndexNow([`/blog/${post.id}`]);
     } catch (error) {
@@ -188,4 +201,23 @@ export async function publishDuePosts(
   }
 
   return { published };
+}
+
+export async function countPublishedSince(db: D1Database, sinceIso: string): Promise<number> {
+  const row = await db
+    .prepare("SELECT COUNT(*) AS total FROM posts WHERE status = 'published' AND published_at >= ?")
+    .bind(sinceIso)
+    .first<{ total: number }>();
+
+  return row?.total ?? 0;
+}
+
+export async function readLastPublishedAt(db: D1Database): Promise<string | null> {
+  const row = await db
+    .prepare(
+      "SELECT published_at FROM posts WHERE status = 'published' AND published_at IS NOT NULL ORDER BY published_at DESC LIMIT 1",
+    )
+    .first<{ published_at: string }>();
+
+  return row?.published_at ?? null;
 }

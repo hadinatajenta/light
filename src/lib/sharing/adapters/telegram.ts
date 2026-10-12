@@ -24,7 +24,7 @@ const PAYLOAD_PATTERNS = [
   'wrong remote file',
 ];
 
-interface TelegramErrorBody {
+export interface TelegramErrorBody {
   ok?: boolean;
   description?: string;
   error_code?: number;
@@ -110,7 +110,7 @@ function buildBody(request: ShareSendRequest): {
   };
 }
 
-function readErrorBody(raw: string): TelegramErrorBody | null {
+export function readErrorBody(raw: string): TelegramErrorBody | null {
   try {
     const parsed = JSON.parse(raw) as TelegramErrorBody;
     return typeof parsed === 'object' && parsed !== null ? parsed : null;

@@ -3,6 +3,7 @@ import { recordActivity, toUserActor } from '@/lib/activity/record';
 import { withAdmin } from '@/lib/api/handler';
 import { getPost, updatePost } from '@/lib/content/store';
 import { ApiError, jsonOk, readJsonBody } from '@/lib/http';
+import { notify } from '@/lib/notifications/notify';
 import { notifyIndexNow } from '@/lib/seo/indexnow';
 
 export const prerender = false;
@@ -38,6 +39,16 @@ export const POST = withAdmin(async ({ params, request }, requestId, user) => {
   });
 
   if (payload.status === 'published') {
+    await notify({
+      event: 'post.published',
+      title: `Published "${post.data.title ?? id}"`,
+      body: 'The post was published manually from the dashboard.',
+      link: `/dashboard/posts/${id}/edit`,
+      actorLabel: user.email,
+      dedupeSubject: id,
+      metadata: { postId: id, source: 'dashboard' },
+    });
+
     try {
       await notifyIndexNow([`/blog/${id}`]);
     } catch (error) {

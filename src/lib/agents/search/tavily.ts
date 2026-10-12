@@ -54,7 +54,14 @@ export const tavilyProvider: SearchProvider = {
   id: 'tavily',
   label: 'Tavily',
   requiresKey: true,
-  async search({ query, limit, apiKey, signal }: SearchQueryInput): Promise<SearchResult[]> {
+  async search({
+    query,
+    limit,
+    apiKey,
+    signal,
+    topic,
+    days,
+  }: SearchQueryInput): Promise<SearchResult[]> {
     if (!apiKey) {
       throw new ApiError(
         409,
@@ -77,6 +84,8 @@ export const tavilyProvider: SearchProvider = {
           search_depth: 'basic',
           include_answer: false,
           include_raw_content: false,
+          ...(topic ? { topic } : {}),
+          ...(days ? { days } : {}),
         }),
         signal: signal ?? AbortSignal.timeout(TIMEOUT_MS),
       });

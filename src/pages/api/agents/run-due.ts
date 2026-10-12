@@ -1,13 +1,17 @@
 import type { APIContext } from 'astro';
+import { insertActivity } from '@/lib/activity/store';
 import { requireCronAuthorization } from '@/lib/agents/cron-auth';
+import { abandonedRunResult, runQuotaCatchUp } from '@/lib/agents/pipeline';
+import { evaluateDailyQuota, readQuotaSettings, startOfWibDay } from '@/lib/agents/quota';
 import { reapStaleRuns } from '@/lib/agents/reaper';
 import { sortAgentsByRoleOrder } from '@/lib/agents/roles';
+import { withRunDeadline } from '@/lib/agents/run-deadline';
 import { runAgent } from '@/lib/agents/runner';
 import { listDueAgents } from '@/lib/agents/store';
 import { requireContentDatabase } from '@/lib/content/database';
 import { createRequestContext, jsonOk, toErrorResponse } from '@/lib/http';
 import { backfillOneCover } from '@/lib/media/covers';
-import { publishDuePosts } from '@/lib/scheduling/store';
+import { countPublishedSince, publishDuePosts } from '@/lib/scheduling/store';
 
 export const prerender = false;
 
@@ -15,6 +19,7 @@ const RUN_BUDGET_MS = 240_000;
 const RUN_SAFETY_MS = 30_000;
 const MIN_RUN_MS = 20_000;
 const COVER_MIN_REMAINING_MS = 60_000;
+const CATCH_UP_MAX_RUNS = 3;
 
 async function generateOneCoverQuietly(database: D1Database): Promise<number> {
   try {
@@ -53,12 +58,42 @@ export const POST = async (context: APIContext): Promise<Response> => {
         break;
       }
 
-      const result = await runAgent(database, agent, {
-        signal: AbortSignal.timeout(remaining),
-        deadline: runDeadline,
-      });
+      const result = await withRunDeadline(
+        runAgent(database, agent, {
+          signal: AbortSignal.timeout(remaining),
+          deadline: runDeadline,
+        }),
+        remaining,
+        abandonedRunResult(),
+      );
       results.push({ agentId: agent.id, status: result.status, summary: result.summary });
       processed += 1;
+    }
+
+    const quotaSettings = await readQuotaSettings(database);
+    const publishedToday = await countPublishedSince(
+      database,
+      startOfWibDay(new Date()).toISOString(),
+    );
+    const quota = evaluateDailyQuota(publishedToday, quotaSettings.target);
+    let catchUpRuns = 0;
+
+    if (quota.behind) {
+      const catchUp = await runQuotaCatchUp(database, {
+        deadline: runDeadline,
+        maxRuns: CATCH_UP_MAX_RUNS,
+      });
+      catchUpRuns = catchUp.length;
+
+      if (catchUpRuns > 0) {
+        await insertActivity(database, {
+          actorId: 'quota',
+          actorType: 'agent',
+          actorLabel: 'Quota',
+          action: 'pipeline.quota_catchup',
+          summary: `Catch-up ran ${catchUpRuns} run(s); ${publishedToday} of ${quota.target} published today`,
+        });
+      }
     }
 
     if (coversGenerated === 0 && runDeadline - Date.now() > COVER_MIN_REMAINING_MS) {
@@ -73,6 +108,9 @@ export const POST = async (context: APIContext): Promise<Response> => {
         processed,
         remaining: due.length - processed,
         results,
+        publishTarget: quota.target,
+        publishedToday,
+        catchUpRuns,
       },
       requestId,
     );

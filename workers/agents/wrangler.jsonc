@@ -9,6 +9,7 @@
   },
   "vars": {
     "AGENT_RUN_URL": "https://lightscripts.com/api/agents/run-due",
-    "AGENT_SHARE_URL": "https://lightscripts.com/api/agents/share-due"
+    "AGENT_SHARE_URL": "https://lightscripts.com/api/agents/share-due",
+    "AGENT_NOTIFY_URL": "https://lightscripts.com/api/agents/notifications-due"
   }
 }

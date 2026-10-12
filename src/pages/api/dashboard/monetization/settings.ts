@@ -1,5 +1,9 @@
 import { z } from 'astro/zod';
-import { AD_CONFIG, DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
+import {
+  AD_CONFIG,
+  AFFILIATE_DISCLOSURE_SETTING,
+  DEFAULT_AFFILIATE_DISCLOSURE,
+} from '@/config/monetization';
 import { recordActivity, toUserActor } from '@/lib/activity/record';
 import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
@@ -9,7 +13,6 @@ import { getSetting, readJsonSetting, setSetting, writeJsonSetting } from '@/lib
 export const prerender = false;
 
 const ADS_CONFIG_SETTING = 'ads_config';
-const AFFILIATE_DISCLOSURE_SETTING = 'affiliate_disclosure';
 
 const AD_NETWORKS = ['none', 'adsense', 'ezoic', 'mediavine'] as const;
 

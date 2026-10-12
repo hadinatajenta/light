@@ -1,4 +1,5 @@
 import { recordActivity } from '../activity/record';
+import { notify } from '../notifications/notify';
 import { getSetting, setSetting } from '../settings/store';
 
 export const BUDGET_PAUSED_SETTING = 'budget_paused';
@@ -256,6 +257,20 @@ export async function maybeRecordBudgetWarning(
     actorLabel: 'Budget',
     action: 'budget.warning',
     summary: `Search usage ${state.searchUsedThisMonth} of ${state.freeCredits} free credits this month`,
+  });
+
+  await notify({
+    event: 'budget.warning',
+    title: 'Search budget warning',
+    body: `Search usage reached ${state.searchUsedThisMonth} of ${state.freeCredits} free credits this month.`,
+    link: '/dashboard/agents',
+    actorLabel: 'Budget',
+    dedupeSubject: month,
+    metadata: {
+      month,
+      searchUsedThisMonth: state.searchUsedThisMonth,
+      freeCredits: state.freeCredits,
+    },
   });
 
   return true;

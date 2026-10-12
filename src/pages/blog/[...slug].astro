@@ -1,6 +1,7 @@
 ---
 import PostLayout from '@/layouts/PostLayout.astro';
 import { loadAffiliateContext } from '@/lib/affiliate/store';
+import { normalizeViewPath, recordView, shouldRecordView } from '@/lib/analytics/views';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { getPublishedPost } from '@/lib/content/public';
 
@@ -17,13 +18,32 @@ if (!post) {
 }
 
 const database = await resolveContentDatabase();
+
+if (database && shouldRecordView(Astro.request)) {
+  const recording = recordView(database, {
+    path: normalizeViewPath(new URL(Astro.request.url).pathname),
+    postId: post.id,
+  }).catch((error) => {
+    console.error('Failed to record a post view', error);
+  });
+
+  const executionContext = Astro.locals.cfContext;
+
+  if (executionContext) {
+    executionContext.waitUntil(recording);
+  } else {
+    await recording;
+  }
+}
+
 const affiliate = database
   ? await loadAffiliateContext(database)
-  : { links: new Map<string, string>(), disclosure: '' };
+  : { links: new Map<string, string>(), products: [], disclosure: '' };
 ---
 
 <PostLayout
   post={post}
   affiliateLinks={affiliate.links}
+  affiliateProducts={affiliate.products}
   affiliateDisclosure={affiliate.disclosure}
 />

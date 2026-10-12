@@ -39,13 +39,14 @@ npm run agents:tail
 
 ## Schedule
 
-The cron trigger runs every 15 minutes. Each tick now makes two calls. The first
+The cron trigger runs every 15 minutes. Each tick now makes three calls. The first
 is `POST https://lightscripts.com/api/agents/run-due`, which finds every agent
 whose schedule is due. The second is `POST
 https://lightscripts.com/api/agents/share-due`, which drives automatic sharing.
-The second call is protected by the same `AGENT_CRON_TOKEN` bearer token as the
-first, and the two are independent, so a failure or timeout in `run-due` does not
-skip sharing.
+The third is `POST https://lightscripts.com/api/agents/notifications-due`, which
+retries notification deliveries that failed, at most three times each. All three
+are protected by the same `AGENT_CRON_TOKEN` bearer token and are independent, so
+a failure or timeout in one does not skip the others.
 
 The main endpoint enforces a 240 second budget with a 30 second safety margin and
 gives each run its own deadline, so the cron call finishes before it is cut off.
@@ -98,6 +99,35 @@ and nothing else changes. Tavily ships first, and a `fixture` provider reads
 scrapper run is recorded as `skipped` and the topic is left untouched: it never
 falls back to notes written from memory.
 
+## Notifications
+
+Every notable event is recorded in the `notifications` table and surfaced in the
+dashboard bell and on the Notifications page. The event catalogue, its levels, its
+push defaults, and its dedupe windows live in one place,
+`src/lib/notifications/rules.ts`, so adding an event means adding a rule and one
+`notify()` call site.
+
+`notify()` is the only entry point. It resolves the rule, applies the dedupe
+window, inserts the row, and then, if the rule and the operator both allow it,
+delivers the message through the enabled channels. It never throws: a failing or
+slow channel cannot fail the work that triggered it.
+
+Channels live behind `src/lib/notifications/channels`. Two ship today:
+
+- `email` calls the `send_email` binding, which is the Cloudflare Email Routing
+  path. Sending to a verified destination address is free on every plan.
+- `telegram` calls the bot API as plain text, with no `parse_mode`, so text that
+  originated from a model cannot alter the message formatting.
+
+Both adapters classify their failures the same way the sharing adapters do
+(`channel_config`, `invalid_payload`, `rate_limited`, `transient`), and each send
+has an eight second deadline. Delivery is considered successful when at least one
+channel accepted the message, which is what keeps the cron retry from sending a
+duplicate to a channel that already worked.
+
+The cron Worker retries failed deliveries through
+`POST /api/agents/notifications-due`, at most three attempts per notification.
+
 ## Spending budget
 
 The **Spending budget** card caps what the agents can spend. Daily and monthly
@@ -129,14 +159,36 @@ time, and a topic that is not finished stays in Fetched until a later run.
 ## Roles
 
 - writer: drafts a new buying guide from a topic, using only verified research.
-- reviewer: reviews the oldest pending draft, approves it, or requests changes.
+- reviewer: runs the editorial pass on a draft, or the final fact-check gate when auto publish is on.
 - qc: audits the oldest pending draft for formatting, SEO fields, and policy issues.
 - scrapper: searches the web and fetches sources, then writes verifiable notes tagged by angle and source type.
 
-A writer produces drafts. Publishing only happens when a reviewer approves a
-draft and that reviewer has auto publish enabled. A reviewer will not auto
-publish a draft whose topic has no verified research, and the scheduled
+A writer produces drafts. Publishing only happens after a draft passes the
+review stages below and a fact-check reviewer approves it. A reviewer will not
+auto publish a draft whose topic has no verified research, and the scheduled
 publisher enforces the same gate.
+
+## Review stages
+
+A draft is published only after three recorded stages:
+
+1. QC audits the draft and records `qc_passed`.
+2. A reviewer without auto publish runs the editorial pass and records
+   `editorial_passed`.
+3. A reviewer with auto publish is the final fact-check gate; approval records
+   `fact_check_passed`, which is the only stage the publisher accepts.
+
+Each agent claims only the drafts its stage allows, and a change request keeps
+the stage so the same gate sees the revision. Published posts are backfilled to
+`fact_check_passed` by `migrations/0024_review_stages.sql`.
+
+## Demand brief
+
+Before each planner run the runtime builds a small demand brief: a season line
+for the current month and two recent news probes through the search provider.
+The brief is deliberately weak signal, the planner prompt treats it as data
+rather than instructions, and a missing provider degrades the brief to the
+season line.
 
 The Agents page has a **Run & publish** button that runs the enabled agents in
 role order and publishes only drafts that pass the verified research gate. It

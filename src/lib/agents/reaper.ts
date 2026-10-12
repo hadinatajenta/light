@@ -1,4 +1,5 @@
 import { runRetention } from '../maintenance/retention';
+import { notify } from '../notifications/notify';
 import { recordTopicFailure, scrapperResumeStatus } from './topics';
 
 export const STALE_RUN_MS = 20 * 60 * 1000;
@@ -34,9 +35,9 @@ export async function reapStaleRuns(db: D1Database, now: number = Date.now()): P
 
   for (const row of rows) {
     const agent = await db
-      .prepare('SELECT role FROM agents WHERE id = ?')
+      .prepare('SELECT role, name FROM agents WHERE id = ?')
       .bind(row.agent_id)
-      .first<{ role: string }>()
+      .first<{ role: string; name: string }>()
       .catch(() => null);
 
     if (agent) {
@@ -81,6 +82,16 @@ export async function reapStaleRuns(db: D1Database, now: number = Date.now()): P
         row.id,
       )
       .run();
+
+    await notify({
+      event: 'agent.run.stale',
+      title: 'A run was closed automatically',
+      body: `A ${agent?.role ?? 'agent'} run exceeded its time budget and was closed. The claimed work was released.`,
+      link: '/dashboard/activity',
+      actorLabel: agent?.name,
+      runId: row.id,
+      metadata: { role: agent?.role ?? null },
+    });
   }
 
   try {

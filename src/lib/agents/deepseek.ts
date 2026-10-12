@@ -24,6 +24,7 @@ export interface ChatRequest {
 export interface ChatResponse {
   content: string;
   reasoning: string;
+  finishReason: string | null;
   tokensIn: number;
   tokensOut: number;
 }
@@ -38,6 +39,7 @@ interface DeepseekChoice {
     content?: string | null;
     reasoning_content?: string | null;
   };
+  finish_reason?: unknown;
 }
 
 interface DeepseekCompletion {
@@ -147,11 +149,12 @@ export async function createChatCompletion(request: ChatRequest): Promise<ChatRe
   }
 
   const payload = parseJsonBody(await response.text());
-  const choice = payload.choices?.[0]?.message;
+  const finishReason = payload.choices?.[0]?.finish_reason;
 
   return {
-    content: choice?.content ?? '',
-    reasoning: choice?.reasoning_content ?? '',
+    content: payload.choices?.[0]?.message?.content ?? '',
+    reasoning: payload.choices?.[0]?.message?.reasoning_content ?? '',
+    finishReason: typeof finishReason === 'string' ? finishReason : null,
     tokensIn: payload.usage?.prompt_tokens ?? 0,
     tokensOut: payload.usage?.completion_tokens ?? 0,
   };

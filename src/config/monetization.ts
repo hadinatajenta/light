@@ -12,6 +12,8 @@ export interface AffiliateProgram {
   disclosure: string;
 }
 
+export const AFFILIATE_DISCLOSURE_SETTING = 'affiliate_disclosure';
+
 export const DEFAULT_AFFILIATE_DISCLOSURE =
   'This article contains affiliate links. If you buy through them, we may earn a commission at no extra cost to you.';
 

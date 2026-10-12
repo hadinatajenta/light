@@ -34,6 +34,12 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
   },
   { label: 'Redirects', href: '/dashboard/redirects', icon: 'redirects', group: 'Revenue' },
   { label: 'Audit', href: '/dashboard/audit', icon: 'audit', group: 'System' },
+  {
+    label: 'Notifications',
+    href: '/dashboard/notifications',
+    icon: 'bell',
+    group: 'System',
+  },
   { label: 'Activity', href: '/dashboard/activity', icon: 'activity', group: 'System' },
   { label: 'Settings', href: '/dashboard/settings', icon: 'settings', group: 'System' },
 ];

@@ -21,9 +21,18 @@ export interface ChartDataset {
   axisLabels: ChartAxisLabel[];
 }
 
+export type ChartVariant = 'line' | 'bar';
+
 interface Props {
   datasets: ChartDataset[];
   defaultDatasetId?: string;
+  title?: string;
+  ariaLabel?: string;
+  unitLabel?: string;
+  unitSingular?: string;
+  metricLabel?: string;
+  variant?: ChartVariant;
+  onVariantChange?: (variant: ChartVariant) => void;
 }
 
 const VIEW_WIDTH = 760;
@@ -45,6 +54,8 @@ const X_LABEL_TOP = `${(PLOT_BOTTOM / VIEW_HEIGHT) * 100}%`;
 const MAX_X_TICKS = 8;
 const TOOLTIP_EDGE_RATIO = 0.12;
 const TOOLTIP_OFFSET_Y = 8;
+const BAR_WIDTH_RATIO = 0.62;
+const BAR_RADIUS = 2;
 
 function toPercent(value: number, total: number): string {
   return `${(value / total) * 100}%`;
@@ -54,15 +65,25 @@ function resolvePointLabel(axisLabels: ChartAxisLabel[], index: number): string 
   return axisLabels[index]?.label ?? `Day ${index + 1}`;
 }
 
-function formatPosts(posts: number): string {
-  return posts === 1 ? '1 post' : `${posts} posts`;
+function formatUnit(count: number, singular: string, plural: string): string {
+  return count === 1 ? `1 ${singular}` : `${count} ${plural}`;
 }
 
 function formatAverage(total: number, dayCount: number): string {
   return dayCount > 0 ? (total / dayCount).toFixed(1) : '0.0';
 }
 
-export function LineChart({ datasets, defaultDatasetId }: Props) {
+export function ChartPanel({
+  datasets,
+  defaultDatasetId,
+  title = 'Publishing activity',
+  ariaLabel = 'Publishing activity',
+  unitLabel = 'posts',
+  unitSingular = 'post',
+  metricLabel = 'published',
+  variant = 'line',
+  onVariantChange,
+}: Props) {
   const [activeId, setActiveId] = React.useState(defaultDatasetId ?? datasets[0]?.id ?? '');
   const [activeIndex, setActiveIndex] = React.useState<number | null>(null);
   const svgRef = React.useRef<SVGSVGElement | null>(null);
@@ -75,14 +96,14 @@ export function LineChart({ datasets, defaultDatasetId }: Props) {
   }
 
   const series = normalizeSeries(active.values);
-  const total = active.values.reduce((sum, posts) => sum + posts, 0);
+  const total = active.values.reduce((sum, value) => sum + value, 0);
   const peak = Math.max(0, ...series);
   const scaleMax = Math.max(niceAxisMax(peak), 1);
   const points = buildChartPoints(series, PLOT_RECT, scaleMax);
   const viewPoints = points.map((point, index) => ({
     index,
     label: resolvePointLabel(active.axisLabels, index),
-    posts: series[index],
+    value: series[index],
     x: point.x,
     y: point.y,
   }));
@@ -98,6 +119,14 @@ export function LineChart({ datasets, defaultDatasetId }: Props) {
   const tooltipShift =
     highlightRatio < TOOLTIP_EDGE_RATIO ? 0 : highlightRatio > 1 - TOOLTIP_EDGE_RATIO ? -100 : -50;
   const hasActivity = peak > 0;
+  const barWidth = (PLOT_RECT.width / Math.max(series.length, 1)) * BAR_WIDTH_RATIO;
+  const barPoints = points.map((point, index) => ({
+    index,
+    x: point.x - barWidth / 2,
+    y: point.y,
+    height: Math.max(PLOT_BOTTOM - point.y, 0),
+    width: barWidth,
+  }));
 
   const handlePointerSelect = (event: React.PointerEvent<HTMLDivElement>) => {
     const svgElement = svgRef.current;
@@ -163,39 +192,62 @@ export function LineChart({ datasets, defaultDatasetId }: Props) {
   };
 
   return (
-    <section
-      aria-label="Publishing activity"
-      className="rounded-lg border border-border bg-card p-6"
-    >
+    <section aria-label={ariaLabel} className="rounded-lg border border-border bg-card p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-medium">Publishing activity</h2>
+          <h2 className="text-sm font-medium">{title}</h2>
           <p className="mt-1 text-xs text-muted-foreground tabular-nums">
             Total {total} · Peak {peak} · Average {formatAverage(total, series.length)} per day
           </p>
         </div>
-        <fieldset className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
-          <legend className="sr-only">Chart range</legend>
-          {datasets.map((dataset) => (
-            <button
-              key={dataset.id}
-              type="button"
-              onClick={() => {
-                setActiveId(dataset.id);
-                setActiveIndex(null);
-              }}
-              aria-pressed={dataset.id === active.id}
-              className={cn(
-                'rounded px-2.5 py-1 text-xs font-medium transition-colors',
-                dataset.id === active.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {dataset.label}
-            </button>
-          ))}
-        </fieldset>
+        <div className="flex flex-wrap items-center gap-2">
+          {datasets.length > 1 ? (
+            <fieldset className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+              <legend className="sr-only">Chart range</legend>
+              {datasets.map((dataset) => (
+                <button
+                  key={dataset.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveId(dataset.id);
+                    setActiveIndex(null);
+                  }}
+                  aria-pressed={dataset.id === active.id}
+                  className={cn(
+                    'rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                    dataset.id === active.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {dataset.label}
+                </button>
+              ))}
+            </fieldset>
+          ) : null}
+
+          {onVariantChange ? (
+            <fieldset className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+              <legend className="sr-only">Chart style</legend>
+              {(['bar', 'line'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => onVariantChange(option)}
+                  aria-pressed={option === variant}
+                  className={cn(
+                    'rounded px-2.5 py-1 text-xs font-medium transition-colors',
+                    option === variant
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {option === 'bar' ? 'Bars' : 'Line'}
+                </button>
+              ))}
+            </fieldset>
+          ) : null}
+        </div>
       </div>
 
       {hasActivity ? (
@@ -219,10 +271,10 @@ export function LineChart({ datasets, defaultDatasetId }: Props) {
             className="h-auto w-full text-foreground"
           >
             <title id={chartTitleId}>
-              {`Publishing activity: posts published per day over the last ${active.id}`}
+              {`${title}: ${unitLabel} ${metricLabel} per day over the last ${active.id}`}
             </title>
             <desc id={chartDescriptionId}>
-              {`${total} posts in total, peak ${peak} in one day, average ${formatAverage(total, series.length)} per day. ` +
+              {`${total} ${unitLabel} in total, peak ${peak} in one day, average ${formatAverage(total, series.length)} per day. ` +
                 'Use the left and right arrow keys to step through days, Home and End to jump to either end, and Escape to clear the selection.'}
             </desc>
 
@@ -240,33 +292,57 @@ export function LineChart({ datasets, defaultDatasetId }: Props) {
               />
             ))}
 
-            <polygon
-              points={`${linePoints} ${PLOT_RIGHT},${PLOT_BOTTOM} ${PLOT_RECT.x0},${PLOT_BOTTOM}`}
-              className="text-chart-2"
-              fill="currentColor"
-              opacity={0.12}
-            />
-            <polyline
-              points={linePoints}
-              fill="none"
-              className="text-chart-2"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
+            {variant === 'bar' ? (
+              <g>
+                {barPoints.map((bar) => (
+                  <rect
+                    key={bar.index}
+                    x={bar.x}
+                    y={bar.y}
+                    width={bar.width}
+                    height={bar.height}
+                    rx={BAR_RADIUS}
+                    className={cn(
+                      'transition-opacity duration-150 ease-out',
+                      activePoint === null || activePoint.index === bar.index
+                        ? 'text-chart-2 opacity-100'
+                        : 'text-chart-2 opacity-45',
+                    )}
+                    fill="currentColor"
+                  />
+                ))}
+              </g>
+            ) : (
+              <>
+                <polygon
+                  points={`${linePoints} ${PLOT_RIGHT},${PLOT_BOTTOM} ${PLOT_RECT.x0},${PLOT_BOTTOM}`}
+                  className="text-chart-2"
+                  fill="currentColor"
+                  opacity={0.12}
+                />
+                <polyline
+                  points={linePoints}
+                  fill="none"
+                  className="text-chart-2"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
 
-            {viewPoints.map((point) => (
-              <circle
-                key={point.index}
-                cx={point.x}
-                cy={point.y}
-                r={2.5}
-                className="text-chart-2"
-                fill="currentColor"
-              />
-            ))}
+                {viewPoints.map((point) => (
+                  <circle
+                    key={point.index}
+                    cx={point.x}
+                    cy={point.y}
+                    r={2.5}
+                    className="text-chart-2"
+                    fill="currentColor"
+                  />
+                ))}
+              </>
+            )}
 
             <g
               className={cn(
@@ -307,7 +383,7 @@ export function LineChart({ datasets, defaultDatasetId }: Props) {
             className="pointer-events-none absolute inset-0 text-foreground/80 select-none"
           >
             <span className="absolute top-0 left-0 text-[10px] tracking-[0.08em] uppercase">
-              posts
+              {unitLabel}
             </span>
 
             {yTicks.map((tick) => (
@@ -353,35 +429,37 @@ export function LineChart({ datasets, defaultDatasetId }: Props) {
               transform: `translate(${tooltipShift}%, ${TOOLTIP_OFFSET_Y}px)`,
             }}
           >
-            {highlightPoint.label} · {formatPosts(highlightPoint.posts)}
+            {highlightPoint.label} · {formatUnit(highlightPoint.value, unitSingular, unitLabel)}
           </div>
         </div>
       ) : (
         <p className="mt-5 flex h-40 items-center justify-center rounded-md border border-dashed border-border px-6 text-center text-sm text-muted-foreground">
-          No posts were published in this range.
+          {`No ${unitLabel} were recorded in this range.`}
         </p>
       )}
 
       {hasActivity ? (
         <p aria-live="polite" className="sr-only">
-          {activePoint ? `${activePoint.label}: ${formatPosts(activePoint.posts)}` : ''}
+          {activePoint
+            ? `${activePoint.label}: ${formatUnit(activePoint.value, unitSingular, unitLabel)}`
+            : ''}
         </p>
       ) : null}
 
       {hasActivity ? (
         <table className="sr-only">
-          <caption>Posts published per day over the last {active.id}</caption>
+          <caption>{`${unitLabel} ${metricLabel} per day over the last ${active.id}`}</caption>
           <thead>
             <tr>
               <th scope="col">Date</th>
-              <th scope="col">Posts</th>
+              <th scope="col">{unitLabel}</th>
             </tr>
           </thead>
           <tbody>
             {viewPoints.map((point) => (
               <tr key={point.index}>
                 <th scope="row">{point.label}</th>
-                <td>{point.posts}</td>
+                <td>{point.value}</td>
               </tr>
             ))}
           </tbody>

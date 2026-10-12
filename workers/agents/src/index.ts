@@ -1,14 +1,17 @@
 interface Env {
   AGENT_RUN_URL?: string;
   AGENT_SHARE_URL?: string;
+  AGENT_NOTIFY_URL?: string;
   AGENT_CRON_TOKEN?: string;
 }
 
 const DEFAULT_AGENT_RUN_URL = 'https://lightscripts.com/api/agents/run-due';
 const DEFAULT_AGENT_SHARE_URL = 'https://lightscripts.com/api/agents/share-due';
+const DEFAULT_AGENT_NOTIFY_URL = 'https://lightscripts.com/api/agents/notifications-due';
 
 const RUN_TIMEOUT_MS = 300_000;
 const SHARE_TIMEOUT_MS = 120_000;
+const NOTIFY_TIMEOUT_MS = 60_000;
 
 async function trigger(url: string, timeoutMs: number, token: string): Promise<unknown> {
   try {
@@ -35,28 +38,34 @@ async function trigger(url: string, timeoutMs: number, token: string): Promise<u
   }
 }
 
-async function triggerRun(env: Env): Promise<{ run: unknown; share: unknown }> {
+async function triggerRun(env: Env): Promise<{ run: unknown; share: unknown; notify: unknown }> {
   const token = env.AGENT_CRON_TOKEN;
 
   if (!token) {
     console.error('AGENT_CRON_TOKEN is not configured');
     const missing = { ok: false, error: 'AGENT_CRON_TOKEN is not configured' };
-    return { run: missing, share: missing };
+    return { run: missing, share: missing, notify: missing };
   }
 
   const runUrl = env.AGENT_RUN_URL ?? DEFAULT_AGENT_RUN_URL;
   const shareUrl = env.AGENT_SHARE_URL ?? DEFAULT_AGENT_SHARE_URL;
+  const notifyUrl = env.AGENT_NOTIFY_URL ?? DEFAULT_AGENT_NOTIFY_URL;
 
   let run: unknown = { ok: false, error: 'run skipped' };
   let share: unknown = { ok: false, error: 'share skipped' };
+  let notify: unknown = { ok: false, error: 'notify skipped' };
 
   try {
     run = await trigger(runUrl, RUN_TIMEOUT_MS, token);
   } finally {
-    share = await trigger(shareUrl, SHARE_TIMEOUT_MS, token);
+    try {
+      share = await trigger(shareUrl, SHARE_TIMEOUT_MS, token);
+    } finally {
+      notify = await trigger(notifyUrl, NOTIFY_TIMEOUT_MS, token);
+    }
   }
 
-  return { run, share };
+  return { run, share, notify };
 }
 
 function isRunTrigger(request: Request): boolean {

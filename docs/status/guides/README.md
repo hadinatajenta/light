@@ -14,6 +14,7 @@ Light is a small affiliate review site built with Astro 7 on Cloudflare Workers.
 | [agents.md](./agents.md) | The four agent roles, the DeepSeek key, scheduling, the review gate, run history, and troubleshooting | You want to automate drafting, review, QC, or research |
 | [monetization.md](./monetization.md) | What is configured today for affiliate links and ads, and what is still missing | You want to earn from the site |
 | [domain.md](./domain.md) | The domains that serve the site, redirects, Cloudflare Access, Search Console, and media serving | You are changing a domain or checking where something is served |
+| [notifications.md](./notifications.md) | The notification bell, the Notifications page, free email delivery through Cloudflare, Telegram delivery, and which events leave the system | You want to be told when an agent fails, a post publishes, or the budget runs low |
 | [deploy.md](./deploy.md) | Local development, database migrations, seeding and export, deploys, secrets, backup, and verification | You are developing, deploying, or recovering the site |
 
 ## Environment

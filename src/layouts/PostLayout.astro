@@ -1,8 +1,11 @@
 ---
 import AdSlot from '@/components/AdSlot.astro';
+import ProductList from '@/components/ProductList.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
 import { SITE_AUTHOR, SITE_TITLE } from '@/consts';
+import type { AffiliateProduct } from '@/lib/affiliate/store';
+import { selectFeaturedProducts } from '@/lib/affiliate/featured';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
 import { getRelatedPosts } from '@/lib/content/related';
 import { findMediaCreditByUrl } from '@/lib/media/store';
@@ -14,12 +17,14 @@ import BaseLayout from './BaseLayout.astro';
 interface Props {
   post: SitePost;
   affiliateLinks?: Map<string, string>;
+  affiliateProducts?: AffiliateProduct[];
   affiliateDisclosure?: string;
 }
 
 const {
   post,
   affiliateLinks = new Map<string, string>(),
+  affiliateProducts = [],
   affiliateDisclosure,
 } = Astro.props;
 
@@ -27,6 +32,13 @@ const rendered = renderMarkdown(post.body, affiliateLinks);
 const html = rendered.html;
 const showsAffiliateDisclosure = post.affiliate || rendered.affiliateLinks > 0;
 const disclosureText = affiliateDisclosure || DEFAULT_AFFILIATE_DISCLOSURE;
+const featuredProducts = selectFeaturedProducts({
+  body: post.body,
+  title: post.title,
+  tags: post.tags,
+  category: post.category ?? null,
+  products: affiliateProducts,
+});
 const tableOfContents = buildTableOfContents(extractHeadings(post.body));
 const readingMinutes = formatReadingTime(post.body);
 const primaryTag = post.tags[0] ?? 'guide';
@@ -229,6 +241,12 @@ const jsonLd = [
         }
       </article>
 
+      {
+        featuredProducts.length > 0 && (
+          <ProductList products={featuredProducts} disclosure={disclosureText} />
+        )
+      }
+
       <RelatedLinks posts={related} />
 
       <AdSlot slotId="in-article-bottom" format="leaderboard" />
@@ -251,17 +269,11 @@ const jsonLd = [
 
     <aside class="read-rail">
       <AdSlot slotId="article-rail-top" format="rectangle" />
-      <div class="rail-card">
-        <div class="rail-card-head">
-          <span>Partner</span>
-          <span>01</span>
-        </div>
-        <div class="rail-card-body">
-          <h4>Sponsored placement</h4>
-          <p>Reserved for a vetted product recommendation from a partner.</p>
-          <a href="/affiliate-disclosure/" class="btn btn-primary btn-sm">How we vet partners</a>
-        </div>
-      </div>
+      {
+        featuredProducts.length > 0 && (
+          <ProductList products={featuredProducts} disclosure={disclosureText} variant="rail" />
+        )
+      }
       <AdSlot slotId="article-rail-bottom" format="rail" />
     </aside>
   </div>

@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assessResearchQuality,
   computeUncoveredAngles,
+  countDistinctQueries,
   dedupeNotesByQuote,
   dedupeQueries,
   RESEARCH_ANGLES,
   SOURCE_TYPES,
+  sourceMatchKey,
 } from './research';
 
 describe('dedupeQueries', () => {
@@ -84,5 +87,49 @@ describe('research vocabularies', () => {
       'retailer',
       'other',
     ]);
+  });
+});
+
+describe('assessResearchQuality', () => {
+  it('meets the bar only with enough notes and enough angle coverage', () => {
+    const full = assessResearchQuality(12, [...RESEARCH_ANGLES]);
+
+    expect(full.meetsBar).toBe(true);
+    expect(full.coveredCount).toBe(5);
+    expect(full.uncoveredAngles).toEqual([]);
+  });
+
+  it('fails the bar when the note count is below the minimum', () => {
+    expect(assessResearchQuality(9, [...RESEARCH_ANGLES]).meetsBar).toBe(false);
+  });
+
+  it('fails the bar when coverage is too narrow and reports the missing angles', () => {
+    const narrow = assessResearchQuality(12, ['specifications', 'compatibility', 'durability']);
+
+    expect(narrow.meetsBar).toBe(false);
+    expect(narrow.coveredCount).toBe(3);
+    expect(narrow.uncoveredAngles).toEqual(['standards', 'claims']);
+  });
+});
+
+describe('countDistinctQueries', () => {
+  it('counts distinct normalized queries and ignores blank entries', () => {
+    expect(countDistinctQueries(['Desk Load', 'desk load', null, '   ', 'Chair gas lift'])).toBe(2);
+  });
+
+  it('returns zero for an empty list', () => {
+    expect(countDistinctQueries([])).toBe(0);
+  });
+});
+
+describe('sourceMatchKey', () => {
+  it('matches quotes regardless of case and punctuation', () => {
+    expect(sourceMatchKey('Seat height adjusts.', 'ignored')).toBe(
+      sourceMatchKey('seat  height adjusts', 'other'),
+    );
+  });
+
+  it('falls back to the detail when the quote is empty', () => {
+    expect(sourceMatchKey('', 'Same fact')).toBe(sourceMatchKey('   ', 'same   fact'));
   });
 });
