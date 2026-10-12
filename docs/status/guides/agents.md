@@ -226,13 +226,19 @@ Local timings exist only to make testing fast. Production keeps the real cadence
 
 ## See the pipeline flow
 
-The top of the **Agents** page shows the pipeline as a compact timeline of six
-stages: planner, researcher, writer, qc, reviewer, published. One line per stage,
-each with how much work is waiting there, how much is in progress, and how much
-it finished today, together with the agents that own it and their cadence. A
-connector animates only while the upstream stage has work to move, so a still
-graph means the pipeline is idle rather than broken. Users who ask for reduced
-motion get a static graph.
+The top of the **Agents** page draws the pipeline as a node and arrow diagram:
+six boxes (planner, researcher, writer, qc, reviewer, published) joined by
+labelled arrows (`topics`, `notes`, `draft`, `gate`, `approve`), plus two dashed
+arrows that return work: `changes requested` from the reviewer back to the
+writer, and `needs research` from the writer back to the researcher.
+
+Each box carries its backlog, what is in progress, and what it finished today,
+together with the agents that own it and their cadence. A solid arrow animates
+only while the upstream stage has work to move, and a dashed arrow animates only
+while work is actually coming back, so a still diagram means the pipeline is
+idle rather than broken. The diagram is capped at its natural width and scales
+down on narrow screens, and users who ask for reduced motion get a static
+version.
 
 QC and the reviewer both pull from the same pending drafts, which is why those
 two stages show the same waiting count.

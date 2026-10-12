@@ -205,7 +205,7 @@ function FlowDiagram({ stages }: { stages: FlowStage[] }) {
   return (
     <svg
       viewBox={`0 0 ${DIAGRAM_WIDTH} ${DIAGRAM_HEIGHT}`}
-      className="h-auto w-full"
+      className="mx-auto h-auto w-full max-w-[880px]"
       role="img"
       aria-labelledby="agent-flow-title agent-flow-desc"
     >
