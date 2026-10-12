@@ -7,6 +7,7 @@ import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPostSummaries } from '@/lib/content/public';
+import { buildTopics } from '@/lib/content/topics';
 import { buildCanonicalUrl, buildItemListJsonLd, buildOrganizationJsonLd, buildWebsiteJsonLd } from '@/utils/seo';
 
 export const prerender = false;
@@ -14,13 +15,14 @@ export const prerender = false;
 const HOMEPAGE_POST_LIMIT = 8;
 const MAGAZINE_MIN_POSTS = 8;
 const FLOW_MIN_POSTS = 4;
-const TEXT_ONLY_RANKS = new Set([4, 6]);
 const SYMBOLS = ['※', '¶', '❦', '△', '❋', '◇', '✦', '◈'];
 
 const siteUrl =
   buildCanonicalUrl(Astro.site ?? undefined, '/') ?? new URL('/', Astro.url.origin).href;
 
-const posts = (await getPublishedPostSummaries()).slice(0, HOMEPAGE_POST_LIMIT);
+const publishedPosts = await getPublishedPostSummaries();
+const posts = publishedPosts.slice(0, HOMEPAGE_POST_LIMIT);
+const topics = buildTopics(publishedPosts);
 
 const jsonLd = [
   buildWebsiteJsonLd({ name: SITE_TITLE, url: siteUrl, description: SITE_DESCRIPTION }),
@@ -47,18 +49,14 @@ const layout = posts.length >= MAGAZINE_MIN_POSTS
     ? 'flow'
     : 'single';
 
-function variantForRank(rank: number): 'feature' | 'text' | 'default' {
-  if (rank === 1) {
-    return 'feature';
-  }
-
-  return TEXT_ONLY_RANKS.has(rank) ? 'text' : 'default';
+function variantForRank(rank: number): 'feature' | 'default' {
+  return rank === 1 ? 'feature' : 'default';
 }
 ---
 
 <BaseLayout contained={false} jsonLd={jsonLd}>
   <HomeIntro />
-  <TopicTabs />
+  <TopicTabs topics={topics} />
 
   {
     posts.length === 0 && (
@@ -70,7 +68,7 @@ function variantForRank(rank: number): 'feature' | 'text' | 'default' {
 
   {
     posts.length > 0 && (
-      <section class="home-section">
+      <section class="home-section" aria-label="Latest guides">
         <div class={`home-layout home-layout-${layout}`}>
           {posts.map((post, index) => (
             <div class={`home-slot home-slot-${index + 1}`}>
@@ -131,37 +129,12 @@ function variantForRank(rank: number): 'feature' | 'text' | 'default' {
   }
   .home-layout-magazine {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
-    grid-template-areas:
-      's2 s1 s5'
-      's4 s3 s6'
-      's7 . s8';
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 52px 40px;
-    align-items: start;
+    align-items: stretch;
   }
   .home-layout-magazine .home-slot-1 {
-    grid-area: s1;
-  }
-  .home-layout-magazine .home-slot-2 {
-    grid-area: s2;
-  }
-  .home-layout-magazine .home-slot-3 {
-    grid-area: s3;
-  }
-  .home-layout-magazine .home-slot-4 {
-    grid-area: s4;
-  }
-  .home-layout-magazine .home-slot-5 {
-    grid-area: s5;
-  }
-  .home-layout-magazine .home-slot-6 {
-    grid-area: s6;
-  }
-  .home-layout-magazine .home-slot-7 {
-    grid-area: s7;
-  }
-  .home-layout-magazine .home-slot-8 {
-    grid-area: s8;
+    grid-column: span 2;
   }
   .home-archive {
     margin-top: 40px;
@@ -179,12 +152,9 @@ function variantForRank(rank: number): 'feature' | 'text' | 'default' {
   @media (max-width: 1024px) {
     .home-layout-magazine {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      grid-template-areas:
-        's1 s1'
-        's2 s3'
-        's4 s5'
-        's6 s7'
-        's8 .';
+    }
+    .home-layout-magazine .home-slot-1 {
+      grid-column: span 1;
     }
   }
   @media (max-width: 680px) {

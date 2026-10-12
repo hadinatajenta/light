@@ -1,8 +1,15 @@
 ---
-import { PRIMARY_NAVIGATION, SITE_TITLE } from '@/consts';
+import { PRIMARY_NAVIGATION, SITE_TITLE, TOPICS } from '@/consts';
+import { resolveContentDatabase } from '@/lib/content/database';
+import { loadTopics } from '@/lib/content/topics';
 import SearchDialog from './SearchDialog.astro';
 import ThemeToggle from './ThemeToggle.astro';
 import TopicPanel from './TopicPanel.astro';
+
+const database = await resolveContentDatabase();
+const topics = database
+  ? await loadTopics(database)
+  : TOPICS.map((topic) => ({ ...topic, count: 0 }));
 
 const currentPath = Astro.url.pathname;
 
@@ -94,5 +101,5 @@ function isActive(href: string): boolean {
   </div>
 </header>
 
-<TopicPanel />
+<TopicPanel topics={topics} />
 <SearchDialog />

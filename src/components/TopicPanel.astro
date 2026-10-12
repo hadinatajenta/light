@@ -1,21 +1,33 @@
 ---
-import { PRIMARY_NAVIGATION, TOPICS } from '@/consts';
+import { PRIMARY_NAVIGATION } from '@/consts';
+import type { TopicLink } from '@/lib/content/topics';
+
+interface Props {
+  topics: TopicLink[];
+}
+
+const { topics } = Astro.props;
 ---
 
 <div class="topic-panel" id="topic-panel">
   <div class="topic-inner">
     <div class="topic-head">
       <span class="label">All topics</span>
-      <span class="label topic-count">{TOPICS.length} topics</span>
+      <span class="label topic-count">{topics.length} topics</span>
       <button type="button" class="topic-close" data-topics-trigger aria-label="Close menu">
         Close
       </button>
     </div>
     <div class="topic-grid">
       {
-        TOPICS.map((topic) => (
+        topics.map((topic) => (
           <a class="topic-item" href={`/tag/${topic.slug}/`}>
             <span>{topic.label}</span>
+            {topic.count > 0 && (
+              <span class="topic-item-count" aria-hidden="true">
+                {topic.count}
+              </span>
+            )}
             <span class="arw" aria-hidden="true">
               &rarr;
             </span>

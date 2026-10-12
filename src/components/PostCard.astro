@@ -68,9 +68,10 @@ const postHref = `/blog/${post.id}/`;
   {
     post.tags.length > 0 && (
       <div class="m-card-tags">
-        {post.tags.map((tag) => (
+        {post.tags.slice(0, 3).map((tag) => (
           <a href={`/tag/${tag}/`}>#{tag}</a>
         ))}
+        {post.tags.length > 3 && <span>+{post.tags.length - 3}</span>}
       </div>
     )
   }

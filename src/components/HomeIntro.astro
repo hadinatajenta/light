@@ -1,6 +1,4 @@
 ---
-import { SITE_DESCRIPTION } from '@/consts';
-
 const trustPoints = [
   { label: 'Independent research', href: null },
   { label: 'Sources cited', href: null },
@@ -10,7 +8,8 @@ const trustPoints = [
 
 <section class="home-intro">
   <h1 class="home-intro-title">Buying guides that hold up after the unboxing.</h1>
-  <p class="home-intro-line">{SITE_DESCRIPTION}</p>
+  <p class="home-intro-line">Independent research for the desk you actually work at.</p>
+  <a class="btn btn-primary home-intro-cta" href="/blog/">Browse all guides</a>
   <ul class="home-intro-trust">
     {
       trustPoints.map((point) => (
@@ -47,6 +46,9 @@ const trustPoints = [
     line-height: 1.55;
     color: var(--ink-75);
     text-wrap: pretty;
+  }
+  .home-intro-cta {
+    margin-top: 6px;
   }
   .home-intro-trust {
     display: flex;
