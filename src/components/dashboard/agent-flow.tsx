@@ -1,5 +1,5 @@
 import { RefreshCwIcon, TriangleAlertIcon } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,8 @@ import { formatRelativeTime } from '@/utils/date';
 import { requestJson, toErrorMessage } from './api-client';
 
 type StageId = 'planner' | 'researcher' | 'writer' | 'qc' | 'reviewer' | 'published';
+
+type StageState = 'running' | 'backlog' | 'idle';
 
 interface FlowAgent {
   id: string;
@@ -39,11 +41,13 @@ type LoadMode = 'initial' | 'poll' | 'manual';
 const FLOW_ENDPOINT = '/api/dashboard/agents/flow';
 const POLL_MS = 15_000;
 const STAGE_ORDER = 'planner, researcher, writer, qc, reviewer, published';
-const SKELETON_STAGES = [
+const SKELETON_ROWS = [
   'agent-flow-skeleton-1',
   'agent-flow-skeleton-2',
   'agent-flow-skeleton-3',
   'agent-flow-skeleton-4',
+  'agent-flow-skeleton-5',
+  'agent-flow-skeleton-6',
 ];
 
 function WorkingDot() {
@@ -55,95 +59,164 @@ function WorkingDot() {
   );
 }
 
-function Connector({ active }: { active: boolean }) {
+function StageStatusDot({ state }: { state: StageState }) {
+  if (state === 'running') {
+    return <WorkingDot />;
+  }
+
+  if (state === 'backlog') {
+    return (
+      <span className="inline-flex size-2 rounded-full bg-muted-foreground" aria-hidden="true" />
+    );
+  }
+
   return (
-    <div
-      aria-hidden="true"
-      className="relative flex w-16 shrink-0 items-center justify-center self-center"
-    >
-      <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-      {active ? (
-        <span className="animate-flow absolute top-1/2 left-0 -mt-1 size-2 rounded-full bg-primary motion-reduce:animate-none" />
+    <span className="inline-flex size-2 rounded-full border border-border" aria-hidden="true" />
+  );
+}
+
+function StageRail({
+  state,
+  isFirst,
+  isLast,
+  animated,
+}: {
+  state: StageState;
+  isFirst: boolean;
+  isLast: boolean;
+  animated: boolean;
+}) {
+  return (
+    <div className="relative flex w-6 shrink-0 justify-center self-stretch">
+      {isFirst ? null : (
+        <span
+          aria-hidden="true"
+          className="absolute top-0 left-1/2 h-1/2 w-px -translate-x-1/2 bg-border"
+        />
+      )}
+
+      {isLast ? null : (
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 left-1/2 h-1/2 w-px -translate-x-1/2 bg-border"
+        />
+      )}
+
+      {animated && !isLast ? (
+        <span className="animate-flow-line absolute top-1/2 left-1/2 size-1.5 rounded-full bg-primary motion-reduce:animate-none motion-reduce:hidden" />
       ) : null}
+
+      <span className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
+        <StageStatusDot state={state} />
+      </span>
     </div>
   );
 }
 
-function StageCard({ stage }: { stage: FlowStage }) {
-  const backlog = stage.waiting + stage.active;
-  const hasAgents = stage.agents.length > 0;
+function AgentChips({ agents }: { agents: FlowAgent[] }) {
+  return (
+    <ul className="flex flex-wrap items-center gap-1">
+      {agents.map((agent) => (
+        <li
+          key={agent.id}
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-1.5 py-0.5 text-xs"
+        >
+          {agent.running ? <WorkingDot /> : null}
+          <span className="max-w-[9rem] truncate text-foreground" title={agent.name}>
+            {agent.name}
+          </span>
+          <span className="text-muted-foreground" aria-hidden="true">
+            ·
+          </span>
+          <span className="text-muted-foreground tabular-nums">{agent.cadenceLabel}</span>
+          {agent.running ? <span className="sr-only">working now</span> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function stageState(stage: FlowStage): StageState {
+  if (stage.active > 0 || stage.agents.some((agent) => agent.running)) {
+    return 'running';
+  }
+
+  if (stage.waiting > 0) {
+    return 'backlog';
+  }
+
+  return 'idle';
+}
+
+function buildMetrics(stage: FlowStage): string {
+  const parts: string[] = [];
+
+  if (stage.waiting > 0) {
+    parts.push(`${stage.waiting} waiting`);
+  }
+  if (stage.active > 0) {
+    parts.push(`${stage.active} in progress`);
+  }
+  if (stage.doneToday > 0) {
+    parts.push(`${stage.doneToday} done today`);
+  }
+
+  return parts.join(' · ');
+}
+
+function StageRow({
+  stage,
+  isFirst,
+  isLast,
+}: {
+  stage: FlowStage;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  const state = stageState(stage);
+  const metrics = buildMetrics(stage);
+  const upstreamActive = stage.waiting + stage.active > 0;
 
   return (
-    <article className="flex w-60 shrink-0 flex-col gap-3 rounded-xl border border-border bg-card p-4">
-      <h3 className="text-xs font-medium tracking-[0.06em] text-muted-foreground uppercase">
-        {stage.label}
-      </h3>
+    <li className="flex min-h-10 items-stretch gap-3 py-1">
+      <StageRail state={state} isFirst={isFirst} isLast={isLast} animated={upstreamActive} />
 
-      {hasAgents ? (
-        <>
-          <div>
-            <span className="block text-3xl font-semibold text-foreground tabular-nums">
-              {backlog}
-            </span>
-            <span className="text-xs text-muted-foreground">backlog</span>
-          </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
-            {stage.waiting} waiting · {stage.active} in progress · {stage.doneToday} done today
-          </p>
-        </>
-      ) : (
-        <div>
-          <span className="block text-3xl font-semibold text-foreground tabular-nums">
-            {stage.doneToday}
-          </span>
-          <span className="text-xs text-muted-foreground">done today</span>
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <span className="text-sm font-medium text-foreground">{stage.label}</span>
+          {metrics ? (
+            <span className="text-xs text-muted-foreground tabular-nums">{metrics}</span>
+          ) : null}
+          {state === 'running' ? <span className="sr-only">working now</span> : null}
         </div>
-      )}
 
-      <p className="text-xs text-muted-foreground">{stage.description}</p>
-
-      {hasAgents ? (
-        <ul className="mt-auto flex flex-col gap-2">
-          {stage.agents.map((agent) => (
-            <li key={agent.id} className="flex items-center justify-between gap-2">
-              <span className="flex min-w-0 items-center gap-2">
-                {agent.running ? (
-                  <WorkingDot />
-                ) : (
-                  <span
-                    className="size-1.5 shrink-0 rounded-full bg-muted-foreground/50"
-                    aria-hidden="true"
-                  />
-                )}
-                <span className="truncate text-sm text-foreground" title={agent.name}>
-                  {agent.name}
-                </span>
-                {agent.running ? <span className="sr-only">working now</span> : null}
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground">{agent.cadenceLabel}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </article>
+        {stage.agents.length > 0 ? <AgentChips agents={stage.agents} /> : null}
+      </div>
+    </li>
   );
 }
 
 function FlowSkeleton() {
   return (
-    <div role="status" aria-live="polite" className="flex flex-col gap-4">
+    <div role="status" aria-live="polite" className="rounded-xl border border-border bg-card p-2">
       <span className="sr-only">Loading the agent pipeline flow</span>
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {SKELETON_STAGES.map((cardKey) => (
-          <div
-            key={cardKey}
-            className="flex w-60 shrink-0 flex-col gap-3 rounded-xl border border-border bg-card p-4"
-          >
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-6 w-full" />
+
+      <div className="flex items-center justify-between gap-3">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-6 w-20" />
+      </div>
+
+      <Skeleton className="mt-0.5 h-3 w-3/4" />
+
+      <div className="mt-0.5 flex flex-col">
+        {SKELETON_ROWS.map((rowKey) => (
+          <div key={rowKey} className="flex min-h-10 items-center gap-3 py-1">
+            <div className="flex w-6 shrink-0 justify-center">
+              <Skeleton className="size-2.5 rounded-full" />
+            </div>
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3 w-32" />
+            <Skeleton className="ml-auto h-5 w-28" />
           </div>
         ))}
       </div>
@@ -288,20 +361,26 @@ export default function AgentFlow() {
       : `${runningCount} ${runningCount === 1 ? 'agent is' : 'agents are'} working now.`;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
-            Pipeline flow
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {runningSummary} Updated {formatRelativeTime(snapshot.generatedAt, now)}.
-          </p>
+    <section
+      aria-label="Agent pipeline stages"
+      className="rounded-xl border border-border bg-card p-2"
+    >
+      <p role="status" aria-live="polite" className="sr-only">
+        {runningSummary}
+      </p>
+
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
+          <h2 className="text-sm font-medium text-foreground">Pipeline</h2>
+          <span className="text-xs text-muted-foreground tabular-nums">{runningSummary}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            Updated {formatRelativeTime(snapshot.generatedAt, now)}
+          </span>
         </div>
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          size="xs"
           className="whitespace-nowrap"
           disabled={isRefreshing}
           onClick={() => void load('manual')}
@@ -311,12 +390,13 @@ export default function AgentFlow() {
         </Button>
       </div>
 
-      <p role="status" aria-live="polite" className="sr-only">
-        {runningSummary}
+      <p className="mt-0.5 text-xs text-muted-foreground">
+        Stages run in order: {STAGE_ORDER}. QC and the reviewer both pull from the same pending
+        drafts.
       </p>
 
       {isStale ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+        <div className="mt-0.5 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
           <TriangleAlertIcon className="size-3.5 shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1">
             Live updates paused. Showing the last flow received.
@@ -324,7 +404,7 @@ export default function AgentFlow() {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="xs"
             className="whitespace-nowrap"
             onClick={() => void load('poll')}
           >
@@ -334,33 +414,22 @@ export default function AgentFlow() {
       ) : null}
 
       {isIdle ? (
-        <div className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4">
-          <p className="text-sm font-medium text-foreground">The pipeline is idle</p>
-          <p className="max-w-prose text-sm text-muted-foreground">
-            Nothing is queued, in progress, or published today. Run an agent to move work through
-            the stages, or wait for the schedule to pick up the next run.
-          </p>
-        </div>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          The pipeline is idle. Run an agent to move work through the stages, or wait for the
+          schedule to pick up the next run.
+        </p>
       ) : null}
 
-      <section aria-label="Agent pipeline stages" className="flex flex-col gap-2">
-        <p className="max-w-prose text-sm text-muted-foreground">
-          Stages run in order: {STAGE_ORDER}. QC and the reviewer both pull from the same pending
-          drafts.
-        </p>
-        <div className="overflow-x-auto pb-2">
-          <div className="flex min-w-max items-stretch gap-0">
-            {snapshot.stages.map((stage, index) => (
-              <Fragment key={stage.id}>
-                <StageCard stage={stage} />
-                {index < snapshot.stages.length - 1 ? (
-                  <Connector active={stage.waiting + stage.active > 0} />
-                ) : null}
-              </Fragment>
-            ))}
-          </div>
-        </div>
-      </section>
-    </div>
+      <ol className="mt-0.5 flex flex-col">
+        {snapshot.stages.map((stage, index) => (
+          <StageRow
+            key={stage.id}
+            stage={stage}
+            isFirst={index === 0}
+            isLast={index === snapshot.stages.length - 1}
+          />
+        ))}
+      </ol>
+    </section>
   );
 }

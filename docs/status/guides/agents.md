@@ -226,12 +226,13 @@ Local timings exist only to make testing fast. Production keeps the real cadence
 
 ## See the pipeline flow
 
-The top of the **Agents** page shows the pipeline as six stages: planner,
-researcher, writer, qc, reviewer, published. Each stage shows how much work is
-waiting there, how much is in progress, and how much it finished today, together
-with the agents that own it and their cadence. A connector animates only while
-the upstream stage has work to move, so a still graph means the pipeline is idle
-rather than broken. Users who ask for reduced motion get a static graph.
+The top of the **Agents** page shows the pipeline as a compact timeline of six
+stages: planner, researcher, writer, qc, reviewer, published. One line per stage,
+each with how much work is waiting there, how much is in progress, and how much
+it finished today, together with the agents that own it and their cadence. A
+connector animates only while the upstream stage has work to move, so a still
+graph means the pipeline is idle rather than broken. Users who ask for reduced
+motion get a static graph.
 
 QC and the reviewer both pull from the same pending drafts, which is why those
 two stages show the same waiting count.

@@ -35,6 +35,7 @@
   --color-brand-soft: var(--brand-soft);
 
   --animate-flow: flow 1.4s linear infinite;
+  --animate-flow-line: flow-line 1.6s linear infinite;
 }
 
 :root {
@@ -756,6 +757,25 @@
   }
   to {
     transform: translateX(3.5rem);
+  }
+}
+
+@keyframes flow-line {
+  from {
+    transform: translate(-50%, 0);
+    opacity: 0;
+  }
+  20% {
+    transform: translate(-50%, 0.25rem);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, 0.875rem);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, 1.25rem);
+    opacity: 0;
   }
 }
 
