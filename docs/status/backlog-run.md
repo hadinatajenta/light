@@ -4,6 +4,22 @@ One session, phase by phase, at most two subagents per wave. Legend:
 `[x]` done, `[~]` in progress, `[ ]` not started, `[!]` deferred with reason,
 `(you)` needs the owner, `(dev)` engineering.
 
+## Round 3 - cadence (owner decision 2026-10-12)
+
+- [x] Today only: Researcher raised from 24 to 48 runs/day so the first research backlog clears faster (dev)
+- [ ] 2026-10-13: halve the runs per day of every enabled agent (dev)
+
+Halving command, run with `npx wrangler d1 execute light-content --remote --command "<sql>"`:
+
+```sql
+UPDATE agents SET runs_per_day = MAX(1, CAST(runs_per_day / 2 AS INTEGER)), updated_at = datetime('now') WHERE enabled = 1;
+```
+
+It leaves Planner 2, Researcher 24, Writer A 12, Writer B 12, QC 12, Reviewer 12,
+and Reviewer Strict 12. The daily search cap stays at 40: at 48 scrapper runs the
+cap is reached sooner, and a run that cannot search defers its topic and makes no
+model call, so the cap is the spend guard rather than the run count.
+
 ## Round 2 - agent roster and quality
 
 Plan and rationale: `docs/status/plans/2026-10-12-agent-roster.md`.
