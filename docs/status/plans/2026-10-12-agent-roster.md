@@ -17,24 +17,41 @@ specialisation come first, volume second.
 
 Applied to production on 2026-10-12.
 
-| Agent | Role | Category | Runs/day | Auto publish |
+| Agent | Role | Beat | Runs/day | Auto publish |
 | --- | --- | --- | --- | --- |
 | Planner | planner | (any) | 4 | no |
 | Researcher | scrapper | (any) | 24 | no |
-| Writer A | writer | desk-setup | 24 | no |
-| Writer B | writer | chairs | 24 | no |
+| Writer A | writer | desk-setup, monitors, accessories | 24 | no |
+| Writer B | writer | chairs, buying-basics, keyboards, audio | 24 | no |
 | QC | qc | (any) | 24 | no |
 | Reviewer | reviewer | (any) | 24 | yes |
 | Reviewer Strict | reviewer | (any) | 24 | yes |
 
 Applied ids: `agent-planner`, `agent-qc`, `agent-reviewer-strict`, with
-`agent-writer-a` on `desk-setup` and `agent-writer-b` on `chairs`.
+`agent-writer-a` and `agent-writer-b` carrying the beats above.
 
 `Writer C` was deleted by the owner. `MAX_AGENTS` becomes 12 with a per role cap
 (writer 4, reviewer 2, qc 2, scrapper 2, planner 2), so the roster cannot grow
 into eight competing writers by accident. The planner runs four times a day,
 which yields roughly 20 to 32 topics a day, comfortably above what two writers,
 one scrapper, and two reviewers can actually carry.
+
+## Writer beats
+
+The first attempt gave each writer one category. With two writers that left five
+of the seven categories with no writer, so the planner refused to queue them and
+those topics were never written. A writer now owns a **beat**: a set of
+categories it claims from.
+
+| Writer | Beat | Why this grouping |
+| --- | --- | --- |
+| Writer A | desk-setup, monitors, accessories | The desk surface and what sits on it: desk sizes and heights, standing desks, monitor arms and display height, cable management, organisers, and the small accessories |
+| Writer B | chairs, buying-basics, keyboards, audio | Sitting and interacting: seating and posture, mats and footrests, keyboards and mice, desk audio, and the buying basics that teach a reader to judge a specification |
+
+Every category now has an owner, and the planner proposes for the union of the
+enabled writers' beats, which is all seven. An empty beat still means any
+category, so a new writer with no ticks yet is not idle. Change a beat at any
+time from the agent form, where each category is a checkbox.
 
 Category choice: `desk-setup` (14 published articles) and `chairs` (3) are the
 two large purchases a home-office buyer makes, and both have enough depth for

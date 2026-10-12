@@ -130,7 +130,7 @@ Insights, Redirects, Monetization, and Settings.
 - [x] Configurable SEO refresh window, a PageSpeed link, and a weekly
       non blocking link check workflow (dev)
 - [x] Planner role that fills the topic queue from seed keywords and the covered categories (dev)
-- [x] Writer specialisation by category, so writers do not compete for one queue (dev)
+- [x] Writer beats: several categories per writer, so no category is left without an owner (dev)
 - [x] Per agent scorecard on the Agents page over 7, 30, or 90 days (dev)
 - [x] Atomic draft claim for reviewers and QC, so two reviewers cannot review one draft (dev)
 - [x] `MAX_AGENTS` raised to 12 with a per role cap (dev)

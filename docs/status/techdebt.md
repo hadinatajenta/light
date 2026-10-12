@@ -147,6 +147,15 @@ pipeline only handles build time assets. No responsive `srcset`, no WebP.
 Trigger: add an image transform route (Cloudflare Images, or the `/_image`
 endpoint) when image weight shows up in the metrics.
 
+### The legacy `category` column on agents
+
+Migration 0022 added `categories` (a JSON array of a writer's beat) and left the
+old single value `category` column in place, because the version running when the
+migration applied still wrote it. Nothing reads or writes it now.
+
+Trigger: drop it in a migration once the deployed version has been stable for a
+release.
+
 ### A blocked draft waits for a human after two revisions
 
 When QC or the reviewer sends a draft back, the writer revises it at most twice

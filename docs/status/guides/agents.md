@@ -34,7 +34,7 @@ Go to **Agents** and click **New agent** (`/dashboard/agents/new`). The form has
 - **Name**: a label for the agent, up to 80 characters.
 - **Role**: Planner, Writer, Reviewer, QC, or Scrapper. The description under the field explains the role, and the form prefills the default prompt for the role.
 - **Prompt**: the role prompt. Each role has a default you can edit. Your text is appended to the role's built-in instructions. For the Planner, this field is where the seed keywords live.
-- **Category**: shown only for the Writer role. The writer claims topics from that category only, so two writers can work in parallel without competing for the same queue. Leave it empty to let the writer claim any topic.
+- **Categories**: shown only for the Writer role. Tick every category this writer owns, its beat. The writer claims topics from any ticked category, so two writers can work in parallel without competing for the same queue. No box ticked means the writer may claim a topic from any category.
 - **Model**: `deepseek-flash` (the default) or `deepseek-v4-pro`.
 - **Runs per day**: between 1 and 24.
 - **Enabled**: whether the schedule runs this agent.
@@ -51,7 +51,7 @@ Each run of an agent does one job, based on its role.
 ### Planner
 
 - Runs first in the tick. It does not claim a topic, it creates them.
-- Reads the categories the enabled writers cover, the queued topic titles, and the published article titles. When no writer has a category yet it falls back to the categories that already have published posts.
+- Reads the union of every enabled writer's categories (their beats), the queued topic titles, and the published article titles. When no writer has a beat yet it falls back to the categories that already have published posts.
 - Asks the model for 5 to 8 topics in those categories, each with a title, a category, an intent, and 2 to 5 lowercase keyword phrases.
 - Drops any proposal with an unknown category, a duplicate title (against queued topics and published articles alike), or fewer than 2 keywords, and caps a run at 8 topics. Each accepted topic is queued with the planner recorded as its author, which is what the scorecard counts as topics proposed.
 - The keywords you put in the agent's **Prompt** field are the seeds. Broaden them into the questions a buyer would actually ask.
@@ -60,7 +60,7 @@ Each run of an agent does one job, based on its role.
 ### Writer
 
 - Produces a **draft** post, never a published one.
-- Claims the oldest queued topic **in its own category** when it has one, otherwise the oldest queued topic of any category. When the queue is empty it looks for a draft whose review status is `changes_requested` and revises that instead.
+- Claims the oldest queued topic **in one of its categories** when it has a beat, otherwise the oldest queued topic of any category. When the queue is empty it looks for a draft whose review status is `changes_requested` and revises that instead.
 - The prompt topic tells it what to write about. The writer is also given the titles of the last 12 published posts and told not to duplicate them.
 - It returns a title, a description, 2 to 4 tags, and a markdown body. The body is saved as a new post with status `draft` and review status `pending`.
 - Model effort: **high**.
