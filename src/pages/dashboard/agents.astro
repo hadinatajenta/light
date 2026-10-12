@@ -1,5 +1,6 @@
 ---
 import AgentList from '@/components/dashboard/agent-list';
+import AgentFlow from '@/components/dashboard/agent-flow';
 import AgentScorecard from '@/components/dashboard/agent-scorecard.astro';
 import BudgetCard from '@/components/dashboard/budget-card';
 import DeepSeekKeyCard from '@/components/dashboard/deepseek-key-card';
@@ -19,6 +20,9 @@ const scorecardRows = database ? await loadAgentScorecard(database, { days }) : 
 <DashboardLayout title="Agents">
   <div class="flex flex-col gap-6">
     <PipelineRunButton client:load />
+    <section aria-label="Agent pipeline flow">
+      <AgentFlow client:load />
+    </section>
     <AgentList client:load />
     <section aria-label="Agent performance scorecard">
       <AgentScorecard rows={scorecardRows} days={days} ranges={[7, 30, 90]} />
