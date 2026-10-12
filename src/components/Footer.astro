@@ -1,5 +1,5 @@
 ---
-import { FOOTER_SECTIONS, SITE_AUTHOR, SITE_TAGLINE, SITE_TITLE } from '@/consts';
+import { FOOTER_SECTIONS, SITE_AUTHOR, SITE_TAGLINE, SITE_TITLE, SOCIAL_PROFILES } from '@/consts';
 import { getRequestFooterPages } from '@/lib/settings/request';
 
 const currentYear = new Date().getFullYear();
@@ -20,6 +20,19 @@ const footerSections = FOOTER_SECTIONS.map((section) =>
     <div class="foot-col foot-brand">
       <span class="brand">{SITE_TITLE}<span class="brand-mark">.</span></span>
       <p>{SITE_TAGLINE}</p>
+      {
+        SOCIAL_PROFILES.length > 0 && (
+          <ul class="foot-social" aria-label="Light Scripts elsewhere">
+            {SOCIAL_PROFILES.map((profile) => (
+              <li>
+                <a href={profile.href} rel="me noopener">
+                  {profile.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
     </div>
     {
       footerSections.map((section) => (

@@ -4,7 +4,7 @@ import HomeIntro from '@/components/HomeIntro.astro';
 import PostCard from '@/components/PostCard.astro';
 import SponsoredBlock from '@/components/SponsoredBlock.astro';
 import TopicTabs from '@/components/TopicTabs.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
+import { SITE_DESCRIPTION, SITE_HOME_TITLE, SITE_TITLE, SOCIAL_PROFILES } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPostSummaries } from '@/lib/content/public';
 import { buildTopics } from '@/lib/content/topics';
@@ -30,6 +30,7 @@ const jsonLd = [
     name: SITE_TITLE,
     url: siteUrl,
     logoUrl: new URL('/og-default.png', siteUrl).href,
+    sameAs: SOCIAL_PROFILES.map((profile) => profile.href),
   }),
   ...(posts.length > 0
     ? [
@@ -54,7 +55,7 @@ function variantForRank(rank: number): 'feature' | 'default' {
 }
 ---
 
-<BaseLayout contained={false} jsonLd={jsonLd}>
+<BaseLayout contained={false} title={SITE_HOME_TITLE} jsonLd={jsonLd}>
   <HomeIntro />
   <TopicTabs topics={topics} />
 

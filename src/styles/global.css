@@ -747,6 +747,16 @@
 .foot-brand p {
   @apply max-w-[32ch] font-sans text-sm leading-[1.55] text-ink-75;
 }
+.foot-social {
+  @apply mt-4 flex flex-wrap gap-x-4 gap-y-1 font-sans text-[12px] font-medium tracking-[0.08em] uppercase;
+}
+.foot-social a {
+  @apply text-ink-75;
+  transition: color var(--dur) var(--ease);
+}
+.foot-social a:hover {
+  @apply text-ink;
+}
 .foot-legal {
   @apply mx-auto mt-12 flex max-w-7xl flex-wrap items-center justify-between gap-5 border-t border-ink-12 pt-6 font-sans text-[12.5px] text-ink-75 tabular-nums;
 }

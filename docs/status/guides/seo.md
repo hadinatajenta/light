@@ -92,6 +92,53 @@ Core Web Vitals are a field measurement, not something to hardcode. After ads ar
 2. Watch **LCP** (main image and ads), **CLS** (ad slots reserving height, fonts), and **INP** (interaction cost of ads and scripts).
 3. The ad slots already reserve height through `min-height` classes, which is the main CLS control. Re-check after any new ad format is enabled.
 
+## Off-page signals and social profiles
+
+Off-page SEO is everything that signals authority from outside the site: links
+from other sites, brand mentions, and social profiles. On-page work (titles,
+structure, internal links) decides whether a page can rank; off-page signals
+decide how much weight Google gives the domain. For a new site they are the
+slowest part, and none of it can be faked.
+
+What matters, in order:
+
+1. **Being indexed and linked from your own other properties.** Profiles,
+   directories, and community answers that point at a real guide.
+2. **Links you earn.** An original data study, a measurement, or a comparison
+   nobody else has published is what earns links. Paid link networks are a
+   policy violation and a penalty risk, so we do not buy links.
+3. **Brand mentions.** Being named in a forum thread, a newsletter, or a
+   roundup helps even without a link.
+4. **Social profiles.** Weak as a ranking factor, useful for discovery and for
+   the `sameAs` signal that ties the brand together for entity recognition.
+
+### Social profiles
+
+Add a profile once it exists: edit `SOCIAL_PROFILES` in `src/consts.ts` and list
+the label plus the full URL. The footer renders the row only when the list is
+non-empty, and the homepage `Organization` structured data picks the same URLs
+up as `sameAs`, which is what audits look for. Do not list a profile that does
+not exist: an empty or placeholder link is worse than none.
+
+Existing distribution already covers Telegram, Bluesky, Discord, Mastodon, and
+Pinterest through the sharing outbox, so a new guide reaches those channels
+without a personal social account.
+
+### What the third-party audit messages mean
+
+- **"Too many dofollow links"** is generic for a new domain. It means the audit
+  could not see a backlink profile, not that our links violate anything. Our
+  affiliate links already carry `rel="sponsored nofollow"`.
+- **"Authority score: no competitor data"** means the tool has no data for the
+  domain yet. It resolves with age and links, not with a code change.
+- **"Missing hreflang"** does not apply: the site publishes one language
+  (`en-US`). Add hreflang only if a translated version ships.
+- **"Title too short"** was real for the homepage, which used the bare brand
+  name. The homepage now has a descriptive title of about sixty characters.
+- **Performance claims** should be re-checked with PageSpeed Insights, which
+  measures the live page. The AdSense script in the head is the largest
+  third-party script and the first suspect for interaction and blocking time.
+
 ## SEO audit dashboard
 
 `/dashboard/seo` renders a deterministic audit built from the article content: title and description length, H1/H2 structure, word count, target keyword placement, internal links, cover, plus keyword cannibalization, orphan posts, refresh candidates (not updated in 180 days), and broken external links. Use it before and after publishing. The external link check is on demand and bounded; run it occasionally rather than on every page load.

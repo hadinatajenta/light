@@ -1,6 +1,7 @@
 export const SITE_TITLE = 'Light Scripts';
 export const SITE_DESCRIPTION =
   'Independent buying guides and product comparisons for people who would rather buy once and buy well.';
+export const SITE_HOME_TITLE = 'Home-office buying guides that hold up after the unboxing';
 export const SITE_TAGLINE =
   'A reading room for people who would rather research once and buy well, than buy twice and regret it.';
 export const SITE_AUTHOR = 'Light Scripts Editorial Team';
@@ -18,6 +19,13 @@ export interface NavigationLink {
   label: string;
   href: string;
 }
+
+export interface SocialProfile {
+  label: string;
+  href: string;
+}
+
+export const SOCIAL_PROFILES: SocialProfile[] = [];
 
 export interface Topic {
   label: string;
