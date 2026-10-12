@@ -630,6 +630,11 @@ function SearchPanel({
                         {result.creator}
                       </span>
                     ) : null}
+                    {result.provider ? (
+                      <span className="text-[0.65rem] font-medium tracking-wide text-muted-foreground uppercase">
+                        {result.provider}
+                      </span>
+                    ) : null}
                     {resultState ? (
                       <span
                         className={cn(

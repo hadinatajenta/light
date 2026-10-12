@@ -1,10 +1,14 @@
 ---
 import MediaLibrary from '@/components/dashboard/media-library';
+import MediaProviderCard from '@/components/dashboard/media-provider-card';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
 export const prerender = false;
 ---
 
 <DashboardLayout title="Media">
-  <MediaLibrary client:load />
+  <div class="flex flex-col gap-6">
+    <MediaProviderCard client:load />
+    <MediaLibrary client:load />
+  </div>
 </DashboardLayout>

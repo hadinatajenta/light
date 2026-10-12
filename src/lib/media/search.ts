@@ -1,13 +1,14 @@
 import { ApiError } from '../http';
 import { assertAllowedUrl, readCappedBytes } from '../security/safe-fetch';
 import { detectImageExtension } from './image-type';
+import type { ImageProviderId } from './providers/registry';
 
 export const OPENVERSE_ENDPOINT = 'https://api.openverse.org/v1/images/';
 export const IMAGE_SEARCH_PAGE_SIZE = 24;
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024;
-const USER_AGENT = 'LightMediaBot/1.0 (+https://lightscripts.com)';
+export const MEDIA_USER_AGENT = 'LightMediaBot/1.0 (+https://lightscripts.com)';
 const OPENVERSE_ANONYMOUS_PAGE_SIZE_MAX = 20;
 
 const IMAGE_URL_GUARD = {
@@ -26,6 +27,7 @@ export interface ImageSearchResult {
   license: string;
   licenseUrl: string | null;
   sourceUrl: string | null;
+  provider: ImageProviderId;
 }
 
 interface OpenverseImage {
@@ -60,6 +62,7 @@ function toSearchResult(entry: OpenverseImage): ImageSearchResult | null {
     license: readString(entry.license) ?? 'unknown',
     licenseUrl: readString(entry.license_url),
     sourceUrl: readString(entry.foreign_landing_url),
+    provider: 'openverse',
   };
 }
 
@@ -80,7 +83,7 @@ export async function searchImages(
   let response: Response;
   try {
     response = await fetch(endpoint, {
-      headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+      headers: { 'User-Agent': MEDIA_USER_AGENT, Accept: 'application/json' },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch {
@@ -119,7 +122,7 @@ export async function downloadImageBytes(imageUrl: string): Promise<Uint8Array> 
   try {
     response = await fetch(initial, {
       redirect: 'follow',
-      headers: { 'User-Agent': USER_AGENT },
+      headers: { 'User-Agent': MEDIA_USER_AGENT },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch {

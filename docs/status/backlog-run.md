@@ -20,16 +20,16 @@ One session, phase by phase, at most two subagents per wave. Legend:
 
 ## Phase 3 - observability
 
-- [ ] Activity store: metadata JSON, run id, target link, filters (actor, action, date, status), pagination (dev)
-- [ ] Agent run detail API and a retry action (dev)
-- [ ] Activity page: filter bar, pagination, and a run detail dialog with retry (dev)
+- [x] Activity store: metadata JSON, run id, target link, filters (actor, action, date, status), pagination (dev)
+- [x] Agent run detail API and a retry action (dev)
+- [x] Activity page: filter bar, pagination, and a run detail dialog with retry (dev)
 
 ## Phase 4 - media and SEO extras
 
-- [ ] Pexels image source with a configurable key and a fallback chain (dev)
-- [ ] Broken-link check in CI (scheduled, non blocking) (dev)
-- [ ] Core Web Vitals: document and expose a PageSpeed link from the SEO page (dev)
-- [ ] Configurable refresh window for the SEO audit (dev)
+- [x] Pexels image source with a configurable key and a fallback chain (dev)
+- [x] Broken-link check in CI (scheduled, non blocking) (dev)
+- [x] Core Web Vitals: document and expose a PageSpeed link from the SEO page (dev)
+- [x] Configurable refresh window for the SEO audit (dev)
 
 ## Phase 5 - deferred this run
 

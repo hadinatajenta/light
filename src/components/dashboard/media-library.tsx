@@ -78,6 +78,7 @@ export interface MediaSearchResult {
   license: string | null;
   licenseUrl: string | null;
   sourceUrl: string | null;
+  provider: string | null;
 }
 
 export interface MediaSearchResponse {

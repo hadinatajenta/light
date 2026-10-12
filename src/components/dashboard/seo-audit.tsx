@@ -1,5 +1,6 @@
 import {
   FileWarningIcon,
+  GaugeIcon,
   InfoIcon,
   Link2Icon,
   Loader2Icon,
@@ -37,6 +38,9 @@ import { formatAbsoluteTime, formatRelativeTime } from './research-notes';
 
 const AUDIT_ENDPOINT = '/api/dashboard/seo/audit';
 const CHECK_LINKS_ENDPOINT = '/api/dashboard/seo/check-links';
+const REFRESH_WINDOW_ENDPOINT = '/api/dashboard/seo/refresh-window';
+const CORE_WEB_VITALS_URL =
+  'https://pagespeed.web.dev/analysis?url=https%3A%2F%2Flightscripts.com%2F';
 const ALL_FILTER = 'all';
 const ERRORS_FILTER = 'errors';
 const WARNINGS_FILTER = 'warnings';
@@ -120,6 +124,12 @@ interface LinkCheckResult {
   checked: number;
   broken: number;
   remaining: number;
+}
+
+interface RefreshWindow {
+  refreshAfterDays: number;
+  min: number;
+  max: number;
 }
 
 const SEVERITY_ORDER: SeoIssueSeverity[] = ['error', 'warning', 'info'];
@@ -344,6 +354,9 @@ export default function SeoAudit() {
   const [isCheckDialogOpen, setIsCheckDialogOpen] = useState(false);
   const [isCheckingLinks, setIsCheckingLinks] = useState(false);
   const [linkCheckResult, setLinkCheckResult] = useState<LinkCheckResult | null>(null);
+  const [refreshWindow, setRefreshWindow] = useState<RefreshWindow | null>(null);
+  const [refreshDaysDraft, setRefreshDaysDraft] = useState('');
+  const [refreshDaysStatus, setRefreshDaysStatus] = useState<'idle' | 'loading' | 'saving'>('idle');
   const controllerRef = useRef<AbortController | null>(null);
   const tabRefs = useRef<Record<AuditViewId, HTMLButtonElement | null>>({
     articles: null,
@@ -354,6 +367,7 @@ export default function SeoAudit() {
   const statusSelectId = useId();
   const severitySelectId = useId();
   const sortSelectId = useId();
+  const refreshDaysInputId = useId();
 
   const loadReport = useCallback(async (isSilent = false) => {
     controllerRef.current?.abort();
@@ -395,6 +409,65 @@ export default function SeoAudit() {
     void loadReport();
     return () => controllerRef.current?.abort();
   }, [loadReport]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadRefreshWindow = async () => {
+      setRefreshDaysStatus('loading');
+      try {
+        const payload = await requestJson<RefreshWindow>(REFRESH_WINDOW_ENDPOINT, {
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) {
+          return;
+        }
+        setRefreshWindow(payload);
+        setRefreshDaysDraft(String(payload.refreshAfterDays));
+        setRefreshDaysStatus('idle');
+      } catch {
+        if (!controller.signal.aborted) {
+          setRefreshDaysStatus('idle');
+        }
+      }
+    };
+
+    void loadRefreshWindow();
+    return () => controller.abort();
+  }, []);
+
+  const handleSaveRefreshWindow = async () => {
+    if (!refreshWindow || refreshDaysStatus === 'saving') {
+      return;
+    }
+
+    const parsed = Number(refreshDaysDraft);
+    if (!Number.isFinite(parsed) || refreshDaysDraft.trim().length === 0) {
+      toast.error('Enter a number of days.');
+      return;
+    }
+
+    const refreshAfterDays = Math.min(refreshWindow.max, Math.max(refreshWindow.min, parsed));
+
+    setRefreshDaysStatus('saving');
+
+    try {
+      const payload = await requestJson<{ refreshAfterDays: number }>(REFRESH_WINDOW_ENDPOINT, {
+        method: 'POST',
+        body: JSON.stringify({ refreshAfterDays }),
+      });
+      setRefreshWindow((current) =>
+        current ? { ...current, refreshAfterDays: payload.refreshAfterDays } : current,
+      );
+      setRefreshDaysDraft(String(payload.refreshAfterDays));
+      toast.success(`Refresh window saved: ${payload.refreshAfterDays} days.`);
+      void loadReport(true);
+    } catch (error) {
+      toast.error(toErrorMessage(error));
+    } finally {
+      setRefreshDaysStatus('idle');
+    }
+  };
 
   const posts = report?.posts ?? [];
   const cannibalization = report?.cannibalization ?? [];
@@ -581,6 +654,28 @@ export default function SeoAudit() {
             <SummaryChip key={metric.key} label={metric.label} value={summary[metric.key]} />
           ))}
         </dl>
+      </section>
+
+      <section
+        aria-label="Core Web Vitals"
+        className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 sm:p-6"
+      >
+        <div className="flex items-center gap-2">
+          <GaugeIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+          <h2 className="text-sm font-medium text-foreground">Core Web Vitals</h2>
+        </div>
+        <p className="max-w-prose text-sm text-muted-foreground">
+          Field performance for the homepage: check LCP, CLS, and INP, and re-run after changes to
+          images, fonts, or ads. No automated Core Web Vitals monitoring runs yet.
+        </p>
+        <a
+          href={CORE_WEB_VITALS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-fit text-sm font-medium text-foreground underline underline-offset-4"
+        >
+          Open PageSpeed Insights
+        </a>
       </section>
 
       <div
@@ -920,6 +1015,53 @@ export default function SeoAudit() {
               Posts that have gone stale or lost a keyword. Refresh the content before the topic
               date passes.
             </p>
+            <form
+              className="flex flex-col gap-2 rounded-lg border border-border p-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleSaveRefreshWindow();
+              }}
+            >
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor={refreshDaysInputId}>Refresh after (days)</Label>
+                  <Input
+                    id={refreshDaysInputId}
+                    type="number"
+                    inputMode="numeric"
+                    min={refreshWindow?.min}
+                    max={refreshWindow?.max}
+                    step={1}
+                    value={refreshDaysDraft}
+                    disabled={!refreshWindow || refreshDaysStatus === 'saving'}
+                    aria-describedby={refreshWindow ? `${refreshDaysInputId}-help` : undefined}
+                    className="w-28"
+                    onChange={(event) => setRefreshDaysDraft(event.target.value)}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="sm"
+                  className="whitespace-nowrap"
+                  disabled={!refreshWindow || refreshDaysStatus === 'saving'}
+                >
+                  {refreshDaysStatus === 'saving' ? <Loader2Icon className="animate-spin" /> : null}
+                  Save window
+                </Button>
+                <span role="status" aria-live="polite" className="sr-only">
+                  {refreshDaysStatus === 'saving' ? 'Saving refresh window' : ''}
+                </span>
+              </div>
+              <p
+                id={`${refreshDaysInputId}-help`}
+                className="text-xs tabular-nums text-muted-foreground"
+              >
+                {refreshWindow
+                  ? `Refresh candidates are posts not updated in ${refreshWindow.refreshAfterDays} days. Between ${refreshWindow.min} and ${refreshWindow.max} days.`
+                  : 'Loading the refresh window.'}
+              </p>
+            </form>
             {refreshCandidates.length === 0 ? (
               <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
                 No posts need a refresh right now.

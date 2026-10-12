@@ -20,6 +20,7 @@ export interface AuditInput {
   status: string;
   pubDate: string | null;
   updatedDate: string | null;
+  refreshAfterDays?: number;
   now?: Date;
 }
 
@@ -152,6 +153,7 @@ export function parseDate(value: string | null): Date | null {
 export function isRefreshCandidate(
   input: Pick<AuditInput, 'status' | 'pubDate' | 'updatedDate'>,
   now: Date,
+  refreshAfterDays: number = REFRESH_AFTER_DAYS,
 ): boolean {
   if (input.status !== 'published') {
     return false;
@@ -165,7 +167,7 @@ export function isRefreshCandidate(
   }
 
   const latest = Math.max(...dates.map((date) => date.getTime()));
-  return now.getTime() - latest > REFRESH_AFTER_DAYS * DAY_MS;
+  return now.getTime() - latest > refreshAfterDays * DAY_MS;
 }
 
 function includesKeyword(text: string, keyword: string): boolean {
@@ -325,7 +327,7 @@ export function auditPost(input: AuditInput): AuditResult {
     wordCount,
     internalLinks,
     externalLinks,
-    isRefreshCandidate: isRefreshCandidate(input, now),
+    isRefreshCandidate: isRefreshCandidate(input, now, input.refreshAfterDays),
   };
 }
 

@@ -1,7 +1,9 @@
 import { z } from 'astro/zod';
 import { withAdmin } from '@/lib/api/handler';
+import { requireContentDatabase } from '@/lib/content/database';
 import { jsonOk } from '@/lib/http';
-import { searchImages } from '@/lib/media/search';
+import { searchImagesWithFallback } from '@/lib/media/providers/registry';
+import { readPexelsKey } from '@/lib/media/settings';
 
 export const prerender = false;
 
@@ -11,12 +13,18 @@ const searchQuerySchema = z.object({
 });
 
 export const GET = withAdmin(async ({ url }, requestId) => {
+  const database = await requireContentDatabase();
   const payload = searchQuerySchema.parse({
     q: url.searchParams.get('q') ?? '',
     page: url.searchParams.get('page') ?? undefined,
   });
 
-  const { results, total } = await searchImages(payload.q, payload.page);
+  const pexelsKey = await readPexelsKey(database);
+  const { results, total, provider } = await searchImagesWithFallback({
+    query: payload.q,
+    page: payload.page,
+    pexelsKey,
+  });
 
-  return jsonOk({ results, total, page: payload.page }, requestId);
+  return jsonOk({ results, total, page: payload.page, provider }, requestId);
 });

@@ -2,6 +2,7 @@ import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
 import { jsonOk } from '@/lib/http';
 import { auditPost, findCannibalization, findOrphanPosts } from '@/lib/seo/audit';
+import { readSeoRefreshDays } from '@/lib/seo/settings';
 
 export const prerender = false;
 
@@ -42,6 +43,7 @@ function readTags(value: string): string[] {
 export const GET = withAdmin(async (_context, requestId) => {
   const database = await requireContentDatabase();
   const now = new Date();
+  const refreshAfterDays = await readSeoRefreshDays(database);
 
   const [postsResult, brokenResult] = await Promise.all([
     database
@@ -77,6 +79,7 @@ export const GET = withAdmin(async (_context, requestId) => {
       status: row.status,
       pubDate: row.pub_date,
       updatedDate: row.updated_date,
+      refreshAfterDays,
       now,
     }),
   }));
@@ -123,6 +126,7 @@ export const GET = withAdmin(async (_context, requestId) => {
     cannibalized,
     refreshCandidates: audited.filter((entry) => entry.result.isRefreshCandidate).length,
     brokenLinks: brokenLinks.length,
+    refreshAfterDays,
   };
 
   const posts = audited.map(({ row, result }) => ({

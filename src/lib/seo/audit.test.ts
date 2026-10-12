@@ -11,6 +11,12 @@ import {
   isRefreshCandidate,
   normalizeFocusKeyword,
 } from './audit';
+import {
+  clampRefreshDays,
+  DEFAULT_REFRESH_AFTER_DAYS,
+  MAX_REFRESH_DAYS,
+  MIN_REFRESH_DAYS,
+} from './settings';
 
 function buildBody(): string {
   const filler = new Array(950).fill('content').join(' ');
@@ -212,6 +218,91 @@ describe('isRefreshCandidate', () => {
         now,
       ),
     ).toBe(false);
+  });
+
+  it('uses the default window when no window is passed', () => {
+    const input = {
+      status: 'published',
+      pubDate: '2025-06-01T00:00:00.000Z',
+      updatedDate: '2025-06-01T00:00:00.000Z',
+    };
+
+    expect(isRefreshCandidate(input, now)).toBe(isRefreshCandidate(input, now, 180));
+    expect(isRefreshCandidate(input, now)).toBe(false);
+  });
+
+  it('honours a custom refresh window', () => {
+    const input = {
+      status: 'published',
+      pubDate: '2025-01-01T00:00:00.000Z',
+      updatedDate: null,
+    };
+
+    expect(isRefreshCandidate(input, now, 90)).toBe(true);
+    expect(isRefreshCandidate(input, now, 730)).toBe(false);
+  });
+
+  it('treats the window as a strict threshold boundary', () => {
+    const started = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
+    const input = {
+      status: 'published',
+      pubDate: started.toISOString(),
+      updatedDate: null,
+    };
+
+    expect(isRefreshCandidate(input, now)).toBe(false);
+    expect(isRefreshCandidate(input, now, 179)).toBe(true);
+  });
+});
+
+describe('auditPost refresh window', () => {
+  it('uses the default window when refreshAfterDays is absent', () => {
+    const result = auditPost(
+      makeInput({
+        pubDate: '2024-06-01T00:00:00.000Z',
+        updatedDate: null,
+        now: new Date('2024-07-01T00:00:00.000Z'),
+      }),
+    );
+
+    expect(result.isRefreshCandidate).toBe(false);
+  });
+
+  it('flags a stale post with a custom window while the default stays quiet', () => {
+    const input = makeInput({
+      pubDate: '2025-04-01T00:00:00.000Z',
+      updatedDate: null,
+      now: new Date('2025-07-01T00:00:00.000Z'),
+    });
+
+    expect(auditPost(input).isRefreshCandidate).toBe(false);
+    expect(auditPost({ ...input, refreshAfterDays: 60 }).isRefreshCandidate).toBe(true);
+  });
+});
+
+describe('clampRefreshDays', () => {
+  it('keeps a value inside the allowed window', () => {
+    expect(clampRefreshDays(365)).toBe(365);
+  });
+
+  it('clamps to the minimum', () => {
+    expect(clampRefreshDays(1)).toBe(MIN_REFRESH_DAYS);
+    expect(clampRefreshDays(0)).toBe(MIN_REFRESH_DAYS);
+    expect(clampRefreshDays(-500)).toBe(MIN_REFRESH_DAYS);
+  });
+
+  it('clamps to the maximum', () => {
+    expect(clampRefreshDays(9_999)).toBe(MAX_REFRESH_DAYS);
+  });
+
+  it('rounds fractional values before clamping', () => {
+    expect(clampRefreshDays(120.6)).toBe(121);
+    expect(clampRefreshDays(29.4)).toBe(MIN_REFRESH_DAYS);
+  });
+
+  it('falls back to the default for values that are not finite', () => {
+    expect(clampRefreshDays(Number.NaN)).toBe(DEFAULT_REFRESH_AFTER_DAYS);
+    expect(clampRefreshDays(Number.POSITIVE_INFINITY)).toBe(DEFAULT_REFRESH_AFTER_DAYS);
   });
 });
 
