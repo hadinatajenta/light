@@ -3,6 +3,7 @@ import { ApiError } from '../errors';
 import { readBudgetState, recordModelUsage } from './budget';
 import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
+import { stripWriterEnvelope } from './envelope';
 import { type PlannerTopic, parsePlannerTopics } from './planner';
 import { formatPreflightIssues, runPreflight } from './preflight';
 import { runScrapperResearch } from './research';
@@ -288,7 +289,7 @@ async function applyResult(
     const parsed = extractJsonObject(content);
     const title = readString(parsed.title);
     const description = readString(parsed.description);
-    const body = readString(parsed.body);
+    const body = stripWriterEnvelope(readString(parsed.body));
     const tags = readStringArray(parsed.tags, 6);
     const editorNotes = readString(parsed.editorNotes);
 
@@ -330,7 +331,7 @@ async function applyResult(
     const parsed = extractJsonObject(content);
     const decision = parsed.decision === 'approve' ? 'approve' : 'changes_requested';
     const notes = readString(parsed.notes);
-    const revisedBody = readString(parsed.revisedBody);
+    const revisedBody = stripWriterEnvelope(readString(parsed.revisedBody));
 
     if (decision === 'approve') {
       const preflightIssues = runPreflight({
