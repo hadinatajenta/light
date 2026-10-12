@@ -36,6 +36,7 @@
 
   --animate-flow: flow 1.4s linear infinite;
   --animate-flow-line: flow-line 1.6s linear infinite;
+  --animate-flow-dash: flow-dash 1.1s linear infinite;
 }
 
 :root {
@@ -776,6 +777,15 @@
   to {
     transform: translate(-50%, 1.25rem);
     opacity: 0;
+  }
+}
+
+@keyframes flow-dash {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -16;
   }
 }
 

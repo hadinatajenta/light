@@ -31,6 +31,7 @@ export interface FlowStage {
   waiting: number;
   active: number;
   doneToday: number;
+  bounced: number;
   agents: FlowAgentRef[];
 }
 
@@ -45,6 +46,8 @@ export interface FlowCounts {
   inReviewQc: number;
   inReviewReviewer: number;
   publishedToday: number;
+  blockedTopics: number;
+  changesRequestedDrafts: number;
 }
 
 export interface FlowActivityCounts {
@@ -161,9 +164,9 @@ function stageMetrics(
   stage: FlowStageId,
   counts: FlowCounts,
   activity: FlowActivityCounts,
-): { waiting: number; active: number; doneToday: number } {
+): { waiting: number; active: number; doneToday: number; bounced: number } {
   if (stage === 'planner') {
-    return { waiting: 0, active: 0, doneToday: counts.plannedToday };
+    return { waiting: 0, active: 0, doneToday: counts.plannedToday, bounced: 0 };
   }
 
   if (stage === 'researcher') {
@@ -171,6 +174,7 @@ function stageMetrics(
       waiting: counts.queuedTopics + counts.fetchedTopics,
       active: counts.inProgressScrapper,
       doneToday: activity.scrapper,
+      bounced: counts.blockedTopics,
     };
   }
 
@@ -179,11 +183,17 @@ function stageMetrics(
       waiting: counts.researchedTopics,
       active: counts.inProgressWriter,
       doneToday: activity.writer,
+      bounced: counts.changesRequestedDrafts,
     };
   }
 
   if (stage === 'qc') {
-    return { waiting: counts.pendingDrafts, active: counts.inReviewQc, doneToday: activity.qc };
+    return {
+      waiting: counts.pendingDrafts,
+      active: counts.inReviewQc,
+      doneToday: activity.qc,
+      bounced: 0,
+    };
   }
 
   if (stage === 'reviewer') {
@@ -191,10 +201,11 @@ function stageMetrics(
       waiting: counts.pendingDrafts,
       active: counts.inReviewReviewer,
       doneToday: activity.reviewer,
+      bounced: 0,
     };
   }
 
-  return { waiting: 0, active: 0, doneToday: counts.publishedToday };
+  return { waiting: 0, active: 0, doneToday: counts.publishedToday, bounced: 0 };
 }
 
 export function buildFlowStages(
@@ -213,6 +224,7 @@ export function buildFlowStages(
       waiting: metrics.waiting,
       active: metrics.active,
       doneToday: metrics.doneToday,
+      bounced: metrics.bounced,
       agents: id === 'published' ? [] : agents.filter((agent) => ROLE_STAGE[agent.role] === id),
     };
   });
@@ -299,6 +311,7 @@ export async function loadAgentFlow(
   let pendingDrafts = 0;
   let inReviewQc = 0;
   let inReviewReviewer = 0;
+  let changesRequestedDrafts = 0;
 
   for (const row of reviewRows.results ?? []) {
     if (row.review_status === null || row.review_status === 'pending') {
@@ -309,6 +322,8 @@ export async function loadAgentFlow(
       } else if (row.role === 'reviewer') {
         inReviewReviewer += row.total;
       }
+    } else if (row.review_status === 'changes_requested') {
+      changesRequestedDrafts += row.total;
     }
   }
 
@@ -332,6 +347,8 @@ export async function loadAgentFlow(
     inReviewQc,
     inReviewReviewer,
     publishedToday: publishedRow?.total ?? 0,
+    blockedTopics: topicCounts.blocked,
+    changesRequestedDrafts,
   };
 
   return {

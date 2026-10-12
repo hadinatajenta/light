@@ -8,8 +8,6 @@ import { requestJson, toErrorMessage } from './api-client';
 
 type StageId = 'planner' | 'researcher' | 'writer' | 'qc' | 'reviewer' | 'published';
 
-type StageState = 'running' | 'backlog' | 'idle';
-
 interface FlowAgent {
   id: string;
   name: string;
@@ -28,6 +26,7 @@ interface FlowStage {
   waiting: number;
   active: number;
   doneToday: number;
+  bounced: number;
   agents: FlowAgent[];
 }
 
@@ -36,169 +35,151 @@ interface AgentFlowSnapshot {
   stages: FlowStage[];
 }
 
+interface MainEdge {
+  fromIndex: number;
+  toIndex: number;
+  label: string;
+  upstream: StageId;
+}
+
+interface FeedbackEdge {
+  fromIndex: number;
+  toIndex: number;
+  laneY: number;
+  label: string;
+  sourceOffset: number;
+  targetOffset: number;
+  source: StageId;
+}
+
 type LoadMode = 'initial' | 'poll' | 'manual';
 
 const FLOW_ENDPOINT = '/api/dashboard/agents/flow';
 const POLL_MS = 15_000;
 const STAGE_ORDER = 'planner, researcher, writer, qc, reviewer, published';
-const SKELETON_ROWS = [
-  'agent-flow-skeleton-1',
-  'agent-flow-skeleton-2',
-  'agent-flow-skeleton-3',
-  'agent-flow-skeleton-4',
-  'agent-flow-skeleton-5',
-  'agent-flow-skeleton-6',
+const ORDER_STAGE_IDS: StageId[] = [
+  'planner',
+  'researcher',
+  'writer',
+  'qc',
+  'reviewer',
+  'published',
+];
+const SKELETON_NODE_KEYS = [
+  'agent-flow-node-1',
+  'agent-flow-node-2',
+  'agent-flow-node-3',
+  'agent-flow-node-4',
+  'agent-flow-node-5',
+  'agent-flow-node-6',
 ];
 
-function WorkingDot() {
-  return (
-    <span className="relative inline-flex size-2 shrink-0" aria-hidden="true">
-      <span className="absolute inline-flex size-full animate-pulse rounded-full bg-primary opacity-75 motion-reduce:animate-none" />
-      <span className="relative inline-flex size-2 rounded-full bg-primary" />
-    </span>
-  );
+const DIAGRAM_WIDTH = 880;
+const DIAGRAM_HEIGHT = 240;
+const NODE_WIDTH = 100;
+const NODE_HEIGHT = 64;
+const NODE_START_X = 20;
+const NODE_STEP = 148;
+const NODE_TOP = 44;
+const NODE_BOTTOM = NODE_TOP + NODE_HEIGHT;
+const NODE_CENTER_Y = NODE_TOP + NODE_HEIGHT / 2;
+const LANE_UPPER_Y = 148;
+const LANE_LOWER_Y = 190;
+const AGENT_LINE_MAX_LENGTH = 24;
+
+const MAIN_EDGES: MainEdge[] = [
+  { fromIndex: 0, toIndex: 1, label: 'topics', upstream: 'planner' },
+  { fromIndex: 1, toIndex: 2, label: 'notes', upstream: 'researcher' },
+  { fromIndex: 2, toIndex: 3, label: 'draft', upstream: 'writer' },
+  { fromIndex: 3, toIndex: 4, label: 'gate', upstream: 'qc' },
+  { fromIndex: 4, toIndex: 5, label: 'approve', upstream: 'reviewer' },
+];
+
+const FEEDBACK_EDGES: FeedbackEdge[] = [
+  {
+    fromIndex: 4,
+    toIndex: 2,
+    laneY: LANE_UPPER_Y,
+    label: 'changes requested',
+    sourceOffset: 18,
+    targetOffset: -26,
+    source: 'writer',
+  },
+  {
+    fromIndex: 2,
+    toIndex: 1,
+    laneY: LANE_LOWER_Y,
+    label: 'needs research',
+    sourceOffset: 26,
+    targetOffset: -22,
+    source: 'researcher',
+  },
+];
+
+function nodeCenterX(index: number): number {
+  return NODE_START_X + index * NODE_STEP + NODE_WIDTH / 2;
 }
 
-function StageStatusDot({ state }: { state: StageState }) {
-  if (state === 'running') {
-    return <WorkingDot />;
-  }
-
-  if (state === 'backlog') {
-    return (
-      <span className="inline-flex size-2 rounded-full bg-muted-foreground" aria-hidden="true" />
-    );
-  }
-
-  return (
-    <span className="inline-flex size-2 rounded-full border border-border" aria-hidden="true" />
-  );
-}
-
-function StageRail({
-  state,
-  isFirst,
-  isLast,
-  animated,
-}: {
-  state: StageState;
-  isFirst: boolean;
-  isLast: boolean;
-  animated: boolean;
-}) {
-  return (
-    <div className="relative flex w-6 shrink-0 justify-center self-stretch">
-      {isFirst ? null : (
-        <span
-          aria-hidden="true"
-          className="absolute top-0 left-1/2 h-1/2 w-px -translate-x-1/2 bg-border"
-        />
-      )}
-
-      {isLast ? null : (
-        <span
-          aria-hidden="true"
-          className="absolute bottom-0 left-1/2 h-1/2 w-px -translate-x-1/2 bg-border"
-        />
-      )}
-
-      {animated && !isLast ? (
-        <span className="animate-flow-line absolute top-1/2 left-1/2 size-1.5 rounded-full bg-primary motion-reduce:animate-none motion-reduce:hidden" />
-      ) : null}
-
-      <span className="absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
-        <StageStatusDot state={state} />
-      </span>
-    </div>
-  );
-}
-
-function AgentChips({ agents }: { agents: FlowAgent[] }) {
-  return (
-    <ul className="flex flex-wrap items-center gap-1">
-      {agents.map((agent) => (
-        <li
-          key={agent.id}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-1.5 py-0.5 text-xs"
-        >
-          {agent.running ? <WorkingDot /> : null}
-          <span className="max-w-[9rem] truncate text-foreground" title={agent.name}>
-            {agent.name}
-          </span>
-          <span className="text-muted-foreground" aria-hidden="true">
-            ·
-          </span>
-          <span className="text-muted-foreground tabular-nums">{agent.cadenceLabel}</span>
-          {agent.running ? <span className="sr-only">working now</span> : null}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function stageState(stage: FlowStage): StageState {
-  if (stage.active > 0 || stage.agents.some((agent) => agent.running)) {
-    return 'running';
-  }
-
-  if (stage.waiting > 0) {
-    return 'backlog';
-  }
-
-  return 'idle';
-}
-
-function buildMetrics(stage: FlowStage): string {
+function buildCountLine(stage: FlowStage): string {
   const parts: string[] = [];
 
   if (stage.waiting > 0) {
     parts.push(`${stage.waiting} waiting`);
   }
   if (stage.active > 0) {
-    parts.push(`${stage.active} in progress`);
-  }
-  if (stage.doneToday > 0) {
-    parts.push(`${stage.doneToday} done today`);
+    parts.push(`${stage.active} active`);
   }
 
   return parts.join(' · ');
 }
 
-function StageRow({
-  stage,
-  isFirst,
-  isLast,
-}: {
-  stage: FlowStage;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
-  const state = stageState(stage);
-  const metrics = buildMetrics(stage);
-  const upstreamActive = stage.waiting + stage.active > 0;
+function buildAgentLine(stage: FlowStage): string {
+  const joined = stage.agents.map((agent) => `${agent.name} · ${agent.cadenceLabel}`).join(', ');
 
-  return (
-    <li className="flex min-h-10 items-stretch gap-3 py-1">
-      <StageRail state={state} isFirst={isFirst} isLast={isLast} animated={upstreamActive} />
+  if (joined.length <= AGENT_LINE_MAX_LENGTH) {
+    return joined;
+  }
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
-          <span className="text-sm font-medium text-foreground">{stage.label}</span>
-          {metrics ? (
-            <span className="text-xs text-muted-foreground tabular-nums">{metrics}</span>
-          ) : null}
-          {state === 'running' ? <span className="sr-only">working now</span> : null}
-        </div>
+  return `${joined.slice(0, AGENT_LINE_MAX_LENGTH - 1)}…`;
+}
 
-        {stage.agents.length > 0 ? <AgentChips agents={stage.agents} /> : null}
-      </div>
-    </li>
-  );
+function buildAccessibleStage(stage: FlowStage): string {
+  const counts = `${stage.waiting} waiting, ${stage.active} in progress, ${stage.doneToday} done today, ${stage.bounced} bounced`;
+
+  if (stage.agents.length === 0) {
+    return `${stage.label}: ${counts}.`;
+  }
+
+  const agents = stage.agents
+    .map((agent) => `${agent.name}, ${agent.cadenceLabel}${agent.running ? ', working now' : ''}`)
+    .join('; ');
+
+  return `${stage.label}: ${counts}. Agents: ${agents}.`;
+}
+
+function hasUpstreamWork(stage: FlowStage | undefined): boolean {
+  if (!stage) {
+    return false;
+  }
+
+  return stage.waiting + stage.active > 0;
+}
+
+function hasBounce(stage: FlowStage | undefined): boolean {
+  if (!stage) {
+    return false;
+  }
+
+  return stage.bounced > 0;
+}
+
+function isStageRunning(stage: FlowStage): boolean {
+  return stage.agents.some((agent) => agent.running);
 }
 
 function FlowSkeleton() {
   return (
-    <div role="status" aria-live="polite" className="rounded-xl border border-border bg-card p-2">
+    <div role="status" aria-live="polite" className="rounded-xl border border-border bg-card p-3">
       <span className="sr-only">Loading the agent pipeline flow</span>
 
       <div className="flex items-center justify-between gap-3">
@@ -206,21 +187,194 @@ function FlowSkeleton() {
         <Skeleton className="h-6 w-20" />
       </div>
 
-      <Skeleton className="mt-0.5 h-3 w-3/4" />
+      <Skeleton className="mt-2 h-3 w-3/4" />
 
-      <div className="mt-0.5 flex flex-col">
-        {SKELETON_ROWS.map((rowKey) => (
-          <div key={rowKey} className="flex min-h-10 items-center gap-3 py-1">
-            <div className="flex w-6 shrink-0 justify-center">
-              <Skeleton className="size-2.5 rounded-full" />
-            </div>
-            <Skeleton className="h-3.5 w-24" />
-            <Skeleton className="h-3 w-32" />
-            <Skeleton className="ml-auto h-5 w-28" />
-          </div>
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {SKELETON_NODE_KEYS.map((nodeKey) => (
+          <Skeleton key={nodeKey} className="h-16 rounded-lg" />
         ))}
       </div>
     </div>
+  );
+}
+
+function FlowDiagram({ stages }: { stages: FlowStage[] }) {
+  const stageById = new Map(stages.map((stage) => [stage.id, stage]));
+  const stageAt = (index: number): FlowStage | undefined => stageById.get(ORDER_STAGE_IDS[index]);
+
+  return (
+    <svg
+      viewBox={`0 0 ${DIAGRAM_WIDTH} ${DIAGRAM_HEIGHT}`}
+      className="h-auto w-full"
+      role="img"
+      aria-labelledby="agent-flow-title agent-flow-desc"
+    >
+      <title id="agent-flow-title">Agent pipeline flow diagram</title>
+      <desc id="agent-flow-desc">
+        Stages run in order: {STAGE_ORDER}. Main arrows move left to right. A dashed arrow returns
+        changes requested from the reviewer to the writer. A dashed arrow returns needs research
+        from the writer to the researcher.
+      </desc>
+
+      <defs>
+        <marker
+          id="agent-flow-arrow"
+          viewBox="0 0 8 8"
+          refX={8}
+          refY={4}
+          markerWidth={8}
+          markerHeight={8}
+          markerUnits="userSpaceOnUse"
+          orient="auto"
+        >
+          <path d="M0,0 L8,4 L0,8 Z" className="fill-muted-foreground" />
+        </marker>
+      </defs>
+
+      {FEEDBACK_EDGES.map((edge) => {
+        const startX = nodeCenterX(edge.fromIndex) + edge.sourceOffset;
+        const endX = nodeCenterX(edge.toIndex) + edge.targetOffset;
+        const path = `M ${startX} ${NODE_BOTTOM} V ${edge.laneY} H ${endX} V ${NODE_BOTTOM}`;
+        const animated = hasBounce(stageAt(edge.fromIndex));
+        const labelX = (startX + endX) / 2;
+
+        return (
+          <g key={`${edge.fromIndex}-${edge.toIndex}`}>
+            <path
+              d={path}
+              fill="none"
+              className={cn(
+                'stroke-muted-foreground',
+                animated && 'animate-flow-dash motion-reduce:animate-none',
+              )}
+              strokeWidth={1.25}
+              strokeDasharray="6 10"
+              strokeLinejoin="round"
+              markerEnd="url(#agent-flow-arrow)"
+            />
+            <text
+              x={labelX}
+              y={edge.laneY - 5}
+              textAnchor="middle"
+              className="fill-muted-foreground text-[9px]"
+            >
+              {edge.label}
+            </text>
+          </g>
+        );
+      })}
+
+      {MAIN_EDGES.map((edge) => {
+        const startX = nodeCenterX(edge.fromIndex) + NODE_WIDTH / 2;
+        const endX = nodeCenterX(edge.toIndex) - NODE_WIDTH / 2;
+        const animated = hasUpstreamWork(stageAt(edge.fromIndex));
+        const labelX = (startX + endX) / 2;
+
+        return (
+          <g key={`${edge.fromIndex}-${edge.toIndex}`}>
+            <line
+              x1={startX}
+              y1={NODE_CENTER_Y}
+              x2={endX}
+              y2={NODE_CENTER_Y}
+              className="stroke-muted-foreground"
+              strokeWidth={1.25}
+              markerEnd="url(#agent-flow-arrow)"
+            />
+            {animated ? (
+              <line
+                x1={startX}
+                y1={NODE_CENTER_Y}
+                x2={endX}
+                y2={NODE_CENTER_Y}
+                className="animate-flow-dash stroke-primary motion-reduce:animate-none"
+                strokeWidth={1.25}
+                strokeDasharray="6 10"
+              />
+            ) : null}
+            <text
+              x={labelX}
+              y={NODE_CENTER_Y - 7}
+              textAnchor="middle"
+              className="fill-muted-foreground text-[9px]"
+            >
+              {edge.label}
+            </text>
+          </g>
+        );
+      })}
+
+      {ORDER_STAGE_IDS.map((stageId, index) => {
+        const stage = stageById.get(stageId);
+        if (!stage) {
+          return null;
+        }
+
+        const x = NODE_START_X + index * NODE_STEP;
+        const centerX = x + NODE_WIDTH / 2;
+        const countLine = buildCountLine(stage);
+        const agentLine = buildAgentLine(stage);
+        const running = isStageRunning(stage);
+
+        return (
+          <g key={stage.id}>
+            <rect
+              x={x}
+              y={NODE_TOP}
+              width={NODE_WIDTH}
+              height={NODE_HEIGHT}
+              rx={10}
+              className="fill-card stroke-border"
+              strokeWidth={1}
+            />
+            <text
+              x={centerX}
+              y={NODE_TOP + 22}
+              textAnchor="middle"
+              className="fill-foreground text-[11px] font-semibold"
+            >
+              {stage.label}
+            </text>
+            {countLine ? (
+              <text
+                x={centerX}
+                y={NODE_TOP + 40}
+                textAnchor="middle"
+                className="fill-muted-foreground text-[9px] tabular-nums"
+              >
+                {countLine}
+              </text>
+            ) : null}
+            {agentLine ? (
+              <text
+                x={centerX}
+                y={NODE_TOP + 55}
+                textAnchor="middle"
+                className="fill-muted-foreground text-[8px]"
+              >
+                {agentLine}
+              </text>
+            ) : null}
+            {running ? (
+              <g>
+                <circle
+                  cx={x + NODE_WIDTH - 12}
+                  cy={NODE_TOP + 13}
+                  r={4}
+                  className="animate-pulse fill-primary/40 motion-reduce:animate-none"
+                />
+                <circle
+                  cx={x + NODE_WIDTH - 12}
+                  cy={NODE_TOP + 13}
+                  r={2}
+                  className="fill-primary"
+                />
+              </g>
+            ) : null}
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
@@ -357,16 +511,16 @@ export default function AgentFlow() {
 
   const runningSummary =
     runningCount === 0
-      ? 'No agents are working now.'
-      : `${runningCount} ${runningCount === 1 ? 'agent is' : 'agents are'} working now.`;
+      ? 'No agents working now'
+      : `${runningCount} ${runningCount === 1 ? 'agent' : 'agents'} working now`;
 
   return (
     <section
       aria-label="Agent pipeline stages"
-      className="rounded-xl border border-border bg-card p-2"
+      className="rounded-xl border border-border bg-card p-3"
     >
       <p role="status" aria-live="polite" className="sr-only">
-        {runningSummary}
+        {runningSummary}.
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -390,13 +544,13 @@ export default function AgentFlow() {
         </Button>
       </div>
 
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        Stages run in order: {STAGE_ORDER}. QC and the reviewer both pull from the same pending
+      <p className="mt-1 text-xs text-muted-foreground">
+        Stages run in order: {STAGE_ORDER}. QC and the reviewer both claim from the same pending
         drafts.
       </p>
 
       {isStale ? (
-        <div className="mt-0.5 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
           <TriangleAlertIcon className="size-3.5 shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1">
             Live updates paused. Showing the last flow received.
@@ -414,21 +568,25 @@ export default function AgentFlow() {
       ) : null}
 
       {isIdle ? (
-        <p className="mt-0.5 text-xs text-muted-foreground">
+        <p className="mt-2 text-xs text-muted-foreground">
           The pipeline is idle. Run an agent to move work through the stages, or wait for the
           schedule to pick up the next run.
         </p>
       ) : null}
 
-      <ol className="mt-0.5 flex flex-col">
-        {snapshot.stages.map((stage, index) => (
-          <StageRow
-            key={stage.id}
-            stage={stage}
-            isFirst={index === 0}
-            isLast={index === snapshot.stages.length - 1}
-          />
-        ))}
+      <div className="mt-3">
+        <FlowDiagram stages={snapshot.stages} />
+      </div>
+
+      <ol className="sr-only">
+        {ORDER_STAGE_IDS.map((stageId) => {
+          const stage = snapshot.stages.find((entry) => entry.id === stageId);
+          if (!stage) {
+            return null;
+          }
+
+          return <li key={stage.id}>{buildAccessibleStage(stage)}</li>;
+        })}
       </ol>
     </section>
   );

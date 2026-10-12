@@ -33,6 +33,8 @@ const COUNTS: FlowCounts = {
   inReviewQc: 8,
   inReviewReviewer: 9,
   publishedToday: 10,
+  blockedTopics: 2,
+  changesRequestedDrafts: 3,
 };
 
 const ACTIVITY: FlowActivityCounts = {
@@ -98,6 +100,17 @@ describe('buildFlowStages', () => {
     expect(byId.get('qc')).toMatchObject({ waiting: 7, active: 8, doneToday: 14 });
     expect(byId.get('reviewer')).toMatchObject({ waiting: 7, active: 9, doneToday: 15 });
     expect(byId.get('published')).toMatchObject({ waiting: 0, active: 0, doneToday: 10 });
+  });
+
+  it('maps bounced counts only to the researcher and writer stages', () => {
+    const byId = new Map(stages.map((stage) => [stage.id, stage]));
+
+    expect(byId.get('planner')?.bounced).toBe(0);
+    expect(byId.get('researcher')?.bounced).toBe(2);
+    expect(byId.get('writer')?.bounced).toBe(3);
+    expect(byId.get('qc')?.bounced).toBe(0);
+    expect(byId.get('reviewer')?.bounced).toBe(0);
+    expect(byId.get('published')?.bounced).toBe(0);
   });
 
   it('places each agent in the stage for its role', () => {
