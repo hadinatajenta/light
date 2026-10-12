@@ -1,3 +1,5 @@
+import { parseAgentCategories } from './store';
+
 export const SCORECARD_ROLE_ORDER = ['planner', 'scrapper', 'writer', 'qc', 'reviewer'] as const;
 
 const DEFAULT_SCORECARD_DAYS = 30;
@@ -9,7 +11,7 @@ export interface AgentScorecard {
   agentId: string;
   name: string;
   role: string;
-  category: string | null;
+  categories: string[];
   enabled: boolean;
   runsTotal: number;
   runsOk: number;
@@ -31,7 +33,7 @@ export interface ScorecardAgent {
   id: string;
   name: string;
   role: string;
-  category: string | null;
+  categories: string[];
   enabled: boolean;
   lastRunAt: string | null;
 }
@@ -77,7 +79,7 @@ interface AgentScorecardRow {
   id: string;
   name: string;
   role: string;
-  category: string | null;
+  categories: string | null;
   enabled: number;
   last_run_at: string | null;
 }
@@ -199,7 +201,7 @@ export function buildScorecard(agent: ScorecardAgent, rows: ScorecardRows): Agen
     agentId: agent.id,
     name: agent.name,
     role: agent.role,
-    category: agent.category,
+    categories: agent.categories,
     enabled: agent.enabled,
     runsTotal,
     runsOk,
@@ -220,7 +222,7 @@ export function buildScorecard(agent: ScorecardAgent, rows: ScorecardRows): Agen
 
 async function loadAgentRows(db: D1Database): Promise<AgentScorecardRow[]> {
   const result = await db
-    .prepare('SELECT id, name, role, category, enabled, last_run_at FROM agents')
+    .prepare('SELECT id, name, role, categories, enabled, last_run_at FROM agents')
     .all<AgentScorecardRow>();
 
   return result.results ?? [];
@@ -317,7 +319,7 @@ export async function loadAgentScorecard(
         id: row.id,
         name: row.name,
         role: row.role,
-        category: row.category,
+        categories: parseAgentCategories(row.categories),
         enabled: row.enabled === 1,
         lastRunAt: row.last_run_at,
       },

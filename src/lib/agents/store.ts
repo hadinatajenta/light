@@ -14,7 +14,7 @@ export interface AgentRecord {
   name: string;
   role: AgentRole;
   prompt: string;
-  category: string | null;
+  categories: string[];
   model: AgentModel;
   runsPerDay: number;
   enabled: boolean;
@@ -29,7 +29,7 @@ export interface AgentInput {
   name: string;
   role: AgentRole;
   prompt: string;
-  category?: string | null;
+  categories?: string[];
   model: AgentModel;
   runsPerDay: number;
   enabled: boolean;
@@ -54,7 +54,7 @@ interface AgentRow {
   name: string;
   role: string;
   prompt: string;
-  category: string | null;
+  categories: string | null;
   model: string;
   runs_per_day: number;
   enabled: number;
@@ -80,13 +80,88 @@ interface AgentRunRow {
 
 const RUNS_PER_DAY_MS = 24 * 60 * 60 * 1000;
 
+export const MAX_AGENT_CATEGORIES = 6;
+
+function readCategoryEntries(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === 'string');
+  }
+
+  if (typeof value !== 'string') {
+    return [];
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(trimmed);
+
+      return Array.isArray(parsed)
+        ? parsed.filter((entry): entry is string => typeof entry === 'string')
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return trimmed.split(',');
+}
+
+export function parseAgentCategories(value: unknown): string[] {
+  const seen = new Set<string>();
+  const categories: string[] = [];
+
+  for (const entry of readCategoryEntries(value)) {
+    const category = entry.trim();
+    if (!category || seen.has(category)) {
+      continue;
+    }
+
+    seen.add(category);
+    categories.push(category);
+
+    if (categories.length >= MAX_AGENT_CATEGORIES) {
+      break;
+    }
+  }
+
+  return categories;
+}
+
+export function serializeAgentCategories(categories: readonly string[]): string {
+  return JSON.stringify(parseAgentCategories(categories));
+}
+
+export function mergeWriterCategories(values: readonly string[][]): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const categories of values) {
+    for (const category of categories) {
+      const normalized = category.trim();
+      if (!normalized || seen.has(normalized)) {
+        continue;
+      }
+
+      seen.add(normalized);
+      merged.push(normalized);
+    }
+  }
+
+  return merged;
+}
+
 function toAgent(row: AgentRow): AgentRecord {
   return {
     id: row.id,
     name: row.name,
     role: row.role as AgentRole,
     prompt: row.prompt,
-    category: row.category ?? null,
+    categories: parseAgentCategories(row.categories),
     model: row.model as AgentModel,
     runsPerDay: row.runs_per_day,
     enabled: row.enabled === 1,
@@ -186,7 +261,7 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
 
   await db
     .prepare(
-      `INSERT INTO agents (id, name, role, prompt, category, model, runs_per_day, enabled, auto_publish,
+      `INSERT INTO agents (id, name, role, prompt, categories, model, runs_per_day, enabled, auto_publish,
         last_run_at, next_run_at, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
     )
@@ -195,7 +270,7 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
       input.name,
       input.role,
       input.prompt,
-      input.category ?? null,
+      serializeAgentCategories(input.categories ?? []),
       input.model,
       input.runsPerDay,
       input.enabled ? 1 : 0,
@@ -218,14 +293,14 @@ export async function updateAgent(
 
   await db
     .prepare(
-      `UPDATE agents SET name = ?, role = ?, prompt = ?, category = ?, model = ?, runs_per_day = ?,
+      `UPDATE agents SET name = ?, role = ?, prompt = ?, categories = ?, model = ?, runs_per_day = ?,
         enabled = ?, auto_publish = ?, next_run_at = ?, updated_at = ? WHERE id = ?`,
     )
     .bind(
       input.name,
       input.role,
       input.prompt,
-      input.category ?? null,
+      serializeAgentCategories(input.categories ?? []),
       input.model,
       input.runsPerDay,
       input.enabled ? 1 : 0,

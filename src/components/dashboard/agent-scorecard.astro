@@ -38,6 +38,10 @@ function formatSuccessRate(rate: number): string {
 function formatTokensPerArticle(value: number | null): string {
   return value === null ? 'No articles yet' : formatCompact(Math.round(value));
 }
+
+function formatCategories(categories: string[]): string {
+  return categories.join(', ');
+}
 ---
 
 <div class="flex flex-col gap-4">
@@ -120,8 +124,10 @@ function formatTokensPerArticle(value: number | null): string {
                       <span class="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-[0.625rem] tracking-[0.08em] uppercase text-muted-foreground">
                         {roleLabel(row.role)}
                       </span>
-                      {row.category ? (
-                        <span class="font-mono text-xs text-muted-foreground">{row.category}</span>
+                      {row.categories.length > 0 ? (
+                        <span class="font-mono text-xs text-muted-foreground">
+                          {formatCategories(row.categories)}
+                        </span>
                       ) : null}
                       {row.enabled ? null : (
                         <span class="text-xs text-muted-foreground">Disabled</span>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCategoryFilter,
   isDuplicateTopicTitle,
   isTopicClaimable,
   MAX_TOPIC_ATTEMPTS,
@@ -10,6 +11,36 @@ import {
 const NOW_ISO = '2026-10-11T08:00:00.000Z';
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
+
+describe('buildCategoryFilter', () => {
+  it('matches any category for an empty list', () => {
+    expect(buildCategoryFilter([])).toEqual({ clause: '', bindings: [] });
+  });
+
+  it('matches a single category', () => {
+    expect(buildCategoryFilter(['chairs'])).toEqual({
+      clause: ' AND category IN (?)',
+      bindings: ['chairs'],
+    });
+  });
+
+  it('matches several categories', () => {
+    expect(buildCategoryFilter(['chairs', 'desk-setup', 'monitors'])).toEqual({
+      clause: ' AND category IN (?, ?, ?)',
+      bindings: ['chairs', 'desk-setup', 'monitors'],
+    });
+  });
+
+  it('keeps the placeholder count equal to the binding count', () => {
+    for (const categories of [[], ['a'], ['a', 'b'], ['a', 'b', 'c', 'd', 'e', 'f']]) {
+      const filter = buildCategoryFilter(categories);
+      const placeholders = filter.clause.match(/\?/g) ?? [];
+
+      expect(placeholders).toHaveLength(categories.length);
+      expect(filter.bindings).toHaveLength(categories.length);
+    }
+  });
+});
 
 describe('topicRetryDelayMs', () => {
   it('waits fifteen minutes after the first failure', () => {

@@ -38,7 +38,7 @@ interface AgentRecord {
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
-  category: string | null;
+  categories: string[];
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
@@ -85,7 +85,7 @@ interface AgentInput {
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
-  category: string | null;
+  categories: string[];
 }
 
 interface AgentFormValues {
@@ -96,7 +96,12 @@ interface AgentFormValues {
   runsPerDay: string;
   enabled: boolean;
   autoPublish: boolean;
-  category: string;
+  categories: string[];
+}
+
+interface CategoryOption {
+  slug: string;
+  label?: string | null;
 }
 
 interface AgentFormProps {
@@ -169,7 +174,7 @@ function createDefaultValues(meta: AgentsMeta): AgentFormValues {
     runsPerDay: String(meta.minRunsPerDay),
     enabled: true,
     autoPublish: false,
-    category: '',
+    categories: [],
   };
 }
 
@@ -182,7 +187,7 @@ function toFormValues(agent: AgentRecord): AgentFormValues {
     runsPerDay: String(agent.runsPerDay),
     enabled: agent.enabled,
     autoPublish: agent.autoPublish,
-    category: agent.category ?? '',
+    categories: agent.categories,
   };
 }
 
@@ -216,7 +221,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [meta, setMeta] = useState<AgentsMeta | null>(null);
   const [runs, setRuns] = useState<AgentRunRecord[]>([]);
-  const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [values, setValues] = useState<AgentFormValues | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -244,19 +249,20 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       }
 
       try {
-        const categoriesPayload = await requestJson<{
-          categories: Array<{ slug: string | null }>;
-        }>(CATEGORIES_ENDPOINT, { signal: controller.signal });
+        const categoriesPayload = await requestJson<{ categories: CategoryOption[] }>(
+          CATEGORIES_ENDPOINT,
+          { signal: controller.signal },
+        );
         if (!controller.signal.aborted) {
-          setCategorySlugs(
-            categoriesPayload.categories
-              .map((category) => category.slug)
-              .filter((slug): slug is string => typeof slug === 'string' && slug.length > 0),
+          setCategories(
+            categoriesPayload.categories.filter(
+              (category) => typeof category.slug === 'string' && category.slug.length > 0,
+            ),
           );
         }
       } catch {
         if (!controller.signal.aborted) {
-          setCategorySlugs([]);
+          setCategories([]);
         }
       }
 
@@ -304,6 +310,24 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
   );
   const isReviewer = values?.role === 'reviewer';
 
+  const categoryOptions = useMemo(() => {
+    const options: Array<{ slug: string; label: string }> = categories.map((category) => ({
+      slug: category.slug,
+      label: category.label?.trim() ? category.label : category.slug,
+    }));
+    const knownSlugs = new Set(options.map((option) => option.slug));
+    for (const slug of values?.categories ?? []) {
+      if (!knownSlugs.has(slug)) {
+        options.push({ slug, label: slug });
+      }
+    }
+    return options;
+  }, [categories, values?.categories]);
+
+  const selectedCategoryCount = categoryOptions.filter((option) =>
+    (values?.categories ?? []).includes(option.slug),
+  ).length;
+
   const handleRoleChange = (nextRole: AgentRole) => {
     setValues((current) => {
       if (!current) {
@@ -317,6 +341,18 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
         prompt: shouldPrefill ? nextRoleDefinition.defaultPrompt : current.prompt,
         autoPublish: nextRole === 'reviewer' ? current.autoPublish : false,
       };
+    });
+  };
+
+  const handleCategoryToggle = (slug: string, isChecked: boolean) => {
+    setValues((current) => {
+      if (!current) {
+        return current;
+      }
+      const nextCategories = isChecked
+        ? Array.from(new Set([...current.categories, slug]))
+        : current.categories.filter((entry) => entry !== slug);
+      return { ...current, categories: nextCategories };
     });
   };
 
@@ -335,7 +371,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       runsPerDay: Number.isNaN(runsPerDay) ? 0 : runsPerDay,
       enabled: values.enabled,
       autoPublish: values.role === 'reviewer' ? values.autoPublish : false,
-      category: values.role === 'writer' ? values.category.trim() || null : null,
+      categories: values.role === 'writer' ? values.categories : [],
     };
 
     setIsSubmitting(true);
@@ -412,7 +448,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
 
     const nameError = fieldErrors.name;
     const roleError = fieldErrors.role;
-    const categoryError = fieldErrors.category;
+    const categoryError = fieldErrors.categories;
     const promptError = fieldErrors.prompt;
     const modelError = fieldErrors.model;
     const runsError = fieldErrors.runsPerDay;
@@ -472,42 +508,58 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
         </div>
 
         {values.role === 'writer' ? (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="agent-category">Category</Label>
-            <Input
-              id="agent-category"
-              list={categorySlugs.length > 0 ? 'agent-category-options' : undefined}
-              value={values.category}
-              autoComplete="off"
-              maxLength={60}
-              placeholder="e.g. home-office"
-              aria-invalid={Boolean(categoryError)}
-              aria-describedby={
-                categoryError ? 'agent-category-error agent-category-help' : 'agent-category-help'
-              }
-              onChange={(event) =>
-                setValues((current) =>
-                  current ? { ...current, category: event.target.value } : current,
-                )
-              }
-            />
-            {categorySlugs.length > 0 ? (
-              <datalist id="agent-category-options">
-                {categorySlugs.map((slug) => (
-                  <option key={slug} value={slug} />
-                ))}
-              </datalist>
-            ) : null}
+          <fieldset
+            className="flex flex-col gap-2"
+            aria-invalid={Boolean(categoryError)}
+            aria-describedby={
+              categoryError
+                ? 'agent-categories-error agent-categories-help'
+                : 'agent-categories-help'
+            }
+          >
+            <legend className="text-sm font-medium text-foreground">Categories</legend>
+            {categoryOptions.length === 0 ? (
+              <p className="rounded-md border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
+                No categories available yet. With none selected, the writer may claim a topic from
+                any category.
+              </p>
+            ) : (
+              <div className="max-h-60 overflow-y-auto rounded-md border border-input bg-transparent p-1 shadow-xs dark:bg-input/30">
+                <div className="flex flex-col">
+                  {categoryOptions.map((option) => (
+                    <label
+                      key={option.slug}
+                      className="flex cursor-pointer items-center gap-3 rounded-sm px-2 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <input
+                        type="checkbox"
+                        className="size-4 rounded border-input accent-primary"
+                        checked={values.categories.includes(option.slug)}
+                        onChange={(event) =>
+                          handleCategoryToggle(option.slug, event.target.checked)
+                        }
+                      />
+                      <span className="min-w-0 truncate">{option.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="text-xs tabular-nums text-muted-foreground">
+              {selectedCategoryCount === 0
+                ? 'No categories selected'
+                : `${selectedCategoryCount} of ${categoryOptions.length} selected`}
+            </p>
+            <p id="agent-categories-help" className="text-xs text-muted-foreground">
+              The writer claims only topics from the selected categories. With none selected, it may
+              claim a topic from any category.
+            </p>
             {categoryError ? (
-              <p id="agent-category-error" className="text-sm text-destructive">
+              <p id="agent-categories-error" className="text-sm text-destructive">
                 {categoryError}
               </p>
             ) : null}
-            <p id="agent-category-help" className="text-xs text-muted-foreground">
-              The writer only claims topics from that category, and the planner only proposes topics
-              in the categories the enabled writers cover. Leave it empty to claim any topic.
-            </p>
-          </div>
+          </fieldset>
         ) : null}
 
         <div className="flex flex-col gap-2">

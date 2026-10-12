@@ -32,7 +32,7 @@ interface AgentRecord {
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
-  category: string | null;
+  categories: string[];
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
@@ -143,8 +143,18 @@ function AgentCard({ agent, roleLabel, isRunning, isToggling, onRun, onToggle }:
           >
             {roleLabel}
           </Badge>
-          {agent.role === 'writer' && agent.category ? (
-            <span className="font-mono text-xs text-muted-foreground">{agent.category}</span>
+          {agent.role === 'writer' && agent.categories.length > 0 ? (
+            <span className="flex flex-wrap items-center gap-1">
+              {agent.categories.map((category) => (
+                <Badge
+                  key={category}
+                  variant="secondary"
+                  className="font-mono text-[0.625rem] text-muted-foreground"
+                >
+                  {category}
+                </Badge>
+              ))}
+            </span>
           ) : null}
         </div>
         <h3 className="truncate text-base font-semibold text-foreground" title={agent.name}>

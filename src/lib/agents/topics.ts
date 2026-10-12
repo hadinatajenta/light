@@ -252,22 +252,35 @@ export async function setTopicIntent(
     .run();
 }
 
+export function buildCategoryFilter(categories: readonly string[]): {
+  clause: string;
+  bindings: string[];
+} {
+  if (categories.length === 0) {
+    return { clause: '', bindings: [] };
+  }
+
+  const placeholders = categories.map(() => '?').join(', ');
+
+  return { clause: ` AND category IN (${placeholders})`, bindings: [...categories] };
+}
+
 async function claimTopicWithStatus(
   db: D1Database,
   agentId: string,
   statuses: TopicStatus[],
-  category: string | null = null,
+  categories: readonly string[] = [],
 ): Promise<TopicRecord | null> {
   const nowIso = new Date().toISOString();
   const placeholders = statuses.map(() => '?').join(', ');
+  const filter = buildCategoryFilter(categories);
   const candidate = await db
     .prepare(
       `SELECT id, status, next_attempt_at FROM topics
-       WHERE status IN (${placeholders}) AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
-         AND (? IS NULL OR category = ?)
+       WHERE status IN (${placeholders}) AND (next_attempt_at IS NULL OR next_attempt_at <= ?)${filter.clause}
        ORDER BY created_at ASC LIMIT 1`,
     )
-    .bind(...statuses, nowIso, category, category)
+    .bind(...statuses, nowIso, ...filter.bindings)
     .first<{ id: string; status: string; next_attempt_at: string | null }>();
 
   if (
@@ -280,10 +293,9 @@ async function claimTopicWithStatus(
   const result = await db
     .prepare(
       `UPDATE topics SET status = 'in_progress', assigned_agent_id = ?, updated_at = ?
-       WHERE id = ? AND status = ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
-         AND (? IS NULL OR category = ?)`,
+       WHERE id = ? AND status = ? AND (next_attempt_at IS NULL OR next_attempt_at <= ?)${filter.clause}`,
     )
-    .bind(agentId, nowIso, candidate.id, candidate.status, nowIso, category, category)
+    .bind(agentId, nowIso, candidate.id, candidate.status, nowIso, ...filter.bindings)
     .run();
 
   const changed = (result.meta as { changes?: number } | undefined)?.changes ?? 0;
@@ -298,15 +310,15 @@ export function claimTopicForScrapper(
   db: D1Database,
   agentId: string,
 ): Promise<TopicRecord | null> {
-  return claimTopicWithStatus(db, agentId, ['queued', 'fetched'], null);
+  return claimTopicWithStatus(db, agentId, ['queued', 'fetched'], []);
 }
 
 export function claimTopicForWriter(
   db: D1Database,
   agentId: string,
-  category: string | null,
+  categories: readonly string[],
 ): Promise<TopicRecord | null> {
-  return claimTopicWithStatus(db, agentId, ['researched'], category);
+  return claimTopicWithStatus(db, agentId, ['researched'], categories);
 }
 
 export async function markTopicResearched(db: D1Database, id: string): Promise<void> {

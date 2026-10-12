@@ -15,7 +15,7 @@ function agent(overrides: Partial<ScorecardAgent> = {}): ScorecardAgent {
     id: 'agent-1',
     name: 'Guide writer',
     role: 'writer',
-    category: null,
+    categories: [],
     enabled: true,
     lastRunAt: null,
     ...overrides,
@@ -137,7 +137,7 @@ describe('buildScorecard', () => {
         id: 'agent-7',
         name: 'Reviewer',
         role: 'reviewer',
-        category: 'home-office',
+        categories: ['home-office'],
         enabled: false,
       }),
       {
@@ -149,7 +149,7 @@ describe('buildScorecard', () => {
     expect(scorecard.agentId).toBe('agent-7');
     expect(scorecard.name).toBe('Reviewer');
     expect(scorecard.role).toBe('reviewer');
-    expect(scorecard.category).toBe('home-office');
+    expect(scorecard.categories).toEqual(['home-office']);
     expect(scorecard.enabled).toBe(false);
     expect(scorecard.tokensPerArticle).toBeNull();
   });

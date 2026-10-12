@@ -35,6 +35,8 @@ import {
   finishAgentRun,
   hasRepeatedFailures,
   markAgentRun,
+  mergeWriterCategories,
+  parseAgentCategories,
 } from './store';
 import {
   blockTopic,
@@ -129,15 +131,14 @@ function buildSystemPrompt(agent: AgentRecord): string {
 
 async function loadPlannerCategories(db: D1Database): Promise<string[]> {
   const writers = await db
-    .prepare(
-      `SELECT DISTINCT category FROM agents
-       WHERE role = 'writer' AND enabled = 1 AND category IS NOT NULL AND TRIM(category) <> ''`,
-    )
-    .all<{ category: string }>();
-  const writerCategories = (writers.results ?? []).map((row) => row.category.trim());
+    .prepare("SELECT categories FROM agents WHERE role = 'writer' AND enabled = 1")
+    .all<{ categories: string | null }>();
+  const writerCategories = mergeWriterCategories(
+    (writers.results ?? []).map((row) => parseAgentCategories(row.categories)),
+  );
 
   if (writerCategories.length > 0) {
-    return [...new Set(writerCategories)];
+    return writerCategories;
   }
 
   const posts = await db
@@ -581,7 +582,7 @@ export async function runAgent(
     }
 
     if (agent.role === 'writer') {
-      topic = await claimTopicForWriter(db, agent.id, agent.category);
+      topic = await claimTopicForWriter(db, agent.id, agent.categories);
 
       if (!topic) {
         const candidate = await findRevisionTarget(db);

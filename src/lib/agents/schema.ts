@@ -7,7 +7,7 @@ export const agentInputSchema = z.object({
   prompt: z.string().min(1).max(8000),
   model: z.enum(AGENT_MODELS),
   runsPerDay: z.number().int().min(MIN_RUNS_PER_DAY).max(MAX_RUNS_PER_DAY),
-  category: z.string().trim().max(40).nullable().optional(),
+  categories: z.array(z.string().trim().min(1).max(40)).max(6).optional(),
   enabled: z.boolean(),
   autoPublish: z.boolean(),
 });
