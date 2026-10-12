@@ -40,12 +40,17 @@ export function countByRecency(
   return counts;
 }
 
-export function buildDailySeries(
+export interface DailySeries {
+  days: string[];
+  values: number[];
+}
+
+export function buildDailySeriesBuckets(
   dates: (string | null)[],
   days: number,
   now = Date.now(),
-): number[] {
-  const buckets = Array.from({ length: days }, () => 0);
+): DailySeries {
+  const values = Array.from({ length: days }, () => 0);
 
   for (const rawDate of dates) {
     if (!rawDate) {
@@ -62,10 +67,22 @@ export function buildDailySeries(
       continue;
     }
 
-    buckets[days - 1 - daysAgo] += 1;
+    values[days - 1 - daysAgo] += 1;
   }
 
-  return buckets;
+  const dayKeys = Array.from({ length: days }, (_, index) =>
+    new Date(now - (days - 1 - index) * DAY_IN_MS).toISOString().slice(0, 10),
+  );
+
+  return { days: dayKeys, values };
+}
+
+export function buildDailySeries(
+  dates: (string | null)[],
+  days: number,
+  now = Date.now(),
+): number[] {
+  return buildDailySeriesBuckets(dates, days, now).values;
 }
 
 export function formatDelta(current: number, previous: number): string {

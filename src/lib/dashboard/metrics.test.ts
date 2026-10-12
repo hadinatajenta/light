@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDailySeries, countByRecency, formatDelta } from './metrics';
+import { buildDailySeries, buildDailySeriesBuckets, countByRecency, formatDelta } from './metrics';
 
 const NOW = Date.parse('2026-10-10T12:00:00Z');
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
@@ -47,6 +47,38 @@ describe('buildDailySeries', () => {
 
   it('returns a zero-filled series of the requested length', () => {
     expect(buildDailySeries([], 30, NOW)).toHaveLength(30);
+  });
+});
+
+describe('buildDailySeriesBuckets', () => {
+  it('pairs each value with the calendar day of its bucket', () => {
+    const series = buildDailySeriesBuckets([daysBefore(0), daysBefore(6)], 7, NOW);
+
+    expect(series.values).toEqual([1, 0, 0, 0, 0, 0, 1]);
+    expect(series.days).toEqual([
+      '2026-10-04',
+      '2026-10-05',
+      '2026-10-06',
+      '2026-10-07',
+      '2026-10-08',
+      '2026-10-09',
+      '2026-10-10',
+    ]);
+  });
+
+  it('keeps the value and day arrays the same length for every window', () => {
+    for (const window of [1, 7, 30, 90]) {
+      const series = buildDailySeriesBuckets([], window, NOW);
+
+      expect(series.values).toHaveLength(window);
+      expect(series.days).toHaveLength(window);
+    }
+  });
+
+  it('labels the last bucket with the current day', () => {
+    const series = buildDailySeriesBuckets([], 7, NOW);
+
+    expect(series.days[series.days.length - 1]).toBe('2026-10-10');
   });
 });
 

@@ -2,6 +2,7 @@ import { readClicksByDay, readClickTotals, readTopProducts } from '../affiliate/
 import { listProducts, listPrograms } from '../affiliate/store';
 import { listAgents } from '../agents/store';
 import { countTopics, listTopics } from '../agents/topics';
+import { buildDailySeriesBuckets, type DailySeries } from '../dashboard/metrics';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const AFFILIATE_INPUT_COST_PER_MILLION = 0.15;
@@ -27,7 +28,7 @@ export interface ContentAnalytics {
   archived: number;
   publishedLast30: number;
   publishedPrevious30: number;
-  series: { sevenDay: number[]; thirtyDay: number[]; ninetyDay: number[] };
+  series: { sevenDay: DailySeries; thirtyDay: DailySeries; ninetyDay: DailySeries };
   byCategory: Array<{ category: string; count: number }>;
   byTag: Array<{ tag: string; count: number }>;
   averageWords: number;
@@ -123,29 +124,8 @@ function parseTags(value: string): string[] {
   }
 }
 
-function buildDailySeries(dates: (string | null)[], days: number): number[] {
-  const buckets = Array.from({ length: days }, () => 0);
-  const now = Date.now();
-
-  for (const raw of dates) {
-    if (!raw) {
-      continue;
-    }
-
-    const time = new Date(raw).getTime();
-    if (Number.isNaN(time)) {
-      continue;
-    }
-
-    const daysAgo = Math.floor((now - time) / DAY_MS);
-    if (daysAgo < 0 || daysAgo >= days) {
-      continue;
-    }
-
-    buckets[days - 1 - daysAgo] += 1;
-  }
-
-  return buckets;
+function buildDailySeries(dates: (string | null)[], days: number): DailySeries {
+  return buildDailySeriesBuckets(dates, days);
 }
 
 function countWithin(dates: (string | null)[], fromDays: number, toDays: number): number {

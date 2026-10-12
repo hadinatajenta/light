@@ -10,7 +10,12 @@ interface Props {
 
 const { values, width = 240, height = 56, label } = Astro.props;
 
-const points = buildChartPoints(values, width, height);
+const sparklinePadding = 4;
+const points = buildChartPoints(
+  values,
+  { x0: 0, y0: sparklinePadding, width, height: height - sparklinePadding * 2 },
+  Math.max(1, ...values),
+);
 const linePoints = toPolylinePoints(points);
 const areaPoints = `${linePoints} ${width},${height} 0,${height}`;
 ---

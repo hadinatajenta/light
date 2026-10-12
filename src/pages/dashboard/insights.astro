@@ -1,6 +1,7 @@
 ---
 import { LineChart } from '@/components/dashboard/line-chart';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { buildCadenceDatasets } from '@/lib/analytics/cadence';
 import { loadAnalyticsSnapshot, loadTopicHighlights } from '@/lib/analytics/store';
 import { requireContentDatabase } from '@/lib/content/database';
 import { formatRelativeTime } from '@/utils/date';
@@ -15,11 +16,7 @@ const [snapshot, topics] = await Promise.all([
 
 const { content, pipeline, agents, affiliate, activity, media } = snapshot;
 
-const cadenceDatasets = [
-  { id: '7d', label: '7d', values: content.series.sevenDay, axisLabels: [] as Array<{ id: string; label: string }> },
-  { id: '30d', label: '30d', values: content.series.thirtyDay, axisLabels: [] as Array<{ id: string; label: string }> },
-  { id: '90d', label: '90d', values: content.series.ninetyDay, axisLabels: [] as Array<{ id: string; label: string }> },
-];
+const cadenceDatasets = buildCadenceDatasets(content.series);
 
 const publishedDelta = content.publishedLast30 - content.publishedPrevious30;
 const categoryMax = Math.max(1, ...content.byCategory.map((entry) => entry.count));
