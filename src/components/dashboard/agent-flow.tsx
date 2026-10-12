@@ -162,6 +162,14 @@ function hasUpstreamWork(stage: FlowStage | undefined): boolean {
     return false;
   }
 
+  return stage.waiting + stage.active > 0 || stage.doneToday > 0 || isStageRunning(stage);
+}
+
+function hasBacklog(stage: FlowStage | undefined): boolean {
+  if (!stage) {
+    return false;
+  }
+
   return stage.waiting + stage.active > 0;
 }
 
@@ -370,6 +378,15 @@ function FlowDiagram({ stages }: { stages: FlowStage[] }) {
                   className="fill-primary"
                 />
               </g>
+            ) : hasBacklog(stage) ? (
+              <circle
+                cx={x + NODE_WIDTH - 12}
+                cy={NODE_TOP + 13}
+                r={4}
+                strokeDasharray="2 2"
+                strokeWidth={1.5}
+                className="fill-none stroke-muted-foreground"
+              />
             ) : null}
           </g>
         );
@@ -546,7 +563,9 @@ export default function AgentFlow() {
 
       <p className="mt-1 text-xs text-muted-foreground">
         Stages run in order: {STAGE_ORDER}. QC and the reviewer both claim from the same pending
-        drafts.
+        drafts. A solid arrow animates while work is moving out of that stage, a dashed arrow is
+        work sent back, a pulsing dot means an agent is running now, and a dashed ring means the
+        stage is holding a backlog.
       </p>
 
       {isStale ? (

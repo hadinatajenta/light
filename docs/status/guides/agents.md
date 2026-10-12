@@ -234,9 +234,11 @@ writer, and `needs research` from the writer back to the researcher.
 
 Each box carries its backlog, what is in progress, and what it finished today,
 together with the agents that own it and their cadence. A solid arrow animates
-only while the upstream stage has work to move, and a dashed arrow animates only
-while work is actually coming back, so a still diagram means the pipeline is
-idle rather than broken. The diagram is capped at its natural width and scales
+while that stage has work in hand, has produced something today, or has an agent
+running, and a dashed arrow animates only while work is actually coming back.
+That is why the arrows stop at a stage with an empty queue downstream: the
+diagram reflects where items are parked, not the order of the roles. A pulsing
+dot marks a running agent and a dashed ring marks a stage holding a backlog. The diagram is capped at its natural width and scales
 down on narrow screens, and users who ask for reduced motion get a static
 version.
 
