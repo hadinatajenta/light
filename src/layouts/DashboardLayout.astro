@@ -90,6 +90,17 @@ function isActive(href: string): boolean {
         transition: width 180ms cubic-bezier(0.16, 1, 0.3, 1);
       }
 
+      @media (min-width: 768px) {
+        .dashboard-content {
+          padding-left: 16rem;
+          transition: padding-left 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        [data-sidebar-collapsed='true'] .dashboard-content {
+          padding-left: 4.75rem;
+        }
+      }
+
       .sidebar-label,
       .sidebar-group-label,
       .sidebar-cta-label {
@@ -186,7 +197,7 @@ function isActive(href: string): boolean {
     <div class="flex min-h-[100dvh]">
       <aside
         id="dashboard-sidebar"
-        class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-out md:static md:translate-x-0"
+        class="sidebar-shell fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-out md:translate-x-0"
       >
         <div class="flex h-14 items-center gap-2 border-b border-border px-4">
           <a href="/dashboard" class="font-display text-lg font-black tracking-[-0.04em]">
@@ -242,12 +253,12 @@ function isActive(href: string): boolean {
               <div
                 class="sidebar-group mb-3 first:mt-1"
                 data-sidebar-group={entry.group}
-                data-sidebar-group-open="true"
+                data-sidebar-group-open="false"
               >
                 <button
                   type="button"
                   class="sidebar-group-toggle flex min-h-9 w-full items-center justify-between gap-2 rounded-md px-3 py-1.5 text-[0.625rem] font-medium tracking-[0.14em] text-muted-foreground uppercase transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  aria-expanded="true"
+                  aria-expanded="false"
                   aria-controls={`dashboard-sidebar-group-${entry.group.toLowerCase()}`}
                   data-sidebar-group-toggle
                 >
@@ -278,7 +289,7 @@ function isActive(href: string): boolean {
                         class:list={[
                           'sidebar-link flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                           isActive(item.href)
-                            ? 'bg-sidebar-primary font-medium text-sidebar-primary-foreground'
+                            ? 'bg-[var(--brand-soft)] font-medium text-[var(--brand-strong)] shadow-[inset_2px_0_0_var(--brand)]'
                             : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                         ]}
                       >
@@ -345,7 +356,7 @@ function isActive(href: string): boolean {
             const storedState = readGroupState();
 
             groups.forEach((group) => {
-              setGroupOpen(group, storedState[group.dataset.sidebarGroup] !== false);
+              setGroupOpen(group, storedState[group.dataset.sidebarGroup] === true);
               group
                 .querySelector('[data-sidebar-group-toggle]')
                 ?.addEventListener('click', () => {
@@ -357,7 +368,7 @@ function isActive(href: string): boolean {
         </script>
       </aside>
 
-      <div class="flex min-w-0 flex-1 flex-col">
+      <div class="dashboard-content flex min-w-0 flex-1 flex-col">
         <header
           class="flex h-14 items-center gap-3 border-b border-border bg-background px-4 md:px-6"
         >
