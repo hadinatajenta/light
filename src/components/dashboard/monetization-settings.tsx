@@ -66,9 +66,6 @@ interface MonetizationSettingsPayload {
   disclosure: string;
 }
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
@@ -372,7 +369,7 @@ export default function MonetizationSettings() {
             <Label htmlFor="ads-network">Network</Label>
             <select
               id="ads-network"
-              className={SELECT_CLASS}
+              className="select-control"
               value={settings.ads.network}
               disabled={isSaving}
               onChange={(event) => updateAds({ network: event.target.value as AdNetwork })}

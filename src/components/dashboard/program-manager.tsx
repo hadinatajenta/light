@@ -37,9 +37,6 @@ const SAFE_TRACKING_ID = /^[A-Za-z0-9_-]+$/;
 const SAFE_LINK_TEMPLATE = /^https?:\/\/[^\s"'<>]+$/;
 const SKELETON_CARDS = ['program-skeleton-1', 'program-skeleton-2', 'program-skeleton-3'];
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 const TEXTAREA_CLASS =
   'w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
@@ -533,7 +530,7 @@ function ProgramFormDialog({
               <select
                 id="program-network"
                 ref={networkRef}
-                className={SELECT_CLASS}
+                className="select-control"
                 value={values.network}
                 aria-invalid={Boolean(errors.network)}
                 aria-describedby={errors.network ? 'program-network-error' : undefined}
@@ -557,7 +554,7 @@ function ProgramFormDialog({
               <select
                 id="program-status"
                 ref={statusRef}
-                className={SELECT_CLASS}
+                className="select-control"
                 value={values.status}
                 aria-invalid={Boolean(errors.status)}
                 aria-describedby={errors.status ? 'program-status-error' : 'program-status-help'}

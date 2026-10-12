@@ -59,9 +59,6 @@ type BatchCount = (typeof BATCH_COUNT_OPTIONS)[number];
 
 const DEFAULT_BATCH_COUNT: BatchCount = 5;
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 type ResultImportState =
   | { status: 'importing' }
   | { status: 'imported' }
@@ -473,7 +470,7 @@ function SearchPanel({
             </Label>
             <select
               id="media-search-batch-count"
-              className={SELECT_CLASS}
+              className={cn('select-control', 'w-auto')}
               value={String(batchCount)}
               disabled={isBatchImporting}
               onChange={(event) => onBatchCountChange(event.target.value)}

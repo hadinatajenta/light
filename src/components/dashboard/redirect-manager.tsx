@@ -38,9 +38,6 @@ const RESERVED_PREFIXES = ['/dashboard', '/api', '/media', '/_astro', '/go', '/b
 const STATUS_CODES = [301, 302, 307, 308] as const;
 const SKELETON_ROWS = ['redirect-row-1', 'redirect-row-2', 'redirect-row-3'];
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 interface RedirectRecord {
   id: string;
   fromPath: string;
@@ -615,7 +612,7 @@ export default function RedirectManager() {
               <Label htmlFor="redirect-status">Status code</Label>
               <select
                 id="redirect-status"
-                className={SELECT_CLASS}
+                className="select-control"
                 value={values.statusCode}
                 onChange={(event) =>
                   setValues((current) => ({

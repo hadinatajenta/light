@@ -44,9 +44,6 @@ const PAGE_SIZE = ACTIVITY_PAGE_SIZE;
 const SEARCH_MAX_LENGTH = 120;
 const SKELETON_ROWS = ['activity-row-1', 'activity-row-2', 'activity-row-3', 'activity-row-4'];
 
-const SELECT_CLASS =
-  'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 const SCOPE_OPTIONS: { value: ActivityScope; label: string }[] = [
   { value: 'all', label: 'All activity' },
   { value: 'user', label: 'Users only' },
@@ -343,7 +340,7 @@ export default function ActivityLog() {
           <Label htmlFor="activity-scope">Scope</Label>
           <select
             id="activity-scope"
-            className={SELECT_CLASS}
+            className="select-control"
             value={filters.scope}
             disabled={isBusy}
             onChange={(event) => {
@@ -366,7 +363,7 @@ export default function ActivityLog() {
           <Label htmlFor="activity-actor">Actor</Label>
           <select
             id="activity-actor"
-            className={SELECT_CLASS}
+            className="select-control"
             value={filters.actorId}
             disabled={isBusy}
             onChange={(event) => updateFilters({ actorId: event.target.value })}
@@ -384,7 +381,7 @@ export default function ActivityLog() {
           <Label htmlFor="activity-action">Action</Label>
           <select
             id="activity-action"
-            className={SELECT_CLASS}
+            className="select-control"
             value={filters.action}
             disabled={isBusy}
             onChange={(event) => updateFilters({ action: event.target.value })}
@@ -402,7 +399,7 @@ export default function ActivityLog() {
           <Label htmlFor="activity-target-type">Target</Label>
           <select
             id="activity-target-type"
-            className={SELECT_CLASS}
+            className="select-control"
             value={filters.targetType}
             disabled={isBusy}
             onChange={(event) => updateFilters({ targetType: event.target.value })}
@@ -438,7 +435,7 @@ export default function ActivityLog() {
           <input
             id="activity-since"
             type="date"
-            className={SELECT_CLASS}
+            className="select-control"
             value={filters.since}
             disabled={isBusy}
             onChange={(event) => updateFilters({ since: event.target.value })}
@@ -450,7 +447,7 @@ export default function ActivityLog() {
           <input
             id="activity-until"
             type="date"
-            className={SELECT_CLASS}
+            className="select-control"
             value={filters.until}
             disabled={isBusy}
             onChange={(event) => updateFilters({ until: event.target.value })}

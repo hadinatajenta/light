@@ -95,9 +95,6 @@ const INTENT_OPTIONS: { value: string; label: string }[] = [
   { value: 'navigational', label: 'Navigational' },
 ];
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 const TEXTAREA_CLASS =
   'w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
@@ -180,7 +177,7 @@ function CategoryField({
       <Label htmlFor={id}>Category</Label>
       <select
         id={id}
-        className={SELECT_CLASS}
+        className="select-control"
         value={value}
         disabled={loadError !== null}
         aria-describedby={loadError ? `${id}-error` : `${id}-help`}
@@ -498,7 +495,7 @@ function CreateTopicDialog({
             <Label htmlFor="topic-intent">Intent</Label>
             <select
               id="topic-intent"
-              className={SELECT_CLASS}
+              className="select-control"
               value={intent}
               aria-describedby="topic-intent-help"
               onChange={(event) => setIntent(event.target.value)}

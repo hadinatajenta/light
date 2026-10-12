@@ -17,9 +17,6 @@ const SECTION_LABEL_CLASS_NAME =
 const TEXTAREA_CLASS_NAME =
   'min-h-24 w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
-const SELECT_CLASS_NAME =
-  'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 const INTENT_OPTIONS = [
   { value: 'informational', label: 'Informational' },
   { value: 'commercial', label: 'Commercial' },
@@ -339,7 +336,7 @@ export default function SeoPanel({
           value={frontmatter.targetIntent}
           onChange={(event) => onChange({ targetIntent: event.target.value })}
           disabled={disabled}
-          className={SELECT_CLASS_NAME}
+          className="select-control"
         >
           <option value="">Not set</option>
           {INTENT_OPTIONS.map((option) => (

@@ -63,9 +63,6 @@ const SKELETON_ROWS = [
   'product-skeleton-6',
 ];
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 const TEXTAREA_CLASS =
   'w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
@@ -386,7 +383,7 @@ function BulkImportDialog({
           <select
             id="import-program"
             ref={programRef}
-            className={SELECT_CLASS}
+            className="select-control"
             value={programId}
             disabled={programs.length === 0}
             aria-invalid={Boolean(fieldErrors.programId)}
@@ -1039,7 +1036,7 @@ export default function ProductCatalog({
           <Label htmlFor="catalog-program">Program</Label>
           <select
             id="catalog-program"
-            className={SELECT_CLASS}
+            className="select-control"
             value={programFilter}
             onChange={(event) => {
               setProgramFilter(event.target.value);
@@ -1062,7 +1059,7 @@ export default function ProductCatalog({
           <Label htmlFor="catalog-active">Status</Label>
           <select
             id="catalog-active"
-            className={SELECT_CLASS}
+            className="select-control"
             value={activeFilter}
             onChange={(event) => {
               setActiveFilter(event.target.value as ActiveFilter);

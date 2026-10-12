@@ -30,9 +30,6 @@ interface SearchStatus {
   allowUnverified: boolean;
 }
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 function providerOption(id: ProviderId | null) {
   return PROVIDER_OPTIONS.find((option) => option.id === id) ?? null;
 }
@@ -202,7 +199,7 @@ export default function SearchProviderCard() {
           <Label htmlFor="search-provider">Provider</Label>
           <select
             id="search-provider"
-            className={SELECT_CLASS}
+            className="select-control"
             value={providerId}
             disabled={isSaving}
             onChange={(event) => setProviderId(event.target.value as ProviderId)}

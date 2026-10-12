@@ -59,9 +59,6 @@ const SKELETON_ROWS = [
   'skeleton-6',
 ];
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 type PostStatus = 'draft' | 'published' | 'archived';
 type PostDisplayStatus = PostStatus | 'scheduled';
 type StatusFilter = 'all' | PostDisplayStatus;
@@ -1057,7 +1054,7 @@ export default function PostTable({
           <Label htmlFor="posts-status-filter">Status</Label>
           <select
             id="posts-status-filter"
-            className={SELECT_CLASS}
+            className="select-control"
             value={status}
             onChange={handleStatusChange}
             disabled={isMutating}
@@ -1074,7 +1071,7 @@ export default function PostTable({
           <Label htmlFor="posts-review-filter">Review</Label>
           <select
             id="posts-review-filter"
-            className={SELECT_CLASS}
+            className="select-control"
             value={review}
             onChange={handleReviewChange}
             disabled={isMutating}
@@ -1091,7 +1088,7 @@ export default function PostTable({
           <Label htmlFor="posts-category-filter">Category</Label>
           <select
             id="posts-category-filter"
-            className={SELECT_CLASS}
+            className="select-control"
             value={category}
             onChange={handleCategoryChange}
             disabled={isMutating}
@@ -1109,7 +1106,7 @@ export default function PostTable({
           <Label htmlFor="posts-sort-filter">Sort</Label>
           <select
             id="posts-sort-filter"
-            className={SELECT_CLASS}
+            className="select-control"
             value={sort}
             onChange={handleSortChange}
             disabled={isMutating}
@@ -1126,7 +1123,7 @@ export default function PostTable({
           <Label htmlFor="posts-page-size">Per page</Label>
           <select
             id="posts-page-size"
-            className={SELECT_CLASS}
+            className="select-control"
             value={String(pageSize)}
             onChange={handlePageSizeChange}
             disabled={isMutating}

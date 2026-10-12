@@ -47,9 +47,6 @@ const LABEL_MAX_LENGTH = 120;
 const DAILY_CAP_MAX = 10_000;
 const SKELETON_CARDS = ['sharing-skeleton-1', 'sharing-skeleton-2'];
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 type ShareProvider = 'telegram' | 'discord' | 'mastodon' | 'bluesky' | 'pinterest';
 type ShareStatus = 'pending' | 'sending' | 'sent' | 'failed' | 'awaiting_approval' | 'skipped';
 type BadgeVariant = 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive';
@@ -535,7 +532,7 @@ function ChannelFormDialog({
               <select
                 id="sharing-channel-provider"
                 ref={registerField('provider')}
-                className={SELECT_CLASS}
+                className="select-control"
                 value={values.provider}
                 disabled={isSubmitting}
                 onChange={handleProviderChange}
@@ -1296,7 +1293,7 @@ export default function SharingManager() {
             </Label>
             <select
               id="sharing-job-limit"
-              className={cn(SELECT_CLASS, 'w-auto')}
+              className={cn('select-control', 'w-auto')}
               value={jobLimit}
               disabled={isRefreshing}
               onChange={(event) => setJobLimit(Number(event.target.value))}

@@ -34,9 +34,6 @@ const RESEARCH_ENDPOINT = '/api/dashboard/agents/research';
 const ALL_FILTER = 'all';
 const PAGE_SIZE = 10;
 
-const SELECT_CLASS =
-  'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 const USD_FORMATTER = new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency: 'USD',
@@ -466,7 +463,7 @@ export default function ResearchOverview() {
             <Label htmlFor={kindSelectId}>Kind</Label>
             <select
               id={kindSelectId}
-              className={SELECT_CLASS}
+              className="select-control"
               value={kindFilter}
               onChange={(event) => {
                 setKindFilter(event.target.value);
@@ -485,7 +482,7 @@ export default function ResearchOverview() {
             <Label htmlFor={angleSelectId}>Angle</Label>
             <select
               id={angleSelectId}
-              className={SELECT_CLASS}
+              className="select-control"
               value={angleFilter}
               onChange={(event) => {
                 setAngleFilter(event.target.value);

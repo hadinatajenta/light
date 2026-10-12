@@ -19,9 +19,6 @@ const AGENTS_ENDPOINT = '/api/dashboard/agents';
 const CATEGORIES_ENDPOINT = '/api/dashboard/categories';
 const PROMPT_ROWS = 10;
 
-const SELECT_CLASS =
-  'h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-input/30';
-
 const TEXTAREA_CLASS =
   'w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
@@ -485,7 +482,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
           <Label htmlFor="agent-role">Role</Label>
           <select
             id="agent-role"
-            className={SELECT_CLASS}
+            className="select-control"
             value={values.role}
             aria-invalid={Boolean(roleError)}
             aria-describedby={roleError ? 'agent-role-error agent-role-help' : 'agent-role-help'}
@@ -591,7 +588,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
             <Label htmlFor="agent-model">Model</Label>
             <select
               id="agent-model"
-              className={SELECT_CLASS}
+              className="select-control"
               value={values.model}
               aria-invalid={Boolean(modelError)}
               aria-describedby={modelError ? 'agent-model-error' : undefined}
