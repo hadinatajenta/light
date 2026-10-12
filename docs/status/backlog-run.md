@@ -50,9 +50,9 @@ One session, phase by phase, at most two subagents per wave. Legend:
 
 ## Phase 6 - housekeeping (documents and refactors)
 
-- [ ] Update `docs/status/task.md` and `techdebt.md` for what shipped (dev)
-- [ ] Refresh the root `README.md` (dev)
-- [ ] Decide on the hanging `src/lib/cache/homepage.ts` deletion (dev)
-- [ ] Category and tag URL mismatch (dev)
-- [ ] Split `src/lib/affiliate/store.ts` and de-duplicate the product form URL preview (dev)
-- [ ] Retire the one-shot `scripts/seed-pages.ts` (dev)
+- [x] Update `docs/status/task.md` and `techdebt.md` for what shipped (dev)
+- [x] Refresh the root `README.md` (dev)
+- [x] Decide on the hanging `src/lib/cache/homepage.ts` deletion: nothing imports it, so the deletion stands (dev)
+- [!] Category and tag URL mismatch: changing public URLs needs a deliberate redirect plan (dev)
+- [!] Split `src/lib/affiliate/store.ts` and de-duplicate the product form URL preview: a focused refactor, not a late night change (dev)
+- [x] Retire the one-shot `scripts/seed-pages.ts` (dev)

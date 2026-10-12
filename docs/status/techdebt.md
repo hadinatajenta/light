@@ -10,41 +10,20 @@ fires), **low** (accept for now).
 
 ## high
 
-### Content validation no longer guards what is published
+### Content validation does not guard the editor
 
 `npm run validate:content` (`scripts/validate-content.ts`) only scans the
-markdown files under `src/content/blog`. Those files are now a **backup export**
-of D1, written daily by the backup job. The real, published content lives in
-`posts.body` in D1 and is never validated.
+markdown files under `src/content/blog`. Those files are a **backup export** of
+D1, written daily by the backup job. Manual edits saved from the dashboard are
+not validated.
 
-So the gate that checks word count, description length, and placeholder text
-does not run against anything a visitor actually reads.
+The agent path is covered: a deterministic preflight blocks a reviewer approval
+and a QC pass while hard errors remain (`src/lib/agents/preflight.ts`).
 
-Trigger: add validation on the write path (the post save API) and keep the
-script for the export.
-
-### Agent runs are not locked against overlapping ticks
-
-`runAgent` writes `next_run_at` only **after** the run finishes
-(`markAgentRun`). If a cron tick fires while a run is still going (or two ticks
-overlap because a run took longer than 15 minutes), the same agent can be picked
-up twice and run twice, spending tokens twice.
-
-Trigger: claim the agent before running it (move `next_run_at` forward at claim
-time) or add a run lock with a heartbeat.
+Trigger: run the same preflight in the post save API and keep the script for the
+export.
 
 ## medium
-
-### Article HTML is rendered without sanitisation
-
-`src/lib/content/public.ts` renders `posts.body` with `marked` and the result is
-injected with `<Fragment set:html>` in `src/layouts/PostLayout.astro`. Raw HTML
-inside markdown is passed through. Today the only authors are the owner and the
-agents, and agents produce drafts that a reviewer approves, so the blast radius
-is small. It is still an injection path.
-
-Trigger: sanitise before render (an allowlist of tags), or strip raw HTML at
-render time. Do it before any untrusted author is added.
 
 ### Stale UML diagrams
 
@@ -60,22 +39,12 @@ Several diagrams describe the original design and now contradict the code:
 Trigger: rewrite these next time the design is touched. Until then, treat
 `UML/docs/light.md` as authoritative.
 
-### Media alt text cannot be edited
+### Media alt text is only editable one image at a time
 
-`createR2MediaStore` stores `alt: ''` and there is no UI to change it, so every
-image is decorative as far as assistive tech and image search are concerned.
+The library dialog edits alt text per image. Bulk editing and alt text
+suggestions do not exist, so a large import can leave images decorative.
 
-Trigger: add an alt field to the media library and let the editor set it.
-
-### The affiliate disclosure never renders
-
-`src/layouts/PostLayout.astro` shows `DEFAULT_AFFILIATE_DISCLOSURE` only when
-`post.affiliate === true`, but `src/components/dashboard/post-editor.tsx` hard
-codes `affiliate: false` on save. So a post with affiliate links shows no
-disclosure, which is a program compliance problem, not just a UI gap.
-
-Trigger: add the toggle to the editor and the SEO panel, and set the field on
-save.
+Trigger: add a bulk alt editor when the library passes a few hundred images.
 
 ### Category and tag URLs disagree
 
@@ -104,15 +73,6 @@ template, safe target). Two implementations of one rule drift.
 
 Trigger: expose the preview builder from the API (already returned as
 `affiliateUrl` on the list) and use that in the form instead of a local copy.
-
-### The media library has no UI
-
-The Media page is a placeholder. The API (`/api/dashboard/media`) and the R2
-storage work, but the only way to upload is the image button inside the post
-editor, and there is no grid, no delete, and no alt text.
-
-Trigger: build the media library page. Until then, treat media as
-"API only".
 
 ### "Run agent" is synchronous
 
@@ -147,26 +107,12 @@ instead of a delta for that metric.
 
 Trigger: cosmetic. Backfill only if the metric matters.
 
-### Unbounded growth of `activity` and `agent_runs`
-
-Neither table is pruned. At the current rate this is negligible.
-
-Trigger: add a retention job when the tables pass roughly 100k rows.
-
 ### `worker-configuration.d.ts` is committed
 
 It contains environment values and must be regenerated with `npm run cf:types`
 after any `wrangler.jsonc` change, otherwise the types drift from reality.
 
 Trigger: regenerate whenever bindings change.
-
-### Scrapper output has no home
-
-Research notes produced by the scrapper role are stored only inside the
-`agent_runs.output` text blob. There is no `sources` table, so the writer cannot
-consume them automatically.
-
-Trigger: build a `sources` table when the scrapper to writer handoff is wired.
 
 ### The agent runner reads the affiliate tables directly
 
@@ -178,21 +124,6 @@ second reader of the same tables.
 Trigger: move the catalog slice query into the affiliate store when that module
 is next opened.
 
-### The pages seed script is one-shot
-
-`scripts/seed-pages.ts` reads the six `.astro` files that were deleted in the
-same change, so it cannot be re-run. It served its purpose once.
-
-Trigger: none, unless the pages need reseeding. Use the dashboard instead.
-
-### The topic queue has no UI
-
-Topics can only be created and managed through the API, so seeding the queue
-means SQL or curl.
-
-Trigger: build `/dashboard/agents/topics` when the content pipeline is actually
-running and the queue needs daily attention.
-
 ### Two ad slots are defined but never rendered
 
 `in-article-mid` and `in-article-bottom` exist in `src/config/monetization.ts`
@@ -200,14 +131,13 @@ but only `in-article-top` is placed, in `PostLayout.astro`.
 
 Trigger: place the remaining slots when an ad network is enabled.
 
-### The root README is stale
+### 429 responses carry no `Retry-After` header
 
-`README.md` still describes a static site and tells you to replace
-`https://example.com`, but `astro.config.mjs` already points at
-`https://lightscripts.com` and the site is SSR on D1 and R2.
+`enforceRateLimit` throws a normal `ApiError`, and the error envelope sets no
+custom headers, so a client cannot see how long to wait before retrying.
 
-Trigger: refresh it the next time onboarding docs are touched. Until then,
-`UML/docs/light.md` is authoritative.
+Trigger: extend the error envelope with optional headers the next time it is
+touched.
 
 ### No image optimisation for CMS images
 
@@ -217,15 +147,17 @@ pipeline only handles build time assets. No responsive `srcset`, no WebP.
 Trigger: add an image transform route (Cloudflare Images, or the `/_image`
 endpoint) when image weight shows up in the metrics.
 
-### No rate limiting on the admin API
+### A blocked draft waits for a human after two revisions
 
-Cloudflare Access is the only gate. There is a single admin today.
+When QC or the reviewer sends a draft back, the writer revises it at most twice
+(`MAX_REVISION_ROUNDS`). After that the draft stays `changes_requested` until
+someone edits it by hand.
 
-Trigger: add per-token limits if more editors are added or the API is exposed.
+Trigger: none for now. The Activity page shows the blocking run and its issues.
 
-### Rotating `AGENT_SECRET_KEY` orphans the stored DeepSeek key
+### Rotating `AGENT_SECRET_KEY` orphans the stored secrets
 
-AES-GCM decryption fails after rotation and the owner must re-enter the key.
-This is documented behaviour, not a bug.
+AES-GCM decryption fails after rotation and the owner must re-enter the DeepSeek
+key and the Pexels key. This is documented behaviour, not a bug.
 
 Trigger: none. Just remember it.

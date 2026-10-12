@@ -97,22 +97,42 @@ owner, `(dev)` is engineering work.
 
 ## Phase 6 - admin polish
 
-Placeholder pages today: Media, Pages, Insights, Redirects, Monetization,
-Settings. Real pages today: Dashboard, Posts (plus the editor), Categories,
-Agents, Activity.
+Every dashboard page is real now: Dashboard, Posts (plus the editor), Pages,
+Media, Categories, Tags, Agents, Topics, Research, SEO, Sharing, Activity,
+Insights, Redirects, Monetization, and Settings.
 
 - [x] Affiliate toggle in the post editor, so the disclosure can render (dev)
 - [x] Pages menu with full CRUD, and the six static pages moved to D1 (dev)
-- [ ] Media library UI: upload grid, alt text, delete, copy URL (dev)
-- [ ] Topic queue UI, so topics can be managed without the API (dev)
+- [x] Media library: upload, find images, alt text, delete, copy URL (dev)
+- [x] Topic queue UI, so topics can be managed without the API (dev)
+- [x] Agent cost and token reporting on the Insights page (dev)
+- [x] Refresh the root `README.md` (dev)
+- [x] Render the `in-article-bottom` ad slot (`in-article-mid` is still unused) (dev)
 - [ ] Fix the category and tag URL mismatch: the category editor previews
       `/tag/<slug>/` but that route filters by post tags (dev)
-- [ ] Render the `in-article-mid` and `in-article-bottom` ad slots (dev)
-- [ ] Redirects menu (currently a placeholder) (dev)
-- [ ] Settings menu (currently a placeholder) (dev)
-- [ ] Agent cost and token reporting (dev)
 - [ ] Split `src/lib/affiliate/store.ts`, which is 650 lines (dev)
-- [ ] Refresh the stale root `README.md` (it still describes a static site) (dev)
+
+## Phase 7 - reliability, observability, and media
+
+- [x] Claim an agent atomically before a run, so overlapping ticks cannot run
+      the same agent twice (dev)
+- [x] Topic attempts with backoff and a terminal `dead` state, plus an activity
+      alert after three failed runs (dev)
+- [x] Deterministic preflight and a QC gate that send a draft back to the writer
+      instead of publishing it (dev)
+- [x] Neutralise raw HTML from markdown before `set:html` (dev)
+- [x] Per user rate limit on the admin API (dev)
+- [x] Retention for `activity` and `agent_runs` (90 days, twice a day) (dev)
+- [x] Activity filters, pagination, structured metadata, a run detail dialog,
+      and a retry action (dev)
+- [x] Pexels as the preferred image source, with a key card and an Openverse
+      fallback (dev)
+- [x] Configurable SEO refresh window, a PageSpeed link, and a weekly
+      non blocking link check workflow (dev)
+- [ ] Topic Planner and Refresher agent roles: needs a product decision (dev)
+- [ ] Performance feedback loop from `/go` clicks into topic priority (dev)
+- [ ] Keyword volume data: needs a paid provider decision (you)
+- [ ] Product and Review structured data: needs real ratings, do not fabricate (dev)
 
 ## Infrastructure backlog
 
