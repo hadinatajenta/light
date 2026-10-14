@@ -37,6 +37,7 @@ interface AgentRecord {
   name: string;
   role: string;
   prompt: string;
+  provider: string;
   model: string;
   runsPerDay: number;
   enabled: boolean;
@@ -59,14 +60,20 @@ interface RoleDefinition {
   defaultPrompt: string;
 }
 
+interface ModelProviderOption {
+  id: string;
+  label: string;
+  billing: string;
+  models: string[];
+}
+
 interface AgentsMeta {
   roles: RoleDefinition[];
-  models: string[];
+  providers: ModelProviderOption[];
   maxAgents: number;
   minRunsPerDay: number;
   maxRunsPerDay: number;
   defaultModel: string;
-  deepseek: { configured: boolean; hint: string | null };
 }
 
 interface AgentRunResult {
@@ -135,13 +142,22 @@ function AgentCardSkeleton() {
 interface AgentCardProps {
   agent: AgentRecord;
   roleLabel: string;
+  providerLabel: string;
   isRunning: boolean;
   isToggling: boolean;
   onRun: (agent: AgentRecord) => void;
   onToggle: (agent: AgentRecord) => void;
 }
 
-function AgentCard({ agent, roleLabel, isRunning, isToggling, onRun, onToggle }: AgentCardProps) {
+function AgentCard({
+  agent,
+  roleLabel,
+  providerLabel,
+  isRunning,
+  isToggling,
+  onRun,
+  onToggle,
+}: AgentCardProps) {
   const isBusy = isRunning || isToggling;
 
   return (
@@ -174,7 +190,7 @@ function AgentCard({ agent, roleLabel, isRunning, isToggling, onRun, onToggle }:
         <p className="truncate font-mono text-xs text-muted-foreground">
           {agent.systemManaged
             ? 'Built-in engine, no model calls'
-            : `${agent.model} · ${agent.runsPerDay}x per day`}
+            : `${providerLabel} · ${agent.model} · ${agent.runsPerDay}x per day`}
         </p>
       </div>
 
@@ -296,6 +312,14 @@ export default function AgentList() {
     const labels = new Map<string, string>();
     for (const role of meta?.roles ?? []) {
       labels.set(role.id, role.label);
+    }
+    return labels;
+  }, [meta]);
+
+  const providerLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const provider of meta?.providers ?? []) {
+      labels.set(provider.id, provider.label);
     }
     return labels;
   }, [meta]);
@@ -477,6 +501,7 @@ export default function AgentList() {
               key={agent.id}
               agent={agent}
               roleLabel={roleLabels.get(agent.role) ?? agent.role}
+              providerLabel={providerLabels.get(agent.provider) ?? agent.provider}
               isRunning={runningId === agent.id}
               isToggling={togglingId === agent.id}
               onRun={(target) => void handleRun(target)}

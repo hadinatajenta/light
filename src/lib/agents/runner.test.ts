@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NotificationInput } from '../notifications/types';
-import { createChatCompletion } from './deepseek';
+import { createChatCompletion } from './model-client';
 import { runPreflight } from './preflight';
 import { runAgent, shouldChainReviewRun } from './runner';
 import type { AgentRecord } from './store';
@@ -8,19 +8,19 @@ import { MAX_UNCLAIMED_TOPICS } from './topics';
 
 const mocks = vi.hoisted(() => ({
   createChatCompletion: vi.fn(),
-  requireDeepseekKey: vi.fn(async () => 'test-key'),
+  requireProviderKey: vi.fn(async () => 'test-key'),
   createPost: vi.fn(async () => ({ id: 'draft-1' })),
   notify: vi.fn<(input: NotificationInput) => Promise<void>>(async () => undefined),
 }));
 
-vi.mock('./deepseek', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./deepseek')>();
+vi.mock('./model-client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./model-client')>();
   return { ...actual, createChatCompletion: mocks.createChatCompletion };
 });
 
 vi.mock('./settings', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./settings')>();
-  return { ...actual, requireDeepseekKey: mocks.requireDeepseekKey };
+  return { ...actual, requireProviderKey: mocks.requireProviderKey };
 });
 
 vi.mock('../content/store', () => ({ createPost: mocks.createPost }));
@@ -46,6 +46,7 @@ interface FakeAgentRow {
   role: string;
   prompt: string;
   categories: string | null;
+  provider: string;
   model: string;
   runs_per_day: number;
   enabled: number;
@@ -261,6 +262,7 @@ function agentRow(agent: AgentRecord): FakeAgentRow {
     role: agent.role,
     prompt: agent.prompt,
     categories: JSON.stringify(agent.categories),
+    provider: agent.provider,
     model: agent.model,
     runs_per_day: agent.runsPerDay,
     enabled: agent.enabled ? 1 : 0,
@@ -377,6 +379,7 @@ function agentFixture(
     prompt: `Focus for ${role}`,
     categories: [],
     model: 'deepseek-flash',
+    provider: 'deepseek',
     runsPerDay: 24,
     enabled: true,
     autoPublish: role === 'reviewer',

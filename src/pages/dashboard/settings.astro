@@ -1,12 +1,14 @@
 ---
 import { GITHUB_BRANCH, GITHUB_REPO } from 'astro:env/server';
 import { AD_CONFIG } from '@/config/monetization';
-import { describeDeepseekKey } from '@/lib/agents/settings';
+import { MODEL_PROVIDERS, MODEL_PROVIDER_IDS, type ModelProviderId } from '@/lib/agents/model-providers';
+import { type SecretStatus, describeProviderKeys } from '@/lib/agents/settings';
 import { listPrograms } from '@/lib/affiliate/store';
 import { DEFAULT_BRANCH, DEFAULT_REPOSITORY } from '@/lib/content/config';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { SETTINGS_SECTION_IDENTITY } from '@/lib/dashboard/settings-sections';
 import { readJsonSetting } from '@/lib/settings/store';
+import ModelProviderKeyCard from '@/components/dashboard/model-provider-key-card';
 import SettingsNav from '@/components/dashboard/settings-nav.astro';
 import SiteSettingsForm from '@/components/dashboard/site-settings-form';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
@@ -16,8 +18,7 @@ export const prerender = false;
 interface Integrations {
   repository: string;
   branch: string;
-  deepseekConfigured: boolean;
-  deepseekHint: string | null;
+  modelProviderKeys: Record<ModelProviderId, SecretStatus>;
   amazonApproved: boolean;
   adNetwork: string;
 }
@@ -29,12 +30,17 @@ const AD_NETWORK_LABELS: Record<string, string> = {
   mediavine: 'Mediavine',
 };
 
+function emptyProviderKeys(): Record<ModelProviderId, SecretStatus> {
+  return Object.fromEntries(
+    MODEL_PROVIDER_IDS.map((providerId) => [providerId, { configured: false, hint: null }]),
+  ) as Record<ModelProviderId, SecretStatus>;
+}
+
 async function loadIntegrations(): Promise<Integrations> {
   const base: Integrations = {
     repository: GITHUB_REPO ?? DEFAULT_REPOSITORY,
     branch: GITHUB_BRANCH ?? DEFAULT_BRANCH,
-    deepseekConfigured: false,
-    deepseekHint: null,
+    modelProviderKeys: emptyProviderKeys(),
     amazonApproved: false,
     adNetwork: AD_CONFIG.network,
   };
@@ -45,8 +51,8 @@ async function loadIntegrations(): Promise<Integrations> {
       return base;
     }
 
-    const [deepseek, programs, ads] = await Promise.all([
-      describeDeepseekKey(database),
+    const [modelProviderKeys, programs, ads] = await Promise.all([
+      describeProviderKeys(database),
       listPrograms(database),
       readJsonSetting<{ network?: string }>(database, 'ads_config'),
     ]);
@@ -55,8 +61,7 @@ async function loadIntegrations(): Promise<Integrations> {
 
     return {
       ...base,
-      deepseekConfigured: deepseek.configured,
-      deepseekHint: deepseek.hint,
+      modelProviderKeys,
       amazonApproved: amazon ? amazon.status === 'approved' : false,
       adNetwork: ads?.network ?? AD_CONFIG.network,
     };
@@ -84,6 +89,8 @@ const adNetworkLabel = AD_NETWORK_LABELS[integrations.adNetwork] ?? integrations
 
     <SiteSettingsForm client:load />
 
+    <ModelProviderKeyCard client:load />
+
     <section
       aria-label="Integrations"
       class="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:p-6"
@@ -91,8 +98,8 @@ const adNetworkLabel = AD_NETWORK_LABELS[integrations.adNetwork] ?? integrations
       <div class="min-w-0">
         <h3 class="text-sm font-medium text-foreground">Integrations</h3>
         <p class="mt-1 max-w-prose text-sm text-muted-foreground">
-          Read-only status for the services this site depends on. The DeepSeek key, the search
-          provider, and the spending budget are configured on the{' '}
+          Read-only status for the services this site depends on. The model provider keys sit above,
+          the search provider and the spending budget are configured on the{' '}
           <a
             href="/dashboard/settings/providers"
             class="text-foreground underline underline-offset-4"
@@ -114,21 +121,32 @@ const adNetworkLabel = AD_NETWORK_LABELS[integrations.adNetwork] ?? integrations
           </dd>
         </div>
 
-        <div class="flex flex-col gap-1 rounded-lg border border-border p-3">
-          <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">DeepSeek key</dt>
-          <dd class="text-sm text-foreground">
-            {integrations.deepseekConfigured ? 'Configured' : 'Not configured'}
-            {integrations.deepseekHint ? (
-              <span class="mt-0.5 block font-mono text-xs text-muted-foreground">
-                {integrations.deepseekHint}
-              </span>
-            ) : (
-              <span class="mt-0.5 block text-muted-foreground">
-                Add a key on the Providers page.
-              </span>
-            )}
-          </dd>
-        </div>
+        {
+          MODEL_PROVIDER_IDS.map((providerId) => {
+            const provider = MODEL_PROVIDERS[providerId];
+            const providerKey = integrations.modelProviderKeys[providerId];
+
+            return (
+              <div class="flex flex-col gap-1 rounded-lg border border-border p-3">
+                <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">
+                  {provider.label} key
+                </dt>
+                <dd class="text-sm text-foreground">
+                  {providerKey.configured ? 'Configured' : 'Not configured'}
+                  {providerKey.hint ? (
+                    <span class="mt-0.5 block font-mono text-xs text-muted-foreground">
+                      {providerKey.hint}
+                    </span>
+                  ) : (
+                    <span class="mt-0.5 block text-muted-foreground">
+                      Add a key above.
+                    </span>
+                  )}
+                </dd>
+              </div>
+            );
+          })
+        }
 
         <div class="flex flex-col gap-1 rounded-lg border border-border p-3">
           <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">Amazon program</dt>

@@ -4,7 +4,6 @@ import {
   AGENT_ROLE_ORDER,
   AGENT_ROLES,
   getRoleDefinition,
-  isAgentModel,
   isAgentRole,
   sortAgentsByRoleOrder,
 } from './roles';
@@ -52,11 +51,9 @@ describe('agent roles', () => {
     expect(getRoleDefinition('analyst').canAutoPublish).toBe(false);
   });
 
-  it('guards role and model values', () => {
+  it('guards role values', () => {
     expect(isAgentRole('writer')).toBe(true);
     expect(isAgentRole('analyst')).toBe(true);
     expect(isAgentRole('editor')).toBe(false);
-    expect(isAgentModel('deepseek-flash')).toBe(true);
-    expect(isAgentModel('gpt-4')).toBe(false);
   });
 });

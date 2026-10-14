@@ -1,6 +1,10 @@
 import { ApiError } from '../errors';
+import {
+  getModelProvider,
+  type ModelProviderDefinition,
+  type ModelProviderId,
+} from './model-providers';
 
-const BASE_URL = 'https://api.deepseek.com';
 const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_MAX_TOKENS = 8192;
 
@@ -10,6 +14,7 @@ export interface ChatMessage {
 }
 
 export interface ChatRequest {
+  provider: ModelProviderId;
   apiKey: string;
   model: string;
   messages: ChatMessage[];
@@ -29,12 +34,12 @@ export interface ChatResponse {
   tokensOut: number;
 }
 
-interface DeepseekUsage {
+interface CompletionUsage {
   prompt_tokens?: number;
   completion_tokens?: number;
 }
 
-interface DeepseekChoice {
+interface CompletionChoice {
   message?: {
     content?: string | null;
     reasoning_content?: string | null;
@@ -42,56 +47,91 @@ interface DeepseekChoice {
   finish_reason?: unknown;
 }
 
-interface DeepseekCompletion {
-  choices?: DeepseekChoice[];
-  usage?: DeepseekUsage;
+interface CompletionPayload {
+  choices?: CompletionChoice[];
+  usage?: CompletionUsage;
 }
 
-function parseJsonBody(text: string): DeepseekCompletion {
+function requireProvider(providerId: string): ModelProviderDefinition {
+  const provider = getModelProvider(providerId);
+
+  if (!provider) {
+    throw new ApiError(422, 'MODEL_PROVIDER_UNKNOWN', `Unknown model provider "${providerId}".`);
+  }
+
+  return provider;
+}
+
+function parseJsonBody(text: string, provider: ModelProviderDefinition): CompletionPayload {
   const trimmed = text.trim();
   const start = trimmed.indexOf('{');
 
   if (start < 0) {
-    throw new ApiError(502, 'DEEPSEEK_BAD_RESPONSE', 'DeepSeek returned an empty response.');
+    throw new ApiError(
+      502,
+      'MODEL_PROVIDER_BAD_RESPONSE',
+      `${provider.label} returned an empty response.`,
+    );
   }
 
   try {
-    return JSON.parse(trimmed.slice(start)) as DeepseekCompletion;
+    return JSON.parse(trimmed.slice(start)) as CompletionPayload;
   } catch {
-    throw new ApiError(502, 'DEEPSEEK_BAD_RESPONSE', 'DeepSeek returned an unreadable response.');
+    throw new ApiError(
+      502,
+      'MODEL_PROVIDER_BAD_RESPONSE',
+      `${provider.label} returned an unreadable response.`,
+    );
   }
 }
 
-async function readErrorDetail(response: Response): Promise<string> {
+async function readErrorDetail(
+  response: Response,
+  provider: ModelProviderDefinition,
+): Promise<string> {
   const text = await response.text().catch(() => '');
   const trimmed = text.trim();
+
   if (!trimmed) {
-    return `DeepSeek responded with status ${response.status}.`;
+    return `${provider.label} responded with status ${response.status}.`;
   }
 
   return trimmed.slice(0, 300);
 }
 
-function toStatusError(response: Response, detail: string): ApiError {
-  if (response.status === 401) {
-    return new ApiError(401, 'DEEPSEEK_UNAUTHORIZED', 'The DeepSeek API key was rejected.');
+function toStatusError(
+  response: Response,
+  detail: string,
+  provider: ModelProviderDefinition,
+): ApiError {
+  if (response.status === 401 || response.status === 403) {
+    return new ApiError(
+      401,
+      'MODEL_PROVIDER_UNAUTHORIZED',
+      `The ${provider.label} API key was rejected.`,
+    );
   }
 
   if (response.status === 402) {
     return new ApiError(
       402,
-      'DEEPSEEK_INSUFFICIENT_BALANCE',
-      'The DeepSeek account has no balance.',
+      'MODEL_PROVIDER_INSUFFICIENT_BALANCE',
+      `The ${provider.label} account has no balance.`,
     );
   }
 
   if (response.status === 429) {
-    return new ApiError(429, 'DEEPSEEK_RATE_LIMITED', 'DeepSeek rate limit reached.', {
-      retryAfter: response.headers.get('Retry-After'),
-    });
+    return new ApiError(
+      429,
+      'MODEL_PROVIDER_RATE_LIMITED',
+      `${provider.label} is rate limiting requests.`,
+      {
+        retryAfter: response.headers.get('Retry-After'),
+      },
+    );
   }
 
-  return new ApiError(502, 'DEEPSEEK_ERROR', detail);
+  return new ApiError(502, 'MODEL_PROVIDER_ERROR', detail);
 }
 
 function withTimeout(request: ChatRequest): { signal: AbortSignal; cancel: () => void } {
@@ -120,42 +160,68 @@ function delay(ms: number): Promise<void> {
   });
 }
 
+function buildRequestBody(
+  request: ChatRequest,
+  provider: ModelProviderDefinition,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    model: request.model,
+    messages: request.messages,
+    stream: false,
+    max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
+  };
+
+  if (provider.capabilities.supportsReasoningEffort) {
+    body.reasoning_effort = request.effort ?? 'high';
+  }
+
+  if (provider.capabilities.supportsThinking) {
+    body.thinking = { type: 'enabled' };
+  }
+
+  if (provider.capabilities.supportsUserId && request.userId) {
+    body.user_id = request.userId;
+  }
+
+  if (provider.capabilities.supportsJsonMode && request.jsonMode) {
+    body.response_format = { type: 'json_object' };
+  }
+
+  return body;
+}
+
 async function performChatCompletion(
   request: ChatRequest,
+  provider: ModelProviderDefinition,
   signal: AbortSignal,
 ): Promise<ChatResponse> {
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}/chat/completions`, {
+    response = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${request.apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: request.model,
-        messages: request.messages,
-        stream: false,
-        max_tokens: request.maxTokens ?? DEFAULT_MAX_TOKENS,
-        reasoning_effort: request.effort ?? 'high',
-        thinking: { type: 'enabled' },
-        ...(request.userId ? { user_id: request.userId } : {}),
-        ...(request.jsonMode ? { response_format: { type: 'json_object' } } : {}),
-      }),
+      body: JSON.stringify(buildRequestBody(request, provider)),
       signal,
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
-      throw new ApiError(504, 'DEEPSEEK_TIMEOUT', 'The DeepSeek request timed out.');
+      throw new ApiError(504, 'MODEL_PROVIDER_TIMEOUT', `The ${provider.label} request timed out.`);
     }
-    throw new ApiError(502, 'DEEPSEEK_UNREACHABLE', 'Could not reach the DeepSeek API.');
+    throw new ApiError(
+      502,
+      'MODEL_PROVIDER_UNREACHABLE',
+      `Could not reach the ${provider.label} API.`,
+    );
   }
 
   if (!response.ok) {
-    throw toStatusError(response, await readErrorDetail(response));
+    throw toStatusError(response, await readErrorDetail(response, provider), provider);
   }
 
-  const payload = parseJsonBody(await response.text());
+  const payload = parseJsonBody(await response.text(), provider);
   const finishReason = payload.choices?.[0]?.finish_reason;
 
   return {
@@ -172,13 +238,14 @@ export function isEmptyCompletion(completion: ChatResponse): boolean {
 }
 
 export async function createChatCompletion(request: ChatRequest): Promise<ChatResponse> {
+  const provider = requireProvider(request.provider);
   let lastCompletion: ChatResponse | null = null;
 
   for (let attempt = 1; attempt <= EMPTY_COMPLETION_ATTEMPTS; attempt += 1) {
     const { signal, cancel } = withTimeout(request);
 
     try {
-      lastCompletion = await performChatCompletion(request, signal);
+      lastCompletion = await performChatCompletion(request, provider, signal);
 
       if (!isEmptyCompletion(lastCompletion)) {
         return lastCompletion;
@@ -195,19 +262,25 @@ export async function createChatCompletion(request: ChatRequest): Promise<ChatRe
   return lastCompletion as ChatResponse;
 }
 
-export async function verifyApiKey(apiKey: string): Promise<void> {
+export async function verifyProviderKey(providerId: string, apiKey: string): Promise<void> {
+  const provider = requireProvider(providerId);
+
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}/models`, {
+    response = await fetch(`${provider.baseUrl}/models`, {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(15_000),
     });
   } catch {
-    throw new ApiError(502, 'DEEPSEEK_UNREACHABLE', 'Could not reach the DeepSeek API.');
+    throw new ApiError(
+      502,
+      'MODEL_PROVIDER_UNREACHABLE',
+      `Could not reach the ${provider.label} API.`,
+    );
   }
 
   if (!response.ok) {
-    throw toStatusError(response, await readErrorDetail(response));
+    throw toStatusError(response, await readErrorDetail(response, provider), provider);
   }
 }
 

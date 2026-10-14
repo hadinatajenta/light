@@ -10,12 +10,6 @@ export const AGENT_ROLE_ORDER: readonly AgentRole[] = [
   'reviewer',
 ];
 
-export const AGENT_MODELS = ['deepseek-flash', 'deepseek-v4-pro'] as const;
-
-export type AgentModel = (typeof AGENT_MODELS)[number];
-
-export const DEFAULT_AGENT_MODEL: AgentModel = 'deepseek-flash';
-
 export const AGENT_SCHEDULE_MODES = ['manual', 'interval', 'daily', 'weekly', 'hours'] as const;
 
 export type AgentScheduleMode = (typeof AGENT_SCHEDULE_MODES)[number];
@@ -247,10 +241,6 @@ OUTPUT
 
 export function isAgentRole(value: string): value is AgentRole {
   return (AGENT_ROLES as readonly string[]).includes(value);
-}
-
-export function isAgentModel(value: string): value is AgentModel {
-  return (AGENT_MODELS as readonly string[]).includes(value);
 }
 
 export function getRoleDefinition(role: AgentRole): AgentRoleDefinition {

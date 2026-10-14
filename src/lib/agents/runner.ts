@@ -4,7 +4,7 @@ import {
   buildAnalystFindingsReadyNotification,
   buildAnalystSourcesDegradedNotification,
 } from '../notifications/analyst';
-import { describeDeepseekFailure } from '../notifications/deepseek-failure';
+import { describeModelProviderFailure } from '../notifications/model-provider-failure';
 import { notify } from '../notifications/notify';
 import { readLastPublishedAt } from '../scheduling/store';
 import { listOpenPlannerFindings, markFindingActioned } from './analyst/findings';
@@ -12,9 +12,9 @@ import { type AnalystRunReport, runPerformanceAnalyst } from './analyst/runner';
 import { MODEL_TAIL_BRANCHES, resolveAgentRunBranch } from './branches';
 import { readBudgetState, recordModelUsage } from './budget';
 import { rankCatalogForTopic } from './catalog';
-import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
 import { formatDemandBrief, loadDemandBrief } from './demand';
 import { stripWriterEnvelope } from './envelope';
+import { type ChatMessage, createChatCompletion, extractJsonObject } from './model-client';
 import { type PlannerFindingRef, type PlannerTopic, parsePlannerTopics } from './planner';
 import { formatPreflightIssues, runPreflight } from './preflight';
 import { nextPublishSlot, readQuotaSettings } from './quota';
@@ -43,7 +43,7 @@ import {
 import { getRoleDefinition } from './roles';
 import { resolveSearchProvider } from './search/registry';
 import { readSearchConfig } from './search/settings';
-import { requireDeepseekKey } from './settings';
+import { requireProviderKey } from './settings';
 import { hasVerifiedSources, listVerifiedSources, renderSourcesForPrompt } from './sources';
 import {
   type AgentRecord,
@@ -603,7 +603,7 @@ async function recordRunFailureNotification(
   message: string,
 ): Promise<void> {
   const code = error instanceof ApiError ? error.code : null;
-  const hint = code ? describeDeepseekFailure(code) : null;
+  const hint = code ? describeModelProviderFailure(code) : null;
 
   if (code && hint) {
     await notify({
@@ -805,7 +805,7 @@ async function executeAgentRun(
       };
     }
 
-    const apiKey = await requireDeepseekKey(db);
+    const apiKey = await requireProviderKey(db, agent.provider);
 
     if (agent.role !== 'analyst') {
       await notify({
@@ -858,6 +858,7 @@ async function executeAgentRun(
       );
 
       const response = await createChatCompletion({
+        provider: agent.provider,
         apiKey,
         model: agent.model,
         messages: [
@@ -1062,6 +1063,7 @@ async function executeAgentRun(
     ];
 
     const response = await createChatCompletion({
+      provider: agent.provider,
       apiKey,
       model: agent.model,
       messages,

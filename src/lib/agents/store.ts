@@ -1,10 +1,14 @@
 import { ApiError } from '../errors';
+import {
+  DEFAULT_MODEL_PROVIDER,
+  defaultModelForProvider,
+  getModelProvider,
+  type ModelProviderId,
+} from './model-providers';
 import { isRunActive } from './reaper';
 import {
-  type AgentModel,
   type AgentRole,
   type AgentScheduleMode,
-  DEFAULT_AGENT_MODEL,
   DEFAULT_AGENT_SCHEDULE_MODE,
   getRoleDefinition,
   MAX_AGENTS,
@@ -23,7 +27,8 @@ export interface AgentRecord {
   role: AgentRole;
   prompt: string;
   categories: string[];
-  model: AgentModel;
+  provider: ModelProviderId;
+  model: string;
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
@@ -41,7 +46,8 @@ export interface AgentInput {
   role: AgentRole;
   prompt: string;
   categories?: string[];
-  model: AgentModel;
+  provider: ModelProviderId;
+  model: string;
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
@@ -68,6 +74,7 @@ interface AgentRow {
   role: string;
   prompt: string;
   categories: string | null;
+  provider: string;
   model: string;
   runs_per_day: number;
   enabled: number;
@@ -197,7 +204,10 @@ function toAgent(row: AgentRow): AgentRecord {
     role: row.role as AgentRole,
     prompt: row.prompt,
     categories: parseAgentCategories(row.categories),
-    model: row.model as AgentModel,
+    provider: getModelProvider(row.provider)
+      ? (row.provider as ModelProviderId)
+      : DEFAULT_MODEL_PROVIDER,
+    model: row.model,
     runsPerDay: row.runs_per_day,
     enabled: row.enabled === 1,
     autoPublish: row.auto_publish === 1,
@@ -370,9 +380,10 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
 
   await db
     .prepare(
-      `INSERT INTO agents (id, name, role, prompt, categories, model, runs_per_day, enabled, auto_publish,
-        schedule_mode, schedule_hours, system_managed, last_run_at, next_run_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?, ?)`,
+      `INSERT INTO agents (id, name, role, prompt, categories, provider, model, runs_per_day, enabled,
+        auto_publish, schedule_mode, schedule_hours, system_managed, last_run_at, next_run_at,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?, ?)`,
     )
     .bind(
       id,
@@ -380,6 +391,7 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
       input.role,
       input.prompt,
       serializeAgentCategories(input.categories ?? []),
+      input.provider,
       input.model,
       input.runsPerDay,
       input.enabled ? 1 : 0,
@@ -433,7 +445,7 @@ export async function updateAgent(
 
   await db
     .prepare(
-      `UPDATE agents SET name = ?, role = ?, prompt = ?, categories = ?, model = ?, runs_per_day = ?,
+      `UPDATE agents SET name = ?, role = ?, prompt = ?, categories = ?, provider = ?, model = ?, runs_per_day = ?,
         enabled = ?, auto_publish = ?, schedule_mode = ?, next_run_at = ?, updated_at = ?,
         schedule_hours = ? WHERE id = ?`,
     )
@@ -442,6 +454,7 @@ export async function updateAgent(
       next.role,
       next.prompt,
       serializeAgentCategories(next.categories),
+      next.provider,
       next.model,
       next.runsPerDay,
       next.enabled ? 1 : 0,
@@ -631,16 +644,17 @@ export async function reconcileSystemAgents(db: D1Database): Promise<SystemAgent
 
     const result = await db
       .prepare(
-        `INSERT OR IGNORE INTO agents (id, name, role, prompt, categories, model, runs_per_day,
+        `INSERT OR IGNORE INTO agents (id, name, role, prompt, categories, provider, model, runs_per_day,
           enabled, auto_publish, schedule_mode, system_managed, last_run_at, next_run_at,
           created_at, updated_at)
-         VALUES (?, ?, 'analyst', ?, '[]', ?, 1, 1, 0, 'weekly', 1, NULL, ?, ?, ?)`,
+         VALUES (?, ?, 'analyst', ?, '[]', ?, ?, 1, 1, 0, 'weekly', 1, NULL, ?, ?, ?)`,
       )
       .bind(
         SYSTEM_ANALYST_AGENT_ID,
         SYSTEM_ANALYST_AGENT_NAME,
         definition.defaultPrompt,
-        DEFAULT_AGENT_MODEL,
+        DEFAULT_MODEL_PROVIDER,
+        defaultModelForProvider(DEFAULT_MODEL_PROVIDER),
         now,
         now,
         now,

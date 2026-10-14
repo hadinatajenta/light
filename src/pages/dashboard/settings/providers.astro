@@ -1,6 +1,6 @@
 ---
 import BudgetCard from '@/components/dashboard/budget-card';
-import DeepSeekKeyCard from '@/components/dashboard/deepseek-key-card';
+import ModelProviderKeyCard from '@/components/dashboard/model-provider-key-card';
 import SearchProviderCard from '@/components/dashboard/search-provider-card';
 import SettingsNav from '@/components/dashboard/settings-nav.astro';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
@@ -23,7 +23,7 @@ export const prerender = false;
     <SettingsNav />
 
     <div class="flex flex-col gap-6">
-      <DeepSeekKeyCard client:load />
+      <ModelProviderKeyCard client:load />
       <SearchProviderCard client:load />
       <BudgetCard client:load />
     </div>

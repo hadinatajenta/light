@@ -1,10 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createChatCompletion, extractJsonObject } from './deepseek';
+import { createChatCompletion, extractJsonObject, verifyProviderKey } from './model-client';
 
 const BASE_REQUEST = {
+  provider: 'deepseek' as const,
   apiKey: 'sk-test',
   model: 'deepseek-flash',
   messages: [{ role: 'user' as const, content: 'hello' }],
+};
+
+const GO_REQUEST = {
+  ...BASE_REQUEST,
+  provider: 'opencode-go' as const,
+  model: 'kimi-k3',
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -72,7 +79,7 @@ describe('createChatCompletion', () => {
     expect(result.finishReason).toBe('length');
   });
 
-  it('sends thinking mode, user id, and json mode in the body', async () => {
+  it('sends thinking mode, user id, and json mode in the body for DeepSeek', async () => {
     const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
       jsonResponse({ choices: [{ message: { content: '{}' } }] }),
     );
@@ -94,6 +101,44 @@ describe('createChatCompletion', () => {
     expect(body.reasoning_effort).toBe('low');
   });
 
+  it('omits deepseek-only fields for a provider that does not support them', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
+      jsonResponse({ choices: [{ message: { content: '{}' } }] }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createChatCompletion({ ...GO_REQUEST, userId: 'agent-1', jsonMode: true, effort: 'low' });
+
+    const init = fetchMock.mock.calls[0]?.[1];
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+
+    expect(body.thinking).toBeUndefined();
+    expect(body.user_id).toBeUndefined();
+    expect(body.reasoning_effort).toBeUndefined();
+    expect(body.response_format).toEqual({ type: 'json_object' });
+  });
+
+  it('calls the provider specific chat completions endpoint', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
+      jsonResponse({ choices: [{ message: { content: '{}' } }] }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createChatCompletion(GO_REQUEST);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://opencode.ai/zen/go/v1/chat/completions');
+  });
+
+  it('rejects an unknown provider before making a request', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      createChatCompletion({ ...BASE_REQUEST, provider: 'nope' as never }),
+    ).rejects.toMatchObject({ code: 'MODEL_PROVIDER_UNKNOWN' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('tolerates keep-alive blank lines before the json body', async () => {
     vi.stubGlobal(
       'fetch',
@@ -112,7 +157,7 @@ describe('createChatCompletion', () => {
       vi.fn(async () => jsonResponse({ error: 'bad key' }, 401)),
     );
     await expect(createChatCompletion(BASE_REQUEST)).rejects.toMatchObject({
-      code: 'DEEPSEEK_UNAUTHORIZED',
+      code: 'MODEL_PROVIDER_UNAUTHORIZED',
     });
   });
 
@@ -125,7 +170,7 @@ describe('createChatCompletion', () => {
     );
 
     await expect(createChatCompletion(BASE_REQUEST)).rejects.toMatchObject({
-      code: 'DEEPSEEK_RATE_LIMITED',
+      code: 'MODEL_PROVIDER_RATE_LIMITED',
       details: { retryAfter: '30' },
     });
   });
@@ -139,7 +184,7 @@ describe('createChatCompletion', () => {
     );
 
     await expect(createChatCompletion(BASE_REQUEST)).rejects.toMatchObject({
-      code: 'DEEPSEEK_UNREACHABLE',
+      code: 'MODEL_PROVIDER_UNREACHABLE',
     });
   });
 });
@@ -201,5 +246,28 @@ describe('createChatCompletion empty responses', () => {
     await createChatCompletion(BASE_REQUEST);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('verifyProviderKey', () => {
+  it('accepts a key the provider models endpoint answers', async () => {
+    const fetchMock = vi.fn(
+      async (_url: string, _init: RequestInit) => new Response('{}', { status: 200 }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(verifyProviderKey('opencode-go', 'sk-test')).resolves.toBeUndefined();
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://opencode.ai/zen/go/v1/models');
+  });
+
+  it('rejects a key the provider refuses', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ error: 'bad key' }, 401)),
+    );
+
+    await expect(verifyProviderKey('opencode-go', 'sk-test')).rejects.toMatchObject({
+      code: 'MODEL_PROVIDER_UNAUTHORIZED',
+    });
   });
 });

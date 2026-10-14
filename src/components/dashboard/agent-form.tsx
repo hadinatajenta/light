@@ -32,6 +32,7 @@ interface AgentRecord {
   name: string;
   role: AgentRole;
   prompt: string;
+  provider: string;
   model: string;
   runsPerDay: number;
   enabled: boolean;
@@ -67,20 +68,28 @@ interface RoleDefinition {
   defaultPrompt: string;
 }
 
+interface ModelProviderOption {
+  id: string;
+  label: string;
+  billing: string;
+  models: string[];
+}
+
 interface AgentsMeta {
   roles: RoleDefinition[];
-  models: string[];
+  providers: ModelProviderOption[];
   maxAgents: number;
   minRunsPerDay: number;
   maxRunsPerDay: number;
+  defaultProvider: string;
   defaultModel: string;
-  deepseek: { configured: boolean; hint: string | null };
 }
 
 interface AgentInput {
   name: string;
   role: AgentRole;
   prompt: string;
+  provider: string;
   model: string;
   runsPerDay: number;
   enabled: boolean;
@@ -92,6 +101,7 @@ interface AgentFormValues {
   name: string;
   role: AgentRole;
   prompt: string;
+  provider: string;
   model: string;
   runsPerDay: string;
   enabled: boolean;
@@ -144,6 +154,7 @@ function createDefaultValues(meta: AgentsMeta): AgentFormValues {
     name: '',
     role: defaultRole?.id ?? 'writer',
     prompt: defaultRole?.defaultPrompt ?? '',
+    provider: meta.defaultProvider,
     model: meta.defaultModel,
     runsPerDay: String(meta.minRunsPerDay),
     enabled: true,
@@ -157,6 +168,7 @@ function toFormValues(agent: AgentRecord): AgentFormValues {
     name: agent.name,
     role: agent.role,
     prompt: agent.prompt,
+    provider: agent.provider,
     model: agent.model,
     runsPerDay: String(agent.runsPerDay),
     enabled: agent.enabled,
@@ -286,6 +298,13 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
   );
   const isReviewer = values?.role === 'reviewer';
 
+  const providerDefinitions = useMemo(() => meta?.providers ?? [], [meta]);
+  const activeProviderDefinition = useMemo(
+    () => providerDefinitions.find((provider) => provider.id === values?.provider),
+    [providerDefinitions, values?.provider],
+  );
+  const activeModelOptions = activeProviderDefinition?.models ?? [];
+
   const categoryOptions = useMemo(() => {
     const options: Array<{ slug: string; label: string }> = categories.map((category) => ({
       slug: category.slug,
@@ -320,6 +339,22 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
     });
   };
 
+  const handleProviderChange = (nextProvider: string) => {
+    setValues((current) => {
+      if (!current) {
+        return current;
+      }
+      const nextProviderDefinition = providerDefinitions.find(
+        (provider) => provider.id === nextProvider,
+      );
+      return {
+        ...current,
+        provider: nextProvider,
+        model: nextProviderDefinition?.models[0] ?? '',
+      };
+    });
+  };
+
   const handleCategoryToggle = (slug: string, isChecked: boolean) => {
     setValues((current) => {
       if (!current) {
@@ -343,6 +378,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       name: values.name.trim(),
       role: values.role,
       prompt: values.prompt,
+      provider: values.provider,
       model: values.model,
       runsPerDay: Number.isNaN(runsPerDay) ? 0 : runsPerDay,
       enabled: isSystemManaged ? true : values.enabled,
@@ -426,6 +462,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
     const roleError = fieldErrors.role;
     const categoryError = fieldErrors.categories;
     const promptError = fieldErrors.prompt;
+    const providerError = fieldErrors.provider;
     const modelError = fieldErrors.model;
     const runsError = fieldErrors.runsPerDay;
 
@@ -589,24 +626,61 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
         <div className="grid gap-5 sm:grid-cols-2">
           {isSystemManaged ? null : (
             <div className="flex flex-col gap-2">
+              <Label htmlFor="agent-provider">Model provider</Label>
+              <Select
+                id="agent-provider"
+                value={values.provider}
+                aria-invalid={Boolean(providerError)}
+                aria-describedby={
+                  providerError ? 'agent-provider-error agent-provider-help' : 'agent-provider-help'
+                }
+                onChange={(event) => handleProviderChange(event.target.value)}
+              >
+                {providerDefinitions.map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.label}
+                  </option>
+                ))}
+              </Select>
+              <p id="agent-provider-help" className="text-xs text-muted-foreground">
+                {activeProviderDefinition?.billing ??
+                  'Choose the service that hosts the model for this agent.'}
+              </p>
+              {providerError ? (
+                <p id="agent-provider-error" className="text-sm text-destructive">
+                  {providerError}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {isSystemManaged ? null : (
+            <div className="flex flex-col gap-2">
               <Label htmlFor="agent-model">Model</Label>
               <Select
                 id="agent-model"
                 value={values.model}
                 aria-invalid={Boolean(modelError)}
-                aria-describedby={modelError ? 'agent-model-error' : undefined}
+                aria-describedby={
+                  modelError ? 'agent-model-error agent-model-help' : 'agent-model-help'
+                }
                 onChange={(event) =>
                   setValues((current) =>
                     current ? { ...current, model: event.target.value } : current,
                   )
                 }
               >
-                {meta.models.map((model) => (
+                {activeModelOptions.map((model) => (
                   <option key={model} value={model}>
                     {model}
                   </option>
                 ))}
               </Select>
+              <p id="agent-model-help" className="text-xs text-muted-foreground">
+                {activeModelOptions.length === 0
+                  ? 'This provider has no models available.'
+                  : `Served by ${activeProviderDefinition?.label ?? values.provider}.`}
+              </p>
               {modelError ? (
                 <p id="agent-model-error" className="text-sm text-destructive">
                   {modelError}

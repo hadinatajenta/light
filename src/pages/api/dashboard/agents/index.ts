@@ -1,15 +1,19 @@
 import { recordActivity, toUserActor } from '@/lib/activity/record';
 import {
-  AGENT_MODELS,
+  DEFAULT_MODEL_PROVIDER,
+  defaultModelForProvider,
+  MODEL_PROVIDER_IDS,
+  MODEL_PROVIDERS,
+} from '@/lib/agents/model-providers';
+import {
   AGENT_ROLE_DEFINITIONS,
-  DEFAULT_AGENT_MODEL,
   MAX_AGENTS,
   MAX_RUNS_PER_DAY,
   MIN_RUNS_PER_DAY,
 } from '@/lib/agents/roles';
 import { agentInputSchema } from '@/lib/agents/schema';
 import { describeSearchConfig } from '@/lib/agents/search/settings';
-import { describeDeepseekKey } from '@/lib/agents/settings';
+import { describeProviderKeys } from '@/lib/agents/settings';
 import { createAgent, listAgents } from '@/lib/agents/store';
 import { withAdmin } from '@/lib/api/handler';
 import { requireContentDatabase } from '@/lib/content/database';
@@ -19,9 +23,9 @@ export const prerender = false;
 
 export const GET = withAdmin(async (_context, requestId) => {
   const database = await requireContentDatabase();
-  const [agents, deepseek, search] = await Promise.all([
+  const [agents, providerKeys, search] = await Promise.all([
     listAgents(database),
-    describeDeepseekKey(database),
+    describeProviderKeys(database),
     describeSearchConfig(database),
   ]);
 
@@ -30,12 +34,18 @@ export const GET = withAdmin(async (_context, requestId) => {
       agents,
       meta: {
         roles: Object.values(AGENT_ROLE_DEFINITIONS),
-        models: [...AGENT_MODELS],
+        providers: MODEL_PROVIDER_IDS.map((id) => ({
+          id,
+          label: MODEL_PROVIDERS[id].label,
+          billing: MODEL_PROVIDERS[id].billing,
+          models: [...MODEL_PROVIDERS[id].models],
+        })),
         maxAgents: MAX_AGENTS,
         minRunsPerDay: MIN_RUNS_PER_DAY,
         maxRunsPerDay: MAX_RUNS_PER_DAY,
-        defaultModel: DEFAULT_AGENT_MODEL,
-        deepseek,
+        defaultProvider: DEFAULT_MODEL_PROVIDER,
+        defaultModel: defaultModelForProvider(DEFAULT_MODEL_PROVIDER),
+        providerKeys,
         search,
       },
     },

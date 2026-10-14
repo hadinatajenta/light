@@ -43,6 +43,7 @@ function buildAgent(id: string, role: AgentRole): AgentRecord {
     role,
     prompt: `Focus for ${id}`,
     categories: [],
+    provider: 'deepseek',
     model: 'deepseek-flash',
     runsPerDay: 1,
     enabled: true,

@@ -24,6 +24,7 @@ interface FakeAgentRow {
   role: string;
   prompt: string;
   categories: string | null;
+  provider: string;
   model: string;
   runs_per_day: number;
   enabled: number;
@@ -49,6 +50,7 @@ function agentRow(overrides: Partial<FakeAgentRow> = {}): FakeAgentRow {
     role: 'writer',
     prompt: 'Draft buying guides.',
     categories: '[]',
+    provider: 'deepseek',
     model: 'deepseek-flash',
     runs_per_day: 2,
     enabled: 1,
@@ -95,14 +97,15 @@ function createFakeAgentDatabase(row: FakeAgentRow): {
             row.role = String(params[1]);
             row.prompt = String(params[2]);
             row.categories = String(params[3]);
-            row.model = String(params[4]);
-            row.runs_per_day = Number(params[5]);
-            row.enabled = Number(params[6]);
-            row.auto_publish = Number(params[7]);
-            row.schedule_mode = params[8] === null ? null : String(params[8]);
-            row.next_run_at = params[9] === null ? null : String(params[9]);
-            row.updated_at = String(params[10]);
-            row.schedule_hours = params[11] === null ? null : String(params[11]);
+            row.model = String(params[5]);
+            row.provider = String(params[4]);
+            row.runs_per_day = Number(params[6]);
+            row.enabled = Number(params[7]);
+            row.auto_publish = Number(params[8]);
+            row.schedule_mode = params[9] === null ? null : String(params[9]);
+            row.next_run_at = params[10] === null ? null : String(params[10]);
+            row.updated_at = String(params[11]);
+            row.schedule_hours = params[12] === null ? null : String(params[12]);
           }
           return { meta: { changes: 1 } };
         },
@@ -121,6 +124,7 @@ const WRITER_AGENT: AgentRecord = {
   role: 'writer',
   prompt: 'Draft buying guides.',
   categories: [],
+  provider: 'deepseek',
   model: 'deepseek-flash',
   runsPerDay: 2,
   enabled: true,
@@ -414,6 +418,7 @@ describe('updateAgent', () => {
       role: 'writer',
       prompt: 'Draft buying guides.',
       categories: [],
+      provider: 'deepseek',
       model: 'deepseek-v4-pro',
       runsPerDay: 4,
       enabled: true,
@@ -422,7 +427,7 @@ describe('updateAgent', () => {
 
     const update = writes.find((write) => write.sql.includes('UPDATE agents SET name'));
     expect(agent.scheduleMode).toBe('interval');
-    expect(update?.params[8]).toBe('interval');
+    expect(update?.params[9]).toBe('interval');
   });
 
   it('does not move the next run of a system managed agent when the mode is omitted', async () => {
@@ -440,6 +445,7 @@ describe('updateAgent', () => {
       name: 'Performance Analyst',
       role: 'analyst',
       prompt: 'Watch the analytics queue.',
+      provider: 'deepseek',
       model: 'deepseek-flash',
       runsPerDay: 1,
       enabled: true,
@@ -448,8 +454,8 @@ describe('updateAgent', () => {
 
     const update = writes.find((write) => write.sql.includes('UPDATE agents SET name'));
     expect(agent.scheduleMode).toBe('weekly');
-    expect(update?.params[8]).toBe('weekly');
-    expect(update?.params[9]).toBe(nextRunAt);
+    expect(update?.params[9]).toBe('weekly');
+    expect(update?.params[10]).toBe(nextRunAt);
   });
 
   it('persists an explicit manual mode and clears the next run', async () => {
@@ -461,6 +467,7 @@ describe('updateAgent', () => {
       role: 'writer',
       prompt: 'Draft buying guides.',
       categories: [],
+      provider: 'deepseek',
       model: 'deepseek-flash',
       runsPerDay: 2,
       enabled: true,
@@ -470,8 +477,8 @@ describe('updateAgent', () => {
 
     const update = writes.find((write) => write.sql.includes('UPDATE agents SET name'));
     expect(agent.scheduleMode).toBe('manual');
-    expect(update?.params[8]).toBe('manual');
-    expect(update?.params[9]).toBeNull();
+    expect(update?.params[9]).toBe('manual');
+    expect(update?.params[10]).toBeNull();
   });
 
   it('stores a fixed hour schedule from the payload', async () => {
@@ -483,6 +490,7 @@ describe('updateAgent', () => {
       role: 'scrapper',
       prompt: 'Research topics.',
       categories: [],
+      provider: 'deepseek',
       model: 'deepseek-flash',
       runsPerDay: 24,
       enabled: true,
@@ -494,8 +502,8 @@ describe('updateAgent', () => {
     const update = writes.find((write) => write.sql.includes('UPDATE agents SET name'));
     expect(agent.scheduleMode).toBe('hours');
     expect(agent.scheduleHours).toEqual([6, 12, 18]);
-    expect(update?.params[8]).toBe('hours');
-    expect(update?.params[11]).toBe('6,12,18');
+    expect(update?.params[9]).toBe('hours');
+    expect(update?.params[12]).toBe('6,12,18');
   });
 
   it('keeps the stored hours when the payload omits them', async () => {
@@ -507,6 +515,7 @@ describe('updateAgent', () => {
       role: 'scrapper',
       prompt: 'Research topics.',
       categories: [],
+      provider: 'deepseek',
       model: 'deepseek-flash',
       runsPerDay: 24,
       enabled: true,
@@ -516,7 +525,7 @@ describe('updateAgent', () => {
     const update = writes.find((write) => write.sql.includes('UPDATE agents SET name'));
     expect(agent.scheduleMode).toBe('hours');
     expect(agent.scheduleHours).toEqual([6, 12, 18]);
-    expect(update?.params[11]).toBe('6,12,18');
+    expect(update?.params[12]).toBe('6,12,18');
   });
 });
 

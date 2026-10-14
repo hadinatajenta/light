@@ -16,7 +16,7 @@ import {
   type ChatRequest,
   createChatCompletion,
   extractJsonObject,
-} from './deepseek';
+} from './model-client';
 import { rankSearchResults } from './rank-results';
 import {
   insertResearchPage,
@@ -297,6 +297,7 @@ async function planQueries(input: {
   ];
 
   const response = await createChatCompletion({
+    provider: input.agent.provider,
     apiKey: input.apiKey,
     model: input.agent.model,
     messages,
@@ -429,6 +430,7 @@ async function synthesizeNotes(input: {
     },
   ];
   const request: Omit<ChatRequest, 'messages' | 'timeoutMs'> = {
+    provider: input.agent.provider,
     apiKey: input.apiKey,
     model: input.agent.model,
     effort: SYNTHESIS_EFFORT,
