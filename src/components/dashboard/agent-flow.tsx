@@ -1,39 +1,17 @@
 import { RefreshCwIcon, TriangleAlertIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type AgentFlowSnapshot,
+  type FlowStage,
+  ORDER_STAGE_IDS,
+  type StageId,
+} from '@/components/dashboard/agent-flow-types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/utils/date';
+import AgentFlowDetailSheet from './agent-flow-detail-sheet';
 import { requestJson, toErrorMessage } from './api-client';
-
-type StageId = 'planner' | 'researcher' | 'writer' | 'qc' | 'reviewer' | 'published';
-
-interface FlowAgent {
-  id: string;
-  name: string;
-  role: string;
-  runsPerDay: number;
-  cadenceLabel: string;
-  running: boolean;
-  nextRunAt: string | null;
-  enabled: boolean;
-}
-
-interface FlowStage {
-  id: StageId;
-  label: string;
-  description: string;
-  waiting: number;
-  active: number;
-  doneToday: number;
-  bounced: number;
-  agents: FlowAgent[];
-}
-
-interface AgentFlowSnapshot {
-  generatedAt: string;
-  stages: FlowStage[];
-}
 
 interface MainEdge {
   fromIndex: number;
@@ -57,14 +35,6 @@ type LoadMode = 'initial' | 'poll' | 'manual';
 const FLOW_ENDPOINT = '/api/dashboard/agents/flow';
 const POLL_MS = 15_000;
 const STAGE_ORDER = 'planner, researcher, writer, qc, reviewer, published';
-const ORDER_STAGE_IDS: StageId[] = [
-  'planner',
-  'researcher',
-  'writer',
-  'qc',
-  'reviewer',
-  'published',
-];
 const SKELETON_NODE_KEYS = [
   'agent-flow-node-1',
   'agent-flow-node-2',
@@ -206,192 +176,192 @@ function FlowSkeleton() {
   );
 }
 
-function FlowDiagram({ stages }: { stages: FlowStage[] }) {
+function StageNode({
+  stage,
+  index,
+  isSelected,
+  onSelect,
+}: {
+  stage: FlowStage;
+  index: number;
+  isSelected: boolean;
+  onSelect: (stageId: StageId) => void;
+}) {
+  const countLine = buildCountLine(stage);
+  const agentLine = buildAgentLine(stage);
+  const running = isStageRunning(stage);
+  const backlog = hasBacklog(stage);
+
+  return (
+    <li
+      className="absolute"
+      style={{
+        left: `${((NODE_START_X + index * NODE_STEP) / DIAGRAM_WIDTH) * 100}%`,
+        top: `${(NODE_TOP / DIAGRAM_HEIGHT) * 100}%`,
+        width: `${(NODE_WIDTH / DIAGRAM_WIDTH) * 100}%`,
+        height: `${(NODE_HEIGHT / DIAGRAM_HEIGHT) * 100}%`,
+      }}
+    >
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={isSelected}
+        aria-label={`${stage.label}: ${stage.waiting} waiting, ${stage.active} in progress, ${stage.doneToday} done today. Show stage detail.`}
+        onClick={() => onSelect(stage.id)}
+        className={cn(
+          'relative flex h-full w-full cursor-pointer flex-col items-center justify-center gap-0.5 overflow-hidden rounded-[10px] border bg-card px-1 text-center transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+          isSelected ? 'border-primary' : 'border-border',
+        )}
+      >
+        {running ? (
+          <span
+            className="absolute top-1 right-1 size-2 animate-pulse rounded-full bg-primary motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+        ) : backlog ? (
+          <span
+            className="absolute top-1 right-1 size-2 rounded-full border border-dashed border-muted-foreground"
+            aria-hidden="true"
+          />
+        ) : null}
+        <span className="text-[11px] font-semibold text-foreground">{stage.label}</span>
+        {countLine ? (
+          <span className="text-[9px] text-muted-foreground tabular-nums">{countLine}</span>
+        ) : null}
+        {agentLine ? <span className="text-[8px] text-muted-foreground">{agentLine}</span> : null}
+      </button>
+    </li>
+  );
+}
+
+function FlowDiagram({
+  stages,
+  selectedStageId,
+  onSelectStage,
+}: {
+  stages: FlowStage[];
+  selectedStageId: StageId | null;
+  onSelectStage: (stageId: StageId) => void;
+}) {
   const stageById = new Map(stages.map((stage) => [stage.id, stage]));
   const stageAt = (index: number): FlowStage | undefined => stageById.get(ORDER_STAGE_IDS[index]);
 
   return (
-    <svg
-      viewBox={`0 0 ${DIAGRAM_WIDTH} ${DIAGRAM_HEIGHT}`}
-      className="mx-auto h-auto w-full max-w-[880px]"
-      role="img"
-      aria-labelledby="agent-flow-title agent-flow-desc"
-    >
-      <title id="agent-flow-title">Agent pipeline flow diagram</title>
-      <desc id="agent-flow-desc">
-        Stages run in order: {STAGE_ORDER}. Main arrows move left to right. A dashed arrow returns
-        changes requested from the reviewer to the writer. A dashed arrow returns needs research
-        from the writer to the researcher.
-      </desc>
+    <div className="relative mx-auto aspect-[880/240] w-full max-w-[880px]">
+      <svg
+        viewBox={`0 0 ${DIAGRAM_WIDTH} ${DIAGRAM_HEIGHT}`}
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
+        aria-hidden="true"
+      >
+        <defs>
+          <marker
+            id="agent-flow-arrow"
+            viewBox="0 0 8 8"
+            refX={8}
+            refY={4}
+            markerWidth={8}
+            markerHeight={8}
+            markerUnits="userSpaceOnUse"
+            orient="auto"
+          >
+            <path d="M0,0 L8,4 L0,8 Z" className="fill-muted-foreground" />
+          </marker>
+        </defs>
 
-      <defs>
-        <marker
-          id="agent-flow-arrow"
-          viewBox="0 0 8 8"
-          refX={8}
-          refY={4}
-          markerWidth={8}
-          markerHeight={8}
-          markerUnits="userSpaceOnUse"
-          orient="auto"
-        >
-          <path d="M0,0 L8,4 L0,8 Z" className="fill-muted-foreground" />
-        </marker>
-      </defs>
+        {FEEDBACK_EDGES.map((edge) => {
+          const startX = nodeCenterX(edge.fromIndex) + edge.sourceOffset;
+          const endX = nodeCenterX(edge.toIndex) + edge.targetOffset;
+          const path = `M ${startX} ${NODE_BOTTOM} V ${edge.laneY} H ${endX} V ${NODE_BOTTOM}`;
+          const animated = hasBounce(stageAt(edge.fromIndex));
+          const labelX = (startX + endX) / 2;
 
-      {FEEDBACK_EDGES.map((edge) => {
-        const startX = nodeCenterX(edge.fromIndex) + edge.sourceOffset;
-        const endX = nodeCenterX(edge.toIndex) + edge.targetOffset;
-        const path = `M ${startX} ${NODE_BOTTOM} V ${edge.laneY} H ${endX} V ${NODE_BOTTOM}`;
-        const animated = hasBounce(stageAt(edge.fromIndex));
-        const labelX = (startX + endX) / 2;
+          return (
+            <g key={`${edge.fromIndex}-${edge.toIndex}`}>
+              <path
+                d={path}
+                fill="none"
+                className={cn(
+                  'stroke-muted-foreground',
+                  animated && 'animate-flow-dash motion-reduce:animate-none',
+                )}
+                strokeWidth={1.25}
+                strokeDasharray="6 10"
+                strokeLinejoin="round"
+                markerEnd="url(#agent-flow-arrow)"
+              />
+              <text
+                x={labelX}
+                y={edge.laneY - 5}
+                textAnchor="middle"
+                className="fill-muted-foreground text-[9px]"
+              >
+                {edge.label}
+              </text>
+            </g>
+          );
+        })}
 
-        return (
-          <g key={`${edge.fromIndex}-${edge.toIndex}`}>
-            <path
-              d={path}
-              fill="none"
-              className={cn(
-                'stroke-muted-foreground',
-                animated && 'animate-flow-dash motion-reduce:animate-none',
-              )}
-              strokeWidth={1.25}
-              strokeDasharray="6 10"
-              strokeLinejoin="round"
-              markerEnd="url(#agent-flow-arrow)"
-            />
-            <text
-              x={labelX}
-              y={edge.laneY - 5}
-              textAnchor="middle"
-              className="fill-muted-foreground text-[9px]"
-            >
-              {edge.label}
-            </text>
-          </g>
-        );
-      })}
+        {MAIN_EDGES.map((edge) => {
+          const startX = nodeCenterX(edge.fromIndex) + NODE_WIDTH / 2;
+          const endX = nodeCenterX(edge.toIndex) - NODE_WIDTH / 2;
+          const animated = hasUpstreamWork(stageAt(edge.fromIndex));
+          const labelX = (startX + endX) / 2;
 
-      {MAIN_EDGES.map((edge) => {
-        const startX = nodeCenterX(edge.fromIndex) + NODE_WIDTH / 2;
-        const endX = nodeCenterX(edge.toIndex) - NODE_WIDTH / 2;
-        const animated = hasUpstreamWork(stageAt(edge.fromIndex));
-        const labelX = (startX + endX) / 2;
-
-        return (
-          <g key={`${edge.fromIndex}-${edge.toIndex}`}>
-            <line
-              x1={startX}
-              y1={NODE_CENTER_Y}
-              x2={endX}
-              y2={NODE_CENTER_Y}
-              className="stroke-muted-foreground"
-              strokeWidth={1.25}
-              markerEnd="url(#agent-flow-arrow)"
-            />
-            {animated ? (
+          return (
+            <g key={`${edge.fromIndex}-${edge.toIndex}`}>
               <line
                 x1={startX}
                 y1={NODE_CENTER_Y}
                 x2={endX}
                 y2={NODE_CENTER_Y}
-                className="animate-flow-dash stroke-primary motion-reduce:animate-none"
+                className="stroke-muted-foreground"
                 strokeWidth={1.25}
-                strokeDasharray="6 10"
+                markerEnd="url(#agent-flow-arrow)"
               />
-            ) : null}
-            <text
-              x={labelX}
-              y={NODE_CENTER_Y - 7}
-              textAnchor="middle"
-              className="fill-muted-foreground text-[9px]"
-            >
-              {edge.label}
-            </text>
-          </g>
-        );
-      })}
+              {animated ? (
+                <line
+                  x1={startX}
+                  y1={NODE_CENTER_Y}
+                  x2={endX}
+                  y2={NODE_CENTER_Y}
+                  className="animate-flow-dash stroke-primary motion-reduce:animate-none"
+                  strokeWidth={1.25}
+                  strokeDasharray="6 10"
+                />
+              ) : null}
+              <text
+                x={labelX}
+                y={NODE_CENTER_Y - 7}
+                textAnchor="middle"
+                className="fill-muted-foreground text-[9px]"
+              >
+                {edge.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
 
-      {ORDER_STAGE_IDS.map((stageId, index) => {
-        const stage = stageById.get(stageId);
-        if (!stage) {
-          return null;
-        }
+      <ul aria-label="Pipeline stages" className="absolute inset-0">
+        {ORDER_STAGE_IDS.map((stageId, index) => {
+          const stage = stageById.get(stageId);
+          if (!stage) {
+            return null;
+          }
 
-        const x = NODE_START_X + index * NODE_STEP;
-        const centerX = x + NODE_WIDTH / 2;
-        const countLine = buildCountLine(stage);
-        const agentLine = buildAgentLine(stage);
-        const running = isStageRunning(stage);
-
-        return (
-          <g key={stage.id}>
-            <rect
-              x={x}
-              y={NODE_TOP}
-              width={NODE_WIDTH}
-              height={NODE_HEIGHT}
-              rx={10}
-              className="fill-card stroke-border"
-              strokeWidth={1}
+          return (
+            <StageNode
+              key={stage.id}
+              stage={stage}
+              index={index}
+              isSelected={selectedStageId === stage.id}
+              onSelect={onSelectStage}
             />
-            <text
-              x={centerX}
-              y={NODE_TOP + 22}
-              textAnchor="middle"
-              className="fill-foreground text-[11px] font-semibold"
-            >
-              {stage.label}
-            </text>
-            {countLine ? (
-              <text
-                x={centerX}
-                y={NODE_TOP + 40}
-                textAnchor="middle"
-                className="fill-muted-foreground text-[9px] tabular-nums"
-              >
-                {countLine}
-              </text>
-            ) : null}
-            {agentLine ? (
-              <text
-                x={centerX}
-                y={NODE_TOP + 55}
-                textAnchor="middle"
-                className="fill-muted-foreground text-[8px]"
-              >
-                {agentLine}
-              </text>
-            ) : null}
-            {running ? (
-              <g>
-                <circle
-                  cx={x + NODE_WIDTH - 12}
-                  cy={NODE_TOP + 13}
-                  r={4}
-                  className="animate-pulse fill-primary/40 motion-reduce:animate-none"
-                />
-                <circle
-                  cx={x + NODE_WIDTH - 12}
-                  cy={NODE_TOP + 13}
-                  r={2}
-                  className="fill-primary"
-                />
-              </g>
-            ) : hasBacklog(stage) ? (
-              <circle
-                cx={x + NODE_WIDTH - 12}
-                cy={NODE_TOP + 13}
-                r={4}
-                strokeDasharray="2 2"
-                strokeWidth={1.5}
-                className="fill-none stroke-muted-foreground"
-              />
-            ) : null}
-          </g>
-        );
-      })}
-    </svg>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -401,6 +371,7 @@ export default function AgentFlow() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isStale, setIsStale] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedStageId, setSelectedStageId] = useState<StageId | null>(null);
   const snapshotRef = useRef<AgentFlowSnapshot | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inFlightRef = useRef(false);
@@ -485,6 +456,14 @@ export default function AgentFlow() {
     };
   }, [load]);
 
+  const handleSelectStage = useCallback((stageId: StageId) => {
+    setSelectedStageId(stageId);
+  }, []);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedStageId(null);
+  }, []);
+
   if (status === 'loading' && snapshot === null) {
     return <FlowSkeleton />;
   }
@@ -542,7 +521,7 @@ export default function AgentFlow() {
 
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5">
-          <h2 className="text-sm font-medium text-foreground">Pipeline</h2>
+          <h2 className="text-sm font-medium text-foreground">Live topology playground</h2>
           <span className="text-xs text-muted-foreground tabular-nums">{runningSummary}</span>
           <span className="text-xs text-muted-foreground tabular-nums">
             Updated {formatRelativeTime(snapshot.generatedAt, now)}
@@ -562,10 +541,10 @@ export default function AgentFlow() {
       </div>
 
       <p className="mt-1 text-xs text-muted-foreground">
-        Stages run in order: {STAGE_ORDER}. QC and the reviewer both claim from the same pending
-        drafts. A solid arrow animates while work is moving out of that stage, a dashed arrow is
-        work sent back, a pulsing dot means an agent is running now, and a dashed ring means the
-        stage is holding a backlog.
+        Stages run in order: {STAGE_ORDER}. Click a stage to inspect it. QC and the reviewer both
+        claim from the same pending drafts. A solid arrow animates while work is moving out of that
+        stage, a dashed arrow is work sent back, a pulsing dot means an agent is running now, and a
+        dashed ring means the stage is holding a backlog.
       </p>
 
       {isStale ? (
@@ -594,8 +573,14 @@ export default function AgentFlow() {
       ) : null}
 
       <div className="mt-3">
-        <FlowDiagram stages={snapshot.stages} />
+        <FlowDiagram
+          stages={snapshot.stages}
+          selectedStageId={selectedStageId}
+          onSelectStage={handleSelectStage}
+        />
       </div>
+
+      <AgentFlowDetailSheet stageId={selectedStageId} onClose={handleCloseDetail} />
 
       <ol className="sr-only">
         {ORDER_STAGE_IDS.map((stageId) => {

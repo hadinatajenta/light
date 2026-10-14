@@ -6,6 +6,7 @@ import {
   type FlowActivityCounts,
   type FlowAgentRef,
   type FlowCounts,
+  loadStageDetail,
 } from './flow';
 
 function makeAgent(
@@ -127,5 +128,221 @@ describe('buildFlowStages', () => {
     const published = stages.find((stage) => stage.id === 'published');
 
     expect(published?.agents).toEqual([]);
+  });
+});
+
+interface FakeRow {
+  [key: string]: unknown;
+}
+
+function createFakeDatabase(rowsFor: (sql: string) => FakeRow[] | null): {
+  database: D1Database;
+  queries: string[];
+} {
+  const queries: string[] = [];
+
+  const database = {
+    prepare(sql: string) {
+      queries.push(sql);
+      const statement = {
+        bind() {
+          return statement;
+        },
+        async first() {
+          return null;
+        },
+        async all() {
+          return { results: rowsFor(sql) ?? [] };
+        },
+        async run() {
+          return { meta: { changes: 1 } };
+        },
+      };
+
+      return statement;
+    },
+  } as unknown as D1Database;
+
+  return { database, queries };
+}
+
+describe('loadStageDetail', () => {
+  it('returns null for an unknown stage without touching the database', async () => {
+    const { database, queries } = createFakeDatabase(() => null);
+
+    await expect(loadStageDetail(database, 'shipping')).resolves.toBeNull();
+    expect(queries).toHaveLength(0);
+  });
+
+  it('maps the researched topic queue for the writer stage', async () => {
+    const { database } = createFakeDatabase((sql) => {
+      if (sql.includes("status = 'researched'")) {
+        return [
+          {
+            id: 'topic-1',
+            title: 'Standing desk height',
+            status: 'researched',
+            updated_at: '2026-10-14T01:00:00.000Z',
+          },
+        ];
+      }
+      return null;
+    });
+
+    const detail = await loadStageDetail(database, 'writer');
+
+    expect(detail?.stage.id).toBe('writer');
+    expect(detail?.waitingItems).toEqual([
+      {
+        id: 'topic-1',
+        title: 'Standing desk height',
+        status: 'researched',
+        updatedAt: '2026-10-14T01:00:00.000Z',
+      },
+    ]);
+  });
+
+  it('adds changes requested drafts after the researched topics and caps the list', async () => {
+    const researched = Array.from({ length: 8 }, (_, index) => ({
+      id: `topic-${index}`,
+      title: `Topic ${index}`,
+      status: 'researched',
+      updated_at: '2026-10-14T01:00:00.000Z',
+    }));
+
+    const { database } = createFakeDatabase((sql) => {
+      if (sql.includes("status = 'researched'")) {
+        return researched;
+      }
+      if (sql.includes("review_status = 'changes_requested'")) {
+        return [
+          {
+            id: 'draft-1',
+            title: 'A draft sent back',
+            status: 'changes_requested',
+            updated_at: null,
+          },
+        ];
+      }
+      return null;
+    });
+
+    const detail = await loadStageDetail(database, 'writer');
+
+    expect(detail?.waitingItems).toHaveLength(8);
+    expect(detail?.waitingItems.some((waitingItem) => waitingItem.id === 'draft-1')).toBe(false);
+  });
+
+  it('fills the writer list with changes requested drafts when no topic is researched', async () => {
+    const { database } = createFakeDatabase((sql) => {
+      if (sql.includes("review_status = 'changes_requested'")) {
+        return [
+          {
+            id: 'draft-1',
+            title: 'A draft sent back',
+            status: 'changes_requested',
+            updated_at: null,
+          },
+        ];
+      }
+      return null;
+    });
+
+    const detail = await loadStageDetail(database, 'writer');
+
+    expect(detail?.waitingItems).toEqual([
+      { id: 'draft-1', title: 'A draft sent back', status: 'changes_requested', updatedAt: null },
+    ]);
+  });
+
+  it('queries the queued, fetched, and blocked topics for the researcher stage', async () => {
+    const { database, queries } = createFakeDatabase((sql) => {
+      if (sql.includes("status IN ('queued', 'fetched', 'blocked')")) {
+        return [{ id: 'topic-2', title: 'KVM switch', status: 'fetched', updated_at: null }];
+      }
+      return null;
+    });
+
+    const detail = await loadStageDetail(database, 'researcher');
+
+    expect(detail?.waitingItems).toHaveLength(1);
+    expect(queries.some((sql) => sql.includes("status IN ('queued', 'fetched', 'blocked')"))).toBe(
+      true,
+    );
+  });
+
+  it('maps run status and falls back to an unknown agent name', async () => {
+    const { database } = createFakeDatabase((sql) => {
+      if (sql.includes('LEFT JOIN agents a ON a.id = r.agent_id')) {
+        return [
+          {
+            run_id: 'run-1',
+            agent_name: null,
+            status: 'failed',
+            summary: 'Run failed',
+            started_at: '2026-10-14T01:00:00.000Z',
+            finished_at: '2026-10-14T01:01:00.000Z',
+            tokens_out: 120,
+          },
+          {
+            run_id: 'run-2',
+            agent_name: 'Writer A',
+            status: 'running',
+            summary: null,
+            started_at: '2026-10-14T02:00:00.000Z',
+            finished_at: null,
+            tokens_out: null,
+          },
+        ];
+      }
+      return null;
+    });
+
+    const detail = await loadStageDetail(database, 'writer');
+
+    expect(detail?.recentRuns).toEqual([
+      {
+        runId: 'run-1',
+        agentName: 'Unknown agent',
+        status: 'failed',
+        summary: 'Run failed',
+        startedAt: '2026-10-14T01:00:00.000Z',
+        finishedAt: '2026-10-14T01:01:00.000Z',
+        tokensOut: 120,
+      },
+      {
+        runId: 'run-2',
+        agentName: 'Writer A',
+        status: 'succeeded',
+        summary: null,
+        startedAt: '2026-10-14T02:00:00.000Z',
+        finishedAt: null,
+        tokensOut: null,
+      },
+    ]);
+  });
+
+  it('reports no recent runs for the published stage because no role owns it', async () => {
+    const { database, queries } = createFakeDatabase((sql) => {
+      if (sql.includes('AS updated_at')) {
+        return [
+          {
+            id: 'post-1',
+            title: 'A published article',
+            status: 'published',
+            updated_at: '2026-10-14T03:00:00.000Z',
+          },
+        ];
+      }
+      return null;
+    });
+
+    const detail = await loadStageDetail(database, 'published');
+
+    expect(detail?.recentRuns).toEqual([]);
+    expect(detail?.waitingItems).toHaveLength(1);
+    expect(queries.some((sql) => sql.includes('LEFT JOIN agents a ON a.id = r.agent_id'))).toBe(
+      false,
+    );
   });
 });

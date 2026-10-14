@@ -17,7 +17,7 @@ const scorecardRows = database ? await loadAgentScorecard(database, { days }) : 
 <DashboardLayout title="Agents">
   <div class="flex flex-col gap-6">
     <PipelineRunButton client:load />
-    <section aria-label="Agent pipeline flow">
+    <section aria-label="Live topology playground">
       <AgentFlow client:load />
     </section>
     <AgentList client:load />

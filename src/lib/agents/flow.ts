@@ -230,6 +230,216 @@ export function buildFlowStages(
   });
 }
 
+export interface StageWaitingItem {
+  id: string;
+  title: string;
+  status: string;
+  updatedAt: string | null;
+}
+
+export interface StageRecentRun {
+  runId: string;
+  agentName: string;
+  status: 'succeeded' | 'failed' | 'skipped';
+  summary: string | null;
+  startedAt: string;
+  finishedAt: string | null;
+  tokensOut: number | null;
+}
+
+export interface StageDetail {
+  generatedAt: string;
+  stage: FlowStage;
+  waitingItems: StageWaitingItem[];
+  recentRuns: StageRecentRun[];
+}
+
+export const STAGE_WAITING_ITEM_LIMIT = 8;
+export const STAGE_RECENT_RUN_LIMIT = 6;
+
+const STAGE_ROLE: Record<FlowStageId, string | null> = {
+  planner: 'planner',
+  researcher: 'scrapper',
+  writer: 'writer',
+  qc: 'qc',
+  reviewer: 'reviewer',
+  published: null,
+};
+
+interface WaitingItemRow {
+  id: string;
+  title: string;
+  status: string;
+  updated_at: string | null;
+}
+
+interface StageRunRow {
+  run_id: string;
+  agent_name: string | null;
+  status: string;
+  summary: string | null;
+  started_at: string;
+  finished_at: string | null;
+  tokens_out: number | null;
+}
+
+function readRunStatus(value: string): 'succeeded' | 'failed' | 'skipped' {
+  if (value === 'failed' || value === 'skipped') {
+    return value;
+  }
+
+  return 'succeeded';
+}
+
+function toWaitingItem(row: WaitingItemRow): StageWaitingItem {
+  return { id: row.id, title: row.title, status: row.status, updatedAt: row.updated_at };
+}
+
+function waitingItemQuery(
+  stage: FlowStageId,
+  startIso: string,
+): { sql: string; bindings: unknown[] } {
+  if (stage === 'planner') {
+    return {
+      sql: `SELECT id, title, status, updated_at FROM topics
+            WHERE created_at >= ? ORDER BY created_at DESC LIMIT ?`,
+      bindings: [startIso, STAGE_WAITING_ITEM_LIMIT],
+    };
+  }
+
+  if (stage === 'researcher') {
+    return {
+      sql: `SELECT id, title, status, updated_at FROM topics
+            WHERE status IN ('queued', 'fetched', 'blocked')
+            ORDER BY updated_at ASC LIMIT ?`,
+      bindings: [STAGE_WAITING_ITEM_LIMIT],
+    };
+  }
+
+  if (stage === 'writer') {
+    return {
+      sql: `SELECT id, title, status, updated_at FROM topics
+            WHERE status = 'researched' ORDER BY updated_at ASC LIMIT ?`,
+      bindings: [STAGE_WAITING_ITEM_LIMIT],
+    };
+  }
+
+  if (stage === 'published') {
+    return {
+      sql: `SELECT id, title, status, COALESCE(updated_date, updated_at) AS updated_at
+            FROM posts WHERE status = 'published'
+            ORDER BY COALESCE(updated_date, updated_at) DESC LIMIT ?`,
+      bindings: [STAGE_WAITING_ITEM_LIMIT],
+    };
+  }
+
+  return {
+    sql: `SELECT id, title, COALESCE(review_status, 'pending') AS status, updated_at FROM posts
+          WHERE status = 'draft' AND (review_status IS NULL OR review_status IN ('pending', 'in_review'))
+          ORDER BY created_at ASC LIMIT ?`,
+    bindings: [STAGE_WAITING_ITEM_LIMIT],
+  };
+}
+
+function readChangesRequestedQuery(): { sql: string; bindings: unknown[] } {
+  return {
+    sql: `SELECT id, title, review_status AS status, updated_at FROM posts
+          WHERE status = 'draft' AND review_status = 'changes_requested'
+          ORDER BY created_at ASC LIMIT ?`,
+    bindings: [STAGE_WAITING_ITEM_LIMIT],
+  };
+}
+
+async function loadWaitingItems(
+  db: D1Database,
+  stage: FlowStageId,
+  startIso: string,
+): Promise<StageWaitingItem[]> {
+  const query = waitingItemQuery(stage, startIso);
+  const rows = await db
+    .prepare(query.sql)
+    .bind(...query.bindings)
+    .all<WaitingItemRow>();
+
+  const items = (rows.results ?? []).map(toWaitingItem);
+
+  if (stage !== 'writer') {
+    return items;
+  }
+
+  const remaining = STAGE_WAITING_ITEM_LIMIT - items.length;
+
+  if (remaining <= 0) {
+    return items;
+  }
+
+  const changesQuery = readChangesRequestedQuery();
+  const changesRows = await db
+    .prepare(changesQuery.sql)
+    .bind(...changesQuery.bindings)
+    .all<WaitingItemRow>();
+
+  return [...items, ...(changesRows.results ?? []).map(toWaitingItem)].slice(
+    0,
+    STAGE_WAITING_ITEM_LIMIT,
+  );
+}
+
+async function loadStageRecentRuns(db: D1Database, stage: FlowStageId): Promise<StageRecentRun[]> {
+  const role = STAGE_ROLE[stage];
+
+  if (role === null) {
+    return [];
+  }
+
+  const rows = await db
+    .prepare(
+      `SELECT r.id AS run_id, a.name AS agent_name, r.status, r.summary, r.started_at,
+              r.finished_at, r.tokens_out
+       FROM agent_runs r LEFT JOIN agents a ON a.id = r.agent_id
+       WHERE a.role = ? ORDER BY r.started_at DESC LIMIT ?`,
+    )
+    .bind(role, STAGE_RECENT_RUN_LIMIT)
+    .all<StageRunRow>();
+
+  return (rows.results ?? []).map((row) => ({
+    runId: row.run_id,
+    agentName: row.agent_name ?? 'Unknown agent',
+    status: readRunStatus(row.status),
+    summary: row.summary,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    tokensOut: row.tokens_out,
+  }));
+}
+
+export async function loadStageDetail(
+  db: D1Database,
+  stageId: string,
+  now?: Date,
+): Promise<StageDetail | null> {
+  if (!FLOW_STAGE_IDS.includes(stageId as FlowStageId)) {
+    return null;
+  }
+
+  const stageKey = stageId as FlowStageId;
+  const nowDate = now ?? new Date();
+  const startIso = startOfUtcDay(nowDate);
+  const flow = await loadAgentFlow(db, nowDate);
+  const stage = flow.stages.find((entry) => entry.id === stageKey);
+
+  if (!stage) {
+    return null;
+  }
+
+  const [waitingItems, recentRuns] = await Promise.all([
+    loadWaitingItems(db, stageKey, startIso),
+    loadStageRecentRuns(db, stageKey),
+  ]);
+
+  return { generatedAt: flow.generatedAt, stage, waitingItems, recentRuns };
+}
+
 export async function loadAgentFlow(
   db: D1Database,
   now?: Date,
