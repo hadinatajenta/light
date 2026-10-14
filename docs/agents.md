@@ -158,29 +158,91 @@ time, and a topic that is not finished stays in Fetched until a later run.
 
 ## Roles
 
-- writer: drafts a new buying guide from a topic, using only verified research.
-- reviewer: runs the editorial pass on a draft, or the final fact-check gate when auto publish is on.
-- qc: audits the oldest pending draft for formatting, SEO fields, and policy issues.
-- scrapper: searches the web and fetches sources, then writes verifiable notes tagged by angle and source type.
+- planner: proposes topics for the queue, in the categories the enabled writers cover.
+- scrapper (Researcher): searches the web and fetches sources, then writes verifiable notes tagged by angle and source type.
+- writer: drafts a new buying guide from a researched topic, or revises a draft the reviewer sent back. Its answer is checked against the topic before a draft is stored.
+- reviewer: the single reviewer. It claims a draft that no stage has touched, fixes what it can itself, and approves it for publication. It reviews against the topic, not the draft text alone.
+- qc: the role still exists in the code, but no QC agent runs. Its gate is no longer on the path.
 
-A writer produces drafts. Publishing only happens after a draft passes the
-review stages below and a fact-check reviewer approves it. A reviewer will not
-auto publish a draft whose topic has no verified research, and the scheduled
-publisher enforces the same gate.
+A writer produces drafts. One reviewer approves them, and that approval is the
+only thing that puts an article in front of the publisher.
 
-## Review stages
+## Review and publication
 
-A draft is published only after three recorded stages:
+A draft now travels one path:
 
-1. QC audits the draft and records `qc_passed`.
-2. A reviewer without auto publish runs the editorial pass and records
-   `editorial_passed`.
-3. A reviewer with auto publish is the final fact-check gate; approval records
-   `fact_check_passed`, which is the only stage the publisher accepts.
+1. The writer creates the draft. It starts with no review stage.
+2. The reviewer claims it, fixes it, and approves it. Approval records
+   `review_status = 'approved'`, `review_stage = 'fact_check_passed'`, and the
+   publication date, and `fact_check_passed` is the only stage the publisher
+   accepts.
+3. The publisher publishes the draft on the first tick after the publication
+   date passes, and only when `postPassesResearchGate` finds verified research
+   for the draft's topic. A draft whose topic has no verified research is left
+   for a human, and the reviewer's run summary says so.
 
-Each agent claims only the drafts its stage allows, and a change request keeps
-the stage so the same gate sees the revision. Published posts are backfilled to
-`fact_check_passed` by `migrations/0024_review_stages.sql`.
+When a claim the article needs is not supported by the research notes, the
+reviewer refuses to approve it and names the unsupported claims instead of
+publishing something unsupported. The writer's revision path then takes the
+draft for at most three automatic rounds, after which the draft is parked and
+the operator is notified. Older drafts may still carry the `qc_passed` and
+`editorial_passed` stages from the retired three-gate path, and the reviewer
+claims those too.
+
+A deterministic topic-match gate covers the separate case of a well formed draft
+about the wrong subject. It compares the draft's significant words against the
+draft title and against the linked topic's title and keywords, using plain term
+overlap with no model call, and reports `TITLE_BODY_MISMATCH` when the body does
+not talk about what the title promises and `TOPIC_BODY_MISMATCH` when the draft
+does not talk about its topic. It runs only when there are at least two
+significant terms to compare, so a very short title passes it silently.
+
+It has two call sites and one prompt change:
+
+- In the reviewer's preflight, either code refuses the approval and returns the
+  draft as `changes_requested` with the issue list, like any other preflight
+  failure.
+- In the writer run, on the model's answer before the draft exists. A mismatch
+  means no draft at all: the topic is blocked with a reason and the operator is
+  notified, on the same path as a `NEEDS RESEARCH` return.
+- The reviewer prompt now carries the topic title, the topic keywords, and the
+  topic's verified research notes, and tells the reviewer to refuse an article
+  that is not about that topic and to name the mismatch in its notes.
+
+The gate adds no role, no schedule, no cost, and no model call. The writer still
+only produces drafts, approval is still the only thing that queues publication,
+and the publisher still requires the verified research gate.
+
+The reviewer runs in the same request right after a writer run produced a draft,
+so a fresh draft is reviewed immediately rather than waiting for the next tick.
+The chain respects the request's deadline and stands down when no budget remains;
+the reviewer's own schedule then picks the draft up.
+
+## Schedules
+
+An agent runs on one of these scheduling modes:
+
+- `manual`: the scheduler skips it.
+- `interval` (the default): the run interval that `runs_per_day` describes.
+- `weekly`: once every seven days.
+- `hours`: the fixed hours stored in `agents.schedule_hours`, a comma separated
+  list of hours in Asia/Jakarta such as `6,12,18`. The researcher runs at 06:00,
+  12:00, and 18:00, so topics exist before the writers work. A NULL or
+  unreadable list falls back to the run interval.
+
+## Nothing runs for nothing
+
+An agent that runs with no usable work fails instead of reporting a silent
+success, and the run is recorded as `failed` with the message below, so the
+dashboard and the notifications show why:
+
+- writer, with no researched topic and nothing to revise: run the Researcher.
+- scrapper, with no queued topic: run the Planner.
+- planner, with no writer category or with a full queue: the queue already holds
+  enough unclaimed work.
+- reviewer, with no draft awaiting review: run a Writer.
+
+These failures make no model call, so a run with nothing to do costs nothing.
 
 ## Demand brief
 

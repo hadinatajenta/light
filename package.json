@@ -22,6 +22,7 @@
     "cf:types": "wrangler types",
     "db:seed": "tsx scripts/seed-d1.ts",
     "db:export": "tsx scripts/export-d1.ts",
+    "db:audit-topic-match": "tsx scripts/audit-post-topic-match.ts",
     "cf:db:migrate": "wrangler d1 migrations apply light-content --remote",
     "cf:deploy": "wrangler deploy",
     "agents:deploy": "wrangler deploy --config workers/agents/wrangler.jsonc",

@@ -6,6 +6,7 @@ import {
   TITLE_MAX_LENGTH,
   TITLE_MIN_LENGTH,
 } from '../seo/audit';
+import { findTopicMatchIssues, type TopicMatchReference } from './topic-match';
 
 export interface PreflightIssue {
   code: string;
@@ -28,7 +29,7 @@ function findPlaceholderTokens(body: string): string[] {
   return PLACEHOLDER_TOKENS.filter((token) => lowered.includes(token));
 }
 
-export function runPreflight(draft: PreflightDraft): PreflightIssue[] {
+export function runPreflight(draft: PreflightDraft, topic?: TopicMatchReference): PreflightIssue[] {
   const issues: PreflightIssue[] = [];
   const title = draft.title.trim();
   const description = draft.description.trim();
@@ -78,6 +79,12 @@ export function runPreflight(draft: PreflightDraft): PreflightIssue[] {
       code: 'PLACEHOLDER_TEXT',
       message: `Body contains placeholder text: ${placeholderTokens.join(', ')}.`,
     });
+  }
+
+  if (topic) {
+    for (const mismatch of findTopicMatchIssues(draft, topic)) {
+      issues.push({ code: mismatch.code, message: mismatch.message });
+    }
   }
 
   return issues;

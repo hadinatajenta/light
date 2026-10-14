@@ -56,6 +56,7 @@ import {
   mergeWriterCategories,
   parseAgentCategories,
 } from './store';
+import { findTopicMatchIssues, type TopicMatchReference } from './topic-match';
 import {
   blockTopic,
   claimTopicForScrapper,
@@ -88,6 +89,7 @@ interface AppliedResult {
   summary: string;
   output: string;
   postId?: string;
+  topicBlocked?: boolean;
 }
 
 interface CatalogRow {
@@ -303,13 +305,18 @@ Return JSON with keys: title (string, 10 to 70 characters), description (string,
 
   const renderedDraft = `Title: ${draft.title}\n\nDescription: ${draft.description}\n\n${truncate(draft.body, MAX_DRAFT_CHARS)}`;
 
-  if (agent.role === 'reviewer') {
-    return `Return JSON with keys: decision ("approve" or "changes_requested"), notes (string), revisedBody (string, the full revised markdown, or an empty string when approving).\n\nDraft:\n${renderedDraft}`;
-  }
-
   const topicForDraft = await findTopicByPost(db, draft.id);
   const sources = topicForDraft ? await listVerifiedSources(db, topicForDraft.id) : [];
   const research = renderSourcesForPrompt(sources);
+
+  if (agent.role === 'reviewer') {
+    const topicBlock = topicForDraft
+      ? `\n\nThis draft was written for the topic "${topicForDraft.title}". Topic keywords: ${topicForDraft.keywords.join(', ') || 'none'}.\n\nVerified research for that topic:\n${research || 'No verified research note is linked to this topic yet.'}`
+      : '\n\nNo topic is linked to this draft.';
+
+    return `Return JSON with keys: decision ("approve" or "changes_requested"), notes (string), revisedBody (string, the full revised markdown, or an empty string when approving).\n\nRefuse with changes_requested when the article is not about the topic above, and name that mismatch in your notes. Keep any rewrite on that topic and use only the research above.\n\nDraft:\n${renderedDraft}${topicBlock}`;
+  }
+
   const researchBlock = research
     ? `\n\nResearch notes the draft was supposed to be based on:\n${research}`
     : '\n\nNo research notes are linked to this draft.';
@@ -335,6 +342,28 @@ async function applyResult(
 
     if (!title || !body) {
       throw new ApiError(502, 'MODEL_OUTPUT_INVALID', 'The writer did not return a usable draft.');
+    }
+
+    if (topic) {
+      const mismatches = findTopicMatchIssues(
+        { title, body },
+        { title: topic.title, keywords: topic.keywords },
+      );
+
+      if (mismatches.length > 0) {
+        const reason = [
+          'The writer returned an article that is not about the topic it claimed.',
+          ...mismatches.map((mismatch) => `- ${mismatch.message}`),
+        ].join('\n');
+
+        await blockTopic(db, topic.id, reason);
+
+        return {
+          summary: `Blocked "${topic.title}": the draft is about a different topic`,
+          output: truncate(`${reason}\n\n${content}`, MAX_OUTPUT_CHARS),
+          topicBlocked: true,
+        };
+      }
     }
 
     if (revisionTarget) {
@@ -376,12 +405,18 @@ async function applyResult(
 
     if (decision === 'approve') {
       const linkedTopic = await findTopicByPost(db, target.id);
+      const topicReference: TopicMatchReference = linkedTopic
+        ? { title: linkedTopic.title, keywords: linkedTopic.keywords }
+        : { title: target.title, keywords: [] };
 
-      const preflightIssues = runPreflight({
-        title: target.title,
-        description: target.description,
-        body: revisedBody || target.body,
-      });
+      const preflightIssues = runPreflight(
+        {
+          title: target.title,
+          description: target.description,
+          body: revisedBody || target.body,
+        },
+        topicReference,
+      );
 
       if (preflightIssues.length > 0) {
         const blockedNotes = [
@@ -1075,7 +1110,7 @@ async function executeAgentRun(
     if (topic) {
       if (applied.postId) {
         await markTopicUsed(db, topic.id, applied.postId);
-      } else {
+      } else if (!applied.topicBlocked) {
         await releaseTopic(db, topic.id, applied.summary, releasedStatusFor(agent));
       }
     }

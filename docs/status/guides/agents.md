@@ -63,22 +63,23 @@ Each run of an agent does one job, based on its role.
 - Claims the oldest queued topic **in one of its categories** when it has a beat, otherwise the oldest queued topic of any category. When the queue is empty it looks for a draft whose review status is `changes_requested` and revises that instead.
 - The prompt topic tells it what to write about. The writer is also given the titles of the last 12 published posts and told not to duplicate them.
 - It returns a title, a description, 2 to 4 tags, and a markdown body. The body is saved as a new post with status `draft` and review status `pending`.
+- Before the draft is stored, the topic-match gate checks the returned title and body against the topic the writer claimed. When they do not match, no draft is created: the topic is blocked with the reason, the operator is notified, and the run takes the same path as a `NEEDS RESEARCH` return.
 - Model effort: **high**.
 
 ### Reviewer
 
-- Claims the **oldest pending draft** (a draft whose review status is empty or `pending`) atomically, so two reviewers never work on the same draft at the same time. The claim is `in_review` while the model runs, released on failure or by the reaper after twenty minutes.
-- Decides to approve or request changes. On "request changes" it writes the revised body back to the draft and sets the review status to `changes_requested`.
-- A deterministic preflight runs before every approval. While the draft still has a hard error (title or description length, a body under 600 words, an H1 heading, fewer than three H2 sections, or placeholder text) the reviewer refuses to approve and sends the draft back with the issue list instead.
-- On approve it sets the review status to `approved`. If **Auto publish approved drafts** is enabled on this reviewer, it publishes immediately. Otherwise the scheduled publisher publishes it on the next tick once its publication date has passed.
+- Claims the **oldest draft that no stage has touched** (a draft whose review status is empty or `pending`) atomically, so two reviewers never work on the same draft at the same time. It also claims drafts left at `qc_passed` or `editorial_passed` by the retired gates. The claim is `in_review` while the model runs, released on failure or by the reaper after twenty minutes.
+- Decides to approve or refuse. The normal outcome is a fix: the reviewer rewrites what is weak and approves it in the same pass, rather than sending it back for polish. On a refusal it writes its corrections back to the draft and sets the review status to `changes_requested`.
+- A deterministic preflight runs before every approval. While the draft still has a hard error (title or description length, a body under 600 words, an H1 heading, fewer than three H2 sections, placeholder text, or a title and body about different subjects) the reviewer refuses to approve and sends the draft back with the issue list instead.
+- The topic-match gate is part of that preflight. It reports `TITLE_BODY_MISMATCH` when the body does not talk about what the title promises, and `TOPIC_BODY_MISMATCH` when the draft does not talk about the topic it was written for. Either code sends the draft back the same way any other preflight failure does.
+- On approve it sets the review status to `approved`, records the `fact_check_passed` stage that the publisher requires, and sets the publication date to the next publish slot. An approval is the only thing that queues an article for publication, and the scheduled publisher picks it up from there.
+- When a claim the article needs is not supported by the research notes, the reviewer refuses instead of approving and names the unsupported claims, so the writer can act on them. It never approves an unsupported claim to hit a target.
+- The reviewer is anchored to the topic. Its prompt carries the topic title, the topic keywords, and the topic's verified research notes, and it is told to refuse an article that is not about that topic and to name the mismatch in its notes. Previously it saw only the draft text, so it could rewrite a body toward an unrelated subject.
 - Model effort: **high**.
 
 ### QC
 
-- Claims a pending draft, so the QC and a reviewer cannot audit the same draft at once.
-- Audits it for title length, description length, heading structure, word count, placeholder text, and any claim that looks unverifiable, and merges the model findings with the deterministic preflight.
-- When anything is flagged it sets the review status to `changes_requested` with the issue list as the review notes, so the writer revises it and no reviewer sees it as pending. When nothing is flagged the claim is released and the draft stays pending.
-- Model effort: **high**.
+- The role still exists in the code, but the current roster runs no QC agent. A draft travels from the writer straight to the reviewer.
 
 ### Scrapper
 
@@ -99,14 +100,29 @@ Note: effort is a property of the role, not the model. The model choice is `deep
 
 ## The review gate
 
-A writer only ever produces drafts. A draft becomes published only when **both** of these are true:
+A writer only ever produces drafts. A draft becomes published only when **all** of these are true:
 
-1. A reviewer approves it, and
-2. That reviewer has **Auto publish approved drafts** enabled.
+1. A reviewer approved it. Approval records `review_status = 'approved'` and the `fact_check_passed` stage, which is the only stage the publisher accepts.
+2. Its publication date has passed. The reviewer sets that date to the next publish slot, so the publisher spaces articles across the day and the publication target is met by pacing rather than by a burst.
+3. The draft passes the verified research gate below.
 
-This is enforced in the server code, not in the browser. The planner, writer, QC, and Scrapper roles can never publish, and turning on auto publish has no effect on them. If you want every post to wait for you, keep the review status at `pending` and publish by hand from the post editor: once a reviewer approves a draft, the scheduled publisher publishes it as soon as its publication date has passed, whether or not auto publish is enabled.
+This is enforced in the server code, not in the browser. The planner, writer, and scrapper roles can never publish, and turning on auto publish for any other role has no effect. One reviewer does the whole pass: it fixes what it can and approves it, and it publishes through the scheduled publisher rather than writing the site directly. If you want a draft to wait for you, leave the review status at `pending` or switch the reviewer to a manual schedule before it claims the draft.
 
-A second gate protects against unverified research. The writer only receives research notes marked **Verified**. If a topic has no verified note, the writer is told to return `NEEDS RESEARCH` and the topic is blocked. A reviewer approves the draft but skips auto publish when the draft's topic has no verified source. The scheduler enforces the same gate, so an approved draft whose topic has no verified source is not published on the schedule either. A draft can never reach the site on unverified research unless a human publishes it by hand.
+A second gate protects against unverified research. The writer only receives research notes marked **Verified**. If a topic has no verified note, the writer is told to return `NEEDS RESEARCH` and the topic is blocked. A reviewer that approves a draft whose topic has no verified source leaves it for a human: the publisher holds the draft, and the run summary says so. The scheduler enforces the same gate, so an approved draft whose topic has no verified source is not published on the schedule either. A draft can never reach the site on unverified research unless a human publishes it by hand.
+
+The reviewer also runs in the same request right after a writer run produced a draft, so a fresh draft is reviewed immediately instead of waiting for the next tick. The chain respects the request's deadline and stands down when little budget is left; the reviewer's own schedule then picks the draft up, so nothing is lost.
+
+### The topic-match gate
+
+A draft can pass every other check and still be about the wrong subject. The topic-match gate compares the draft's significant words against the draft title and against the linked topic's title and keywords, using plain term overlap with no model call. It reports two codes: `TITLE_BODY_MISMATCH`, when the body does not talk about what the title promises, and `TOPIC_BODY_MISMATCH`, when the draft does not talk about the topic it was written for. It runs only when there are at least two significant terms to compare, so a very short title passes it silently.
+
+It runs in three places:
+
+- Inside the reviewer's preflight. Either code refuses the approval and sends the draft back as `changes_requested` with the issue list, like any other preflight failure.
+- In the writer run, on the model's answer before the draft exists. When the returned title and body do not match the claimed topic, no draft is created, the topic is blocked with a reason, and the operator is notified, on the same path as a `NEEDS RESEARCH` return.
+- In the reviewer prompt, which now carries the topic title, the topic keywords, and the topic's verified research notes, and tells the reviewer to refuse an article that is not about that topic and to name the mismatch in its notes.
+
+Nothing else changes. The writer still only produces drafts, approval is still the only thing that queues publication, and the publisher still requires the verified research gate. The gate adds no role, no schedule, no cost, and no model call.
 
 ## Spending budget
 
@@ -157,6 +173,7 @@ pace, so the queue stays short instead of filling with topics nothing can reach.
 - The endpoint finds every **enabled** agent whose `nextRunAt` is due or empty, and runs them in order.
 - A newly created enabled agent has `nextRunAt` set to its creation time, so it is **due immediately** and runs on the next 15-minute tick.
 - After each run, the next run time is set to now plus `24 hours / runs per day`. The interval is anchored to the moment the run is claimed, not to the clock, so a slow run does not push the next slot back.
+- An agent can instead run at **fixed hours in Asia/Jakarta**, stored on the agent as `schedule_hours`, for example `6,12,18`. The researcher runs at 06:00, 12:00, and 18:00 so topics exist before the writers work. A next run time is never in the past, so a tick that lands on an hour schedules the following one. A NULL or unreadable list falls back to the runs per day interval.
 
 | Runs per day | Interval |
 | --- | --- |
@@ -173,7 +190,7 @@ pace, so the queue stays short instead of filling with topics nothing can reach.
 
 The cron ticks every 15 minutes and picks up an agent at the **first tick after its interval has passed**, so the real cadence is the interval rounded up to a 15 minute boundary. Editing an agent recomputes its next run from that moment.
 
-- Within one tick, roles run in this order: **planner, scrapper, writer, qc, reviewer**. A topic must exist before anything can research it, the writer needs verified research before it can draft, and QC gates a draft before a reviewer approves it. The order only matters inside a single tick; the real throughput comes from each agent's own cadence.
+- Within one tick, roles run in this order: **planner, scrapper, writer, qc, reviewer**. A topic must exist before anything can research it, the writer needs verified research before it can draft, and the reviewer approves a draft right after the writer produces it. The QC role has no agent in the current roster. The order only matters inside a single tick; the real throughput comes from each agent's own cadence.
 - The endpoint has a 240 second budget with a 30 second safety margin, so each agent gets about 210 seconds. Each run also gets its own deadline, so a slow model call is cancelled cleanly and the run is recorded as failed instead of being killed mid-run. If many agents are due at once, it processes as many as fit and reports how many were left.
 - A scrapper run advances the research as far as its budget allows. A topic can rest in **Fetched** for one or more ticks, then becomes **Researched** on a later run once its notes are written. This is normal, not a stall.
 - Any run still marked as running after 20 minutes is closed automatically as failed, and the topic it had claimed is released back to the queue. This is what keeps the Activity page honest after a hard interruption.
@@ -185,7 +202,7 @@ When you save an agent, its next run time is recomputed, so editing an agent res
 
 On the Agents page, each card has a **Run agent** button. It runs the agent immediately, regardless of its schedule.
 
-- On success, a toast shows the run summary, for example `Drafted "Best standing desks"` or `Passed QC on "..."`.
+- On success, a toast shows the run summary, for example `Drafted "Best standing desks"` or `Approved "..." for the publisher at ...`.
 - On failure, a toast shows the error.
 - The card and the run history refresh afterwards.
 
@@ -242,8 +259,8 @@ dot marks a running agent and a dashed ring marks a stage holding a backlog. The
 down on narrow screens, and users who ask for reduced motion get a static
 version.
 
-QC and the reviewer both pull from the same pending drafts, which is why those
-two stages show the same waiting count.
+The QC stage has no agent in the current roster, so pending drafts wait at the
+reviewer stage.
 
 ## Where to see history
 
@@ -271,7 +288,7 @@ Notes stay editable per topic from the **Topics** page, and the Research page li
 - **Timeout**: `DEEPSEEK_TIMEOUT`, "The DeepSeek request timed out." The request has a 180 second limit. Try again or simplify the prompt.
 - **Unreachable**: `DEEPSEEK_UNREACHABLE`, "Could not reach the DeepSeek API." Likely a temporary network problem.
 - **Agent limit reached**: `AGENT_LIMIT_REACHED`, either "You can create at most 12 agents." or a message naming the role limit (planner 2, scrapper 2, writer 4, qc 2, reviewer 2). Delete an agent before creating another, or change the role of the one you have.
-- **Nothing to do**: a reviewer or QC run with no pending draft returns "No pending draft to review". That is a success, not an error.
+- **Nothing to do**: a run with no usable work fails instead of reporting a silent success, so the dashboard and the notifications name the next action: the writer tells you to run the Researcher, the scrapper tells you to run the Planner, the planner reports that the queue already holds enough unclaimed work, and the reviewer tells you to run a Writer. These failures make no model call, so a run with nothing to do costs nothing.
 - **Skipped**: a scrapper run with no search provider configured is recorded as **Skipped**, and the topic is left alone. It makes no model call, so a skipped run costs nothing. Connect a provider on the Agents page.
 - **Search rejected the key**: `SEARCH_UNAUTHORIZED`. Replace the provider key on the Agents page.
 - **Search rate limited**: `SEARCH_RATE_LIMITED`. The scrapper retries a few times with backoff, then blocks the topic. Wait and run again, or lower the runs per day.
@@ -283,6 +300,6 @@ Notes stay editable per topic from the **Topics** page, and the Research page li
 - There is no automatic run-level retry. A failed run is recorded, and you can retry it from its Activity run detail, or wait for the next scheduled tick.
 - There is no per agent spending cap yet. The Spending budget is global, so the token limit is shared by every agent.
 - There is no per-day history chart. The scorecard is a table over 7, 30, or 90 days, and the Spending budget card and the Research page show today's and this month's usage with an estimated cost.
-- There is no mandatory fact-check stage before the editorial review. A draft is reviewed by whichever reviewer claims it first, so the strict reviewer raises the bar on the drafts it takes rather than gating every draft. A `review_stage` column would make that mandatory.
+- There is no separate fact-check reviewer. One reviewer fixes and approves every draft, and the `fact_check_passed` stage it records is the gate the publisher requires. The QC role and the second reviewer are retired in the roster.
 - There is no search volume data behind the planner. Topics come from the seed keywords in the prompt plus the model, not from measured search volume.
 - Only Tavily and the development fixture provider are wired up. Brave, Serper, and Exa can be added behind the same interface.
