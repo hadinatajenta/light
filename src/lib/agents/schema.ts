@@ -25,7 +25,7 @@ export const agentInputSchema = z
   .superRefine((input, context) => {
     if (!isModelAvailableForProvider(input.provider, input.model)) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['model'],
         message: `Model "${input.model}" is not offered by ${MODEL_PROVIDERS[input.provider].label}.`,
       });
