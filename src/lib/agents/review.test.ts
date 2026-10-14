@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveReviewClaimStage, reviewStageAfterPass } from './review-stages';
+import { resolveReviewClaimStage, reviewStageAfterPass, reviewStageFilter } from './review-stages';
 
 describe('resolveReviewClaimStage', () => {
   it('sends QC to the first stage', () => {
@@ -26,5 +26,23 @@ describe('reviewStageAfterPass', () => {
     expect(reviewStageAfterPass('qc')).toBe('qc_passed');
     expect(reviewStageAfterPass('editorial')).toBe('editorial_passed');
     expect(reviewStageAfterPass('fact_check')).toBe('fact_check_passed');
+  });
+});
+
+describe('reviewStageFilter', () => {
+  it('keeps the first gate on drafts no stage has touched', () => {
+    expect(reviewStageFilter('qc')).toBe('review_stage IS NULL');
+  });
+
+  it('lets the editorial reviewer claim a draft that has no stage yet', () => {
+    expect(reviewStageFilter('editorial')).toBe(
+      "(review_stage IS NULL OR review_stage = 'qc_passed')",
+    );
+  });
+
+  it('lets the reviewer that publishes claim a fresh draft and every earlier passed stage', () => {
+    expect(reviewStageFilter('fact_check')).toBe(
+      "(review_stage IS NULL OR review_stage = 'qc_passed' OR review_stage = 'editorial_passed')",
+    );
   });
 });

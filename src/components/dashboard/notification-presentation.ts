@@ -26,8 +26,11 @@ export const NOTIFICATION_EVENT_LABELS: Record<NotificationEvent, string> = {
   'agent.alert': 'An agent fails three runs in a row',
   'deepseek.unavailable': 'DeepSeek rejects a request',
   'post.published': 'A post is published',
+  'post.revision.exhausted': 'A draft hits the revision limit and needs a human decision',
   'budget.warning': 'Search budget runs low',
   'share.channel.attention': 'A sharing channel needs attention',
+  'analyst.findings.ready': 'The performance analyst stores findings',
+  'analyst.sources.degraded': 'A data source the analyst needs is missing',
 };
 
 const LEVEL_DOT_CLASSES: Record<NotificationLevel, string> = {

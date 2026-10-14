@@ -1,0 +1,31 @@
+---
+import BudgetCard from '@/components/dashboard/budget-card';
+import DeepSeekKeyCard from '@/components/dashboard/deepseek-key-card';
+import SearchProviderCard from '@/components/dashboard/search-provider-card';
+import SettingsNav from '@/components/dashboard/settings-nav.astro';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { SETTINGS_SECTION_PROVIDERS } from '@/lib/dashboard/settings-sections';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Settings: Providers">
+  <div class="flex flex-col gap-6">
+    <div class="min-w-0">
+      <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+        {SETTINGS_SECTION_PROVIDERS.label}
+      </h2>
+      <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+        {SETTINGS_SECTION_PROVIDERS.purpose}
+      </p>
+    </div>
+
+    <SettingsNav />
+
+    <div class="flex flex-col gap-6">
+      <DeepSeekKeyCard client:load />
+      <SearchProviderCard client:load />
+      <BudgetCard client:load />
+    </div>
+  </div>
+</DashboardLayout>

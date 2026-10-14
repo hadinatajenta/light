@@ -71,3 +71,38 @@ export function toErrorMessage(error: unknown): string {
 
   return 'You appear to be offline. Check your connection and try again.';
 }
+
+export function toFieldErrorMap(error: unknown): Record<string, string> {
+  if (!(error instanceof ApiRequestError)) {
+    return {};
+  }
+
+  const issues = (error.details as { issues?: unknown } | undefined)?.issues;
+
+  if (!Array.isArray(issues)) {
+    return {};
+  }
+
+  const fieldErrors: Record<string, string> = {};
+
+  for (const issue of issues) {
+    if (!issue || typeof issue !== 'object') {
+      continue;
+    }
+
+    const field = (issue as { field?: unknown }).field;
+    const message = (issue as { message?: unknown }).message;
+
+    if (typeof field !== 'string' || typeof message !== 'string') {
+      continue;
+    }
+
+    const key = field.split('.').pop() ?? field;
+
+    if (!fieldErrors[key]) {
+      fieldErrors[key] = message;
+    }
+  }
+
+  return fieldErrors;
+}

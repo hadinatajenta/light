@@ -45,11 +45,19 @@ export interface DailySeries {
   values: number[];
 }
 
+const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+function dayStartWithOffset(time: number, offsetMs: number): number {
+  return Math.floor((time + offsetMs) / DAY_IN_MS) * DAY_IN_MS - offsetMs;
+}
+
 export function buildDailySeriesBuckets(
   dates: (string | null)[],
   days: number,
   now = Date.now(),
+  offsetMs = WIB_OFFSET_MS,
 ): DailySeries {
+  const todayStart = dayStartWithOffset(now, offsetMs);
   const values = Array.from({ length: days }, () => 0);
 
   for (const rawDate of dates) {
@@ -62,16 +70,20 @@ export function buildDailySeriesBuckets(
       continue;
     }
 
-    const daysAgo = Math.floor((now - timestamp) / DAY_IN_MS);
-    if (daysAgo < 0 || daysAgo >= days) {
+    const dayOffset = Math.round(
+      (dayStartWithOffset(timestamp, offsetMs) - todayStart) / DAY_IN_MS,
+    );
+    const bucket = days - 1 + dayOffset;
+
+    if (bucket < 0 || bucket >= days) {
       continue;
     }
 
-    values[days - 1 - daysAgo] += 1;
+    values[bucket] += 1;
   }
 
   const dayKeys = Array.from({ length: days }, (_, index) =>
-    new Date(now - (days - 1 - index) * DAY_IN_MS).toISOString().slice(0, 10),
+    new Date(todayStart - (days - 1 - index) * DAY_IN_MS + offsetMs).toISOString().slice(0, 10),
   );
 
   return { days: dayKeys, values };

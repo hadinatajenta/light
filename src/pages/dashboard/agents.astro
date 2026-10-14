@@ -2,10 +2,7 @@
 import AgentList from '@/components/dashboard/agent-list';
 import AgentFlow from '@/components/dashboard/agent-flow';
 import AgentScorecard from '@/components/dashboard/agent-scorecard.astro';
-import BudgetCard from '@/components/dashboard/budget-card';
-import DeepSeekKeyCard from '@/components/dashboard/deepseek-key-card';
 import PipelineRunButton from '@/components/dashboard/pipeline-run-button';
-import SearchProviderCard from '@/components/dashboard/search-provider-card';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import { clampScorecardDays, loadAgentScorecard } from '@/lib/agents/scorecard';
 import { resolveContentDatabase } from '@/lib/content/database';
@@ -47,8 +44,25 @@ const scorecardRows = database ? await loadAgentScorecard(database, { days }) : 
         Open topics
       </a>
     </section>
-    <DeepSeekKeyCard client:load />
-    <SearchProviderCard client:load />
-    <BudgetCard client:load />
+    <section
+      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
+      aria-label="Provider credentials and spend limits"
+    >
+      <div class="min-w-0">
+        <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+          Credentials and spend limits
+        </h2>
+        <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+          The DeepSeek key, the search provider, and the spending budget moved to Settings, together
+          with the credentials the Performance Analyst reads its data sources with.
+        </p>
+      </div>
+      <a
+        href="/dashboard/settings/providers"
+        class="flex items-center justify-center whitespace-nowrap rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        Open settings
+      </a>
+    </section>
   </div>
 </DashboardLayout>

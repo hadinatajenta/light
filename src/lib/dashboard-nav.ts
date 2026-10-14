@@ -23,6 +23,7 @@ export const DASHBOARD_NAVIGATION: DashboardNavItem[] = [
   { label: 'Media', href: '/dashboard/media', icon: 'media', group: 'Content' },
   { label: 'Categories', href: '/dashboard/categories', icon: 'categories', group: 'Content' },
   { label: 'Agents', href: '/dashboard/agents', icon: 'agents', group: 'Automation' },
+  { label: 'Performance', href: '/dashboard/analyst', icon: 'performance', group: 'Automation' },
   { label: 'SEO', href: '/dashboard/seo', icon: 'seo', group: 'Automation' },
   { label: 'Research', href: '/dashboard/research', icon: 'research', group: 'Automation' },
   { label: 'Sharing', href: '/dashboard/sharing', icon: 'sharing', group: 'Automation' },

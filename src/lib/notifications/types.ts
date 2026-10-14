@@ -12,8 +12,11 @@ export const NOTIFICATION_EVENTS = [
   'agent.alert',
   'deepseek.unavailable',
   'post.published',
+  'post.revision.exhausted',
   'budget.warning',
   'share.channel.attention',
+  'analyst.findings.ready',
+  'analyst.sources.degraded',
 ] as const;
 export type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number];
 

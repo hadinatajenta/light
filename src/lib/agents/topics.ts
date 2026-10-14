@@ -19,6 +19,8 @@ export const TOPIC_INTENTS = [
 
 export const MAX_TOPIC_ATTEMPTS = 3;
 
+export const MAX_UNCLAIMED_TOPICS = 24;
+
 const TOPIC_RETRY_DELAYS_MS = [15 * 60 * 1000, 60 * 60 * 1000];
 
 const UNCLAIMABLE_TOPIC_STATUSES: readonly TopicStatus[] = [
@@ -263,6 +265,14 @@ export function buildCategoryFilter(categories: readonly string[]): {
   const placeholders = categories.map(() => '?').join(', ');
 
   return { clause: ` AND category IN (${placeholders})`, bindings: [...categories] };
+}
+
+export function countUnclaimedTopics(counts: TopicCounts): number {
+  return counts.queued + counts.fetched + counts.researched;
+}
+
+export function isTopicQueueFull(counts: TopicCounts): boolean {
+  return countUnclaimedTopics(counts) > MAX_UNCLAIMED_TOPICS;
 }
 
 async function claimTopicWithStatus(

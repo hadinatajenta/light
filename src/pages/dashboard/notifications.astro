@@ -1,6 +1,5 @@
 ---
 import NotificationList from '@/components/dashboard/notification-list';
-import NotificationSettings from '@/components/dashboard/notification-settings';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { countUnreadNotifications, listNotifications } from '@/lib/notifications/store';
@@ -43,6 +42,23 @@ const latestEntry = latestPage?.items.at(0) ?? null;
 
     <NotificationList client:load />
 
-    <NotificationSettings client:load />
+    <section
+      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
+      aria-label="Notification delivery settings"
+    >
+      <div class="min-w-0">
+        <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">Delivery</h2>
+        <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+          Email, Telegram, the dashboard URL, and the events that leave this system moved to
+          Settings. The feed above stays here.
+        </p>
+      </div>
+      <a
+        href="/dashboard/settings/notifications"
+        class="flex items-center justify-center whitespace-nowrap rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      >
+        Open settings
+      </a>
+    </section>
   </div>
 </DashboardLayout>

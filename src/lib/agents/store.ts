@@ -3,11 +3,19 @@ import { isRunActive } from './reaper';
 import {
   type AgentModel,
   type AgentRole,
+  type AgentScheduleMode,
+  DEFAULT_AGENT_MODEL,
+  DEFAULT_AGENT_SCHEDULE_MODE,
+  getRoleDefinition,
   MAX_AGENTS,
   MAX_AGENTS_BY_ROLE,
   MAX_RUNS_PER_DAY,
   MIN_RUNS_PER_DAY,
 } from './roles';
+import { nextScheduledHourRun, parseScheduleHours, serializeScheduleHours } from './schedule-hours';
+
+export const SYSTEM_ANALYST_AGENT_ID = 'agent-analyst-performance';
+export const SYSTEM_ANALYST_AGENT_NAME = 'Performance Analyst';
 
 export interface AgentRecord {
   id: string;
@@ -19,6 +27,9 @@ export interface AgentRecord {
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
+  scheduleMode: AgentScheduleMode | null;
+  scheduleHours: number[];
+  systemManaged: boolean;
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
@@ -34,6 +45,8 @@ export interface AgentInput {
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
+  scheduleMode?: AgentScheduleMode;
+  scheduleHours?: number[];
 }
 
 export interface AgentRunRecord {
@@ -59,6 +72,9 @@ interface AgentRow {
   runs_per_day: number;
   enabled: number;
   auto_publish: number;
+  schedule_mode: string | null;
+  schedule_hours: string | null;
+  system_managed: number;
   last_run_at: string | null;
   next_run_at: string | null;
   created_at: string;
@@ -79,6 +95,7 @@ interface AgentRunRow {
 }
 
 const RUNS_PER_DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * RUNS_PER_DAY_MS;
 
 export const MAX_AGENT_CATEGORIES = 6;
 
@@ -155,6 +172,24 @@ export function mergeWriterCategories(values: readonly string[][]): string[] {
   return merged;
 }
 
+function readScheduleMode(value: unknown): AgentScheduleMode | null {
+  if (
+    value === 'manual' ||
+    value === 'interval' ||
+    value === 'daily' ||
+    value === 'weekly' ||
+    value === 'hours'
+  ) {
+    return value;
+  }
+
+  return null;
+}
+
+export function scheduleModeUsesRunInterval(mode: AgentScheduleMode | null): boolean {
+  return mode === null || mode === 'interval';
+}
+
 function toAgent(row: AgentRow): AgentRecord {
   return {
     id: row.id,
@@ -166,6 +201,9 @@ function toAgent(row: AgentRow): AgentRecord {
     runsPerDay: row.runs_per_day,
     enabled: row.enabled === 1,
     autoPublish: row.auto_publish === 1,
+    scheduleMode: readScheduleMode(row.schedule_mode),
+    scheduleHours: parseScheduleHours(row.schedule_hours),
+    systemManaged: row.system_managed === 1,
     lastRunAt: row.last_run_at,
     nextRunAt: row.next_run_at,
     createdAt: row.created_at,
@@ -206,6 +244,72 @@ export function computeNextRunAt(runsPerDay: number, from: Date = new Date()): s
   return new Date(from.getTime() + intervalMs).toISOString();
 }
 
+export interface AgentScheduleInput {
+  scheduleMode: AgentScheduleMode | null;
+  runsPerDay: number;
+  scheduleHours?: number[] | null;
+}
+
+export function computeAgentNextRunAt(
+  agent: AgentScheduleInput,
+  from: Date = new Date(),
+): string | null {
+  if (agent.scheduleMode === 'manual') {
+    return null;
+  }
+
+  if (agent.scheduleMode === 'weekly') {
+    return new Date(from.getTime() + WEEK_MS).toISOString();
+  }
+
+  if (agent.scheduleMode === 'hours') {
+    const scheduled = nextScheduledHourRun(agent.scheduleHours ?? [], from);
+
+    if (scheduled) {
+      return scheduled.toISOString();
+    }
+  }
+
+  return computeNextRunAt(agent.runsPerDay, from);
+}
+
+function requireNonSystemRole(role: AgentRole): void {
+  const definition = getRoleDefinition(role);
+
+  if (definition.systemManaged) {
+    throw new ApiError(
+      409,
+      'AGENT_PROTECTED',
+      `${definition.label} is created by the system and cannot be created or reassigned manually.`,
+    );
+  }
+}
+
+function assertAgentUpdateAllowed(existing: AgentRecord, input: AgentInput): void {
+  const definition = getRoleDefinition(existing.role);
+
+  if (!definition.systemManaged) {
+    requireNonSystemRole(input.role);
+    return;
+  }
+
+  if (input.role !== existing.role) {
+    throw new ApiError(
+      409,
+      'AGENT_PROTECTED',
+      `${definition.label} keeps its role. Switch it to manual schedule instead.`,
+    );
+  }
+
+  if (!input.enabled) {
+    throw new ApiError(
+      409,
+      'AGENT_PROTECTED',
+      `${definition.label} cannot be disabled. Switch it to manual schedule instead.`,
+    );
+  }
+}
+
 export async function countAgents(db: D1Database): Promise<number> {
   const row = await db.prepare('SELECT COUNT(*) AS total FROM agents').first<{ total: number }>();
   return row?.total ?? 0;
@@ -241,6 +345,8 @@ export async function getAgent(db: D1Database, id: string): Promise<AgentRecord>
 }
 
 export async function createAgent(db: D1Database, input: AgentInput): Promise<AgentRecord> {
+  requireNonSystemRole(input.role);
+
   const [total, byRole] = await Promise.all([countAgents(db), countAgentsByRole(db, input.role)]);
   const roleLimit = MAX_AGENTS_BY_ROLE[input.role];
 
@@ -257,13 +363,16 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
   }
 
   const now = new Date();
+  const nowIso = now.toISOString();
   const id = crypto.randomUUID();
+  const scheduleMode = input.scheduleMode ?? DEFAULT_AGENT_SCHEDULE_MODE;
+  const nextRunAt = scheduleMode === 'manual' ? null : nowIso;
 
   await db
     .prepare(
       `INSERT INTO agents (id, name, role, prompt, categories, model, runs_per_day, enabled, auto_publish,
-        last_run_at, next_run_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
+        schedule_mode, schedule_hours, system_managed, last_run_at, next_run_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, ?, ?, ?)`,
     )
     .bind(
       id,
@@ -275,9 +384,11 @@ export async function createAgent(db: D1Database, input: AgentInput): Promise<Ag
       input.runsPerDay,
       input.enabled ? 1 : 0,
       input.autoPublish ? 1 : 0,
-      now.toISOString(),
-      now.toISOString(),
-      now.toISOString(),
+      scheduleMode,
+      serializeScheduleHours(input.scheduleHours),
+      nextRunAt,
+      nowIso,
+      nowIso,
     )
     .run();
 
@@ -289,24 +400,56 @@ export async function updateAgent(
   id: string,
   input: AgentInput,
 ): Promise<AgentRecord> {
-  await getAgent(db, id);
+  const existing = await getAgent(db, id);
+  assertAgentUpdateAllowed(existing, input);
+
+  const scheduleMode = input.scheduleMode ?? existing.scheduleMode;
+  const scheduleHours = parseScheduleHours(input.scheduleHours ?? existing.scheduleHours);
+  const next: AgentRecord = existing.systemManaged
+    ? { ...existing, name: input.name, prompt: input.prompt, scheduleMode, scheduleHours }
+    : {
+        ...existing,
+        name: input.name,
+        role: input.role,
+        prompt: input.prompt,
+        categories: parseAgentCategories(input.categories ?? []),
+        model: input.model,
+        runsPerDay: input.runsPerDay,
+        enabled: input.enabled,
+        autoPublish: input.autoPublish,
+        scheduleMode,
+        scheduleHours,
+      };
+
+  const scheduleChanged =
+    next.scheduleMode !== existing.scheduleMode ||
+    next.runsPerDay !== existing.runsPerDay ||
+    serializeScheduleHours(next.scheduleHours) !== serializeScheduleHours(existing.scheduleHours);
+  const nextRunAt = existing.systemManaged
+    ? scheduleChanged
+      ? computeAgentNextRunAt(next)
+      : existing.nextRunAt
+    : computeAgentNextRunAt(next);
 
   await db
     .prepare(
       `UPDATE agents SET name = ?, role = ?, prompt = ?, categories = ?, model = ?, runs_per_day = ?,
-        enabled = ?, auto_publish = ?, next_run_at = ?, updated_at = ? WHERE id = ?`,
+        enabled = ?, auto_publish = ?, schedule_mode = ?, next_run_at = ?, updated_at = ?,
+        schedule_hours = ? WHERE id = ?`,
     )
     .bind(
-      input.name,
-      input.role,
-      input.prompt,
-      serializeAgentCategories(input.categories ?? []),
-      input.model,
-      input.runsPerDay,
-      input.enabled ? 1 : 0,
-      input.autoPublish ? 1 : 0,
-      computeNextRunAt(input.runsPerDay),
+      next.name,
+      next.role,
+      next.prompt,
+      serializeAgentCategories(next.categories),
+      next.model,
+      next.runsPerDay,
+      next.enabled ? 1 : 0,
+      next.autoPublish ? 1 : 0,
+      next.scheduleMode === null ? 'interval' : next.scheduleMode,
+      nextRunAt,
       new Date().toISOString(),
+      serializeScheduleHours(next.scheduleHours),
       id,
     )
     .run();
@@ -319,7 +462,16 @@ export async function setAgentEnabled(
   id: string,
   enabled: boolean,
 ): Promise<AgentRecord> {
-  await getAgent(db, id);
+  const existing = await getAgent(db, id);
+
+  if (existing.systemManaged && !enabled) {
+    const definition = getRoleDefinition(existing.role);
+    throw new ApiError(
+      409,
+      'AGENT_PROTECTED',
+      `${definition.label} cannot be disabled. Switch it to manual schedule instead.`,
+    );
+  }
 
   await db
     .prepare('UPDATE agents SET enabled = ?, updated_at = ? WHERE id = ?')
@@ -330,7 +482,17 @@ export async function setAgentEnabled(
 }
 
 export async function deleteAgent(db: D1Database, id: string): Promise<void> {
-  await getAgent(db, id);
+  const existing = await getAgent(db, id);
+
+  if (existing.systemManaged) {
+    const definition = getRoleDefinition(existing.role);
+    throw new ApiError(
+      409,
+      'AGENT_PROTECTED',
+      `${definition.label} cannot be deleted. Switch it to manual schedule instead.`,
+    );
+  }
+
   await db.prepare('DELETE FROM agent_runs WHERE agent_id = ?').bind(id).run();
   await db.prepare('DELETE FROM agents WHERE id = ?').bind(id).run();
 }
@@ -339,7 +501,8 @@ export async function listDueAgents(db: D1Database, nowIso: string): Promise<Age
   const result = await db
     .prepare(
       `SELECT * FROM agents
-       WHERE enabled = 1 AND (next_run_at IS NULL OR next_run_at <= ?)
+       WHERE enabled = 1 AND (schedule_mode IS NULL OR schedule_mode != 'manual')
+         AND (next_run_at IS NULL OR next_run_at <= ?)
        ORDER BY COALESCE(next_run_at, created_at) ASC`,
     )
     .bind(nowIso)
@@ -372,7 +535,7 @@ export async function claimAgentRun(
   }
 
   const nowIso = now.toISOString();
-  const nextRunAt = computeNextRunAt(agent.runsPerDay, now);
+  const nextRunAt = computeAgentNextRunAt(agent, now);
   const result = options.force
     ? await db
         .prepare('UPDATE agents SET next_run_at = ?, updated_at = ? WHERE id = ?')
@@ -381,7 +544,8 @@ export async function claimAgentRun(
     : await db
         .prepare(
           `UPDATE agents SET next_run_at = ?, updated_at = ?
-           WHERE id = ? AND enabled = 1 AND (next_run_at IS NULL OR next_run_at <= ?)`,
+           WHERE id = ? AND enabled = 1 AND (schedule_mode IS NULL OR schedule_mode != 'manual')
+             AND (next_run_at IS NULL OR next_run_at <= ?)`,
         )
         .bind(nextRunAt, nowIso, agent.id, nowIso)
         .run();
@@ -392,8 +556,7 @@ export async function claimAgentRun(
 
 export async function markAgentRun(
   db: D1Database,
-  id: string,
-  runsPerDay: number,
+  agent: AgentRecord,
   ranAt: Date = new Date(),
 ): Promise<void> {
   const now = new Date();
@@ -401,10 +564,10 @@ export async function markAgentRun(
 
   await db
     .prepare(
-      `UPDATE agents SET last_run_at = ?, next_run_at = COALESCE(next_run_at, ?), updated_at = ?
+      `UPDATE agents SET last_run_at = ?, next_run_at = ?, updated_at = ?
        WHERE id = ?`,
     )
-    .bind(ranAt.toISOString(), computeNextRunAt(runsPerDay, baseline), now.toISOString(), id)
+    .bind(ranAt.toISOString(), computeAgentNextRunAt(agent, baseline), now.toISOString(), agent.id)
     .run();
 }
 
@@ -439,7 +602,7 @@ export async function finishAgentRun(
   await db
     .prepare(
       `UPDATE agent_runs SET status = ?, summary = ?, output = ?, tokens_in = ?, tokens_out = ?,
-        error = ?, finished_at = ? WHERE id = ?`,
+        error = ?, finished_at = ? WHERE id = ? AND status = 'running'`,
     )
     .bind(
       outcome.status,
@@ -452,6 +615,76 @@ export async function finishAgentRun(
       runId,
     )
     .run();
+}
+
+export interface SystemAgentReconciliation {
+  changed: boolean;
+  summary: string | null;
+}
+
+export async function reconcileSystemAgents(db: D1Database): Promise<SystemAgentReconciliation> {
+  const existing = await findAgent(db, SYSTEM_ANALYST_AGENT_ID);
+
+  if (!existing) {
+    const definition = getRoleDefinition('analyst');
+    const now = new Date().toISOString();
+
+    const result = await db
+      .prepare(
+        `INSERT OR IGNORE INTO agents (id, name, role, prompt, categories, model, runs_per_day,
+          enabled, auto_publish, schedule_mode, system_managed, last_run_at, next_run_at,
+          created_at, updated_at)
+         VALUES (?, ?, 'analyst', ?, '[]', ?, 1, 1, 0, 'weekly', 1, NULL, ?, ?, ?)`,
+      )
+      .bind(
+        SYSTEM_ANALYST_AGENT_ID,
+        SYSTEM_ANALYST_AGENT_NAME,
+        definition.defaultPrompt,
+        DEFAULT_AGENT_MODEL,
+        now,
+        now,
+        now,
+      )
+      .run();
+
+    const changed = (result.meta as { changes?: number } | undefined)?.changes ?? 0;
+
+    if (changed === 1) {
+      return {
+        changed: true,
+        summary: 'Recreated the performance analyst after it was missing.',
+      };
+    }
+
+    return {
+      changed: false,
+      summary: 'The performance analyst could not be recreated because its slot is taken.',
+    };
+  }
+
+  if (existing.role === 'analyst' && !existing.systemManaged) {
+    await db
+      .prepare(
+        `UPDATE agents SET system_managed = 1, schedule_mode = 'weekly', updated_at = ?
+         WHERE id = ?`,
+      )
+      .bind(new Date().toISOString(), SYSTEM_ANALYST_AGENT_ID)
+      .run();
+
+    return {
+      changed: true,
+      summary: 'Restored system protection on the performance analyst.',
+    };
+  }
+
+  if (existing.role !== 'analyst') {
+    return {
+      changed: false,
+      summary: `The id ${SYSTEM_ANALYST_AGENT_ID} is held by a ${existing.role} agent, so the performance analyst could not be reconciled.`,
+    };
+  }
+
+  return { changed: false, summary: null };
 }
 
 export async function listAgentRuns(

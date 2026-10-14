@@ -1,0 +1,35 @@
+---
+import AnalystScheduleCard from '@/components/dashboard/analyst-schedule-card';
+import PerformanceCredentialsCard from '@/components/dashboard/performance-credentials-card';
+import SettingsNav from '@/components/dashboard/settings-nav.astro';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { requireContentDatabase } from '@/lib/content/database';
+import { loadAnalystDashboard } from '@/lib/dashboard/analyst';
+import { SETTINGS_SECTION_PERFORMANCE } from '@/lib/dashboard/settings-sections';
+
+export const prerender = false;
+
+const database = await requireContentDatabase();
+const analystState = await loadAnalystDashboard(database);
+---
+
+<DashboardLayout title="Settings: Performance">
+  <div class="flex flex-col gap-6">
+    <div class="min-w-0">
+      <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+        {SETTINGS_SECTION_PERFORMANCE.label}
+      </h2>
+      <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+        {SETTINGS_SECTION_PERFORMANCE.purpose}
+      </p>
+    </div>
+
+    <SettingsNav />
+
+    <PerformanceCredentialsCard client:load />
+
+    <section aria-label="Analyst schedule, thresholds, and sources">
+      <AnalystScheduleCard client:visible initial={analystState} />
+    </section>
+  </div>
+</DashboardLayout>

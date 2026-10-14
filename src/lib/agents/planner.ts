@@ -11,6 +11,15 @@ export interface PlannerTopic {
   category: string;
   intent: string;
   keywords: string[];
+  sourceFindingId?: string;
+}
+
+export interface PlannerFindingRef {
+  id: string;
+  title: string;
+  detail: string;
+  score: number;
+  actionType: string;
 }
 
 export interface ParsedPlannerTopics {
@@ -60,10 +69,21 @@ function readKeywords(value: unknown): string[] {
   return keywords;
 }
 
+function readSourceFindingId(value: unknown, allowed: ReadonlySet<string>): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const id = value.trim();
+
+  return id.length > 0 && allowed.has(id) ? id : null;
+}
+
 export function parsePlannerTopics(
   payload: Record<string, unknown>,
   allowedCategories: readonly string[],
   knownTitles: readonly string[],
+  allowedFindingIds: readonly string[] = [],
 ): ParsedPlannerTopics {
   const entries = payload.topics;
 
@@ -75,6 +95,7 @@ export function parsePlannerTopics(
   }
 
   const allowed = new Set(allowedCategories.map((category) => category.trim().toLowerCase()));
+  const allowedFindings = new Set(allowedFindingIds);
   const accepted: PlannerTopic[] = [];
   const acceptedTitles: string[] = [];
   let skipped = 0;
@@ -110,7 +131,19 @@ export function parsePlannerTopics(
       continue;
     }
 
-    accepted.push({ title, category, intent: readIntent(record.intent), keywords });
+    const sourceFindingId = readSourceFindingId(record.sourceFindingId, allowedFindings);
+    const topic: PlannerTopic = {
+      title,
+      category,
+      intent: readIntent(record.intent),
+      keywords,
+    };
+
+    if (sourceFindingId) {
+      topic.sourceFindingId = sourceFindingId;
+    }
+
+    accepted.push(topic);
     acceptedTitles.push(title);
   }
 

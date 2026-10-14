@@ -135,7 +135,7 @@ describe('renderMarkdown link neutralization', () => {
     );
 
     expect(result.affiliateLinks).toBe(1);
-    expect(result.html).toContain('href="/go/some-slug"');
+    expect(result.html).toContain('href="/go/some-slug?p=body"');
     expect(result.html).toContain('rel="sponsored nofollow noopener"');
   });
 });

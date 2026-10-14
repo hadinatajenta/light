@@ -41,7 +41,10 @@ describe('NOTIFICATION_RULES', () => {
       'agent.alert',
       'deepseek.unavailable',
       'post.published',
+      'post.revision.exhausted',
       'budget.warning',
+      'analyst.findings.ready',
+      'analyst.sources.degraded',
     ]);
   });
 
@@ -58,6 +61,15 @@ describe('NOTIFICATION_RULES', () => {
     expect(NOTIFICATION_RULES['agent.run.failed'].dedupeWindowSeconds).toBe(3600);
     expect(NOTIFICATION_RULES['deepseek.unavailable'].dedupeWindowSeconds).toBe(1800);
     expect(NOTIFICATION_RULES['post.published'].dedupeWindowSeconds).toBe(0);
+  });
+
+  it('pushes a parked draft to the operator as a warning', () => {
+    expect(NOTIFICATION_RULES['post.revision.exhausted']).toEqual({
+      level: 'warning',
+      category: 'content',
+      push: true,
+      dedupeWindowSeconds: 0,
+    });
   });
 });
 

@@ -1,0 +1,153 @@
+---
+import AnalystFindingsQueue from '@/components/dashboard/analyst-findings-queue';
+import AnalystScheduleCard from '@/components/dashboard/analyst-schedule-card';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { requireContentDatabase } from '@/lib/content/database';
+import {
+  ANALYST_DISMISSAL_WINDOW_DAYS,
+  ANALYST_FINDING_PAGE_DEFAULT,
+  loadAnalystDashboard,
+  loadAnalystFindingPage,
+} from '@/lib/dashboard/analyst';
+import {
+  describeAnalystSource,
+  formatAnalystSourceList,
+} from '@/lib/dashboard/analyst-presentation';
+import { formatDate, formatRelativeTime } from '@/utils/date';
+
+export const prerender = false;
+
+const database = await requireContentDatabase();
+const [state, findingsPage] = await Promise.all([
+  loadAnalystDashboard(database),
+  loadAnalystFindingPage(database, {
+    status: 'open',
+    limit: ANALYST_FINDING_PAGE_DEFAULT,
+    offset: 0,
+  }),
+]);
+
+const counts = findingsPage.totals.byStatus;
+const statRows = [
+  { label: 'Open', value: counts.open },
+  { label: 'Action taken', value: counts.actioned },
+  { label: 'Resolved', value: counts.resolved },
+  { label: 'Dismissed', value: counts.dismissed },
+  { label: 'Expired', value: counts.expired },
+  { label: 'Findings total', value: findingsPage.totals.total },
+];
+
+const disconnectedSources = state.sources.filter((source) => source.status !== 'ok');
+const disconnectedLabels = disconnectedSources.map((source) => describeAnalystSource(source.source));
+const lastRun = state.lastRun;
+const nextRunAt = state.agent?.nextRunAt ?? null;
+const scheduleMode = state.agent?.scheduleMode ?? 'manual';
+---
+
+<DashboardLayout title="Performance">
+  <div class="flex flex-col gap-6">
+    <section aria-label="Analyst summary" class="flex flex-col gap-4">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+            Performance Analyst
+          </h2>
+          <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+            A built-in agent that reads post views, affiliate clicks, and redirect misses, then
+            writes an evidence-backed work queue. It makes no model calls, so a run costs nothing.
+          </p>
+        </div>
+        <a
+          href="/dashboard/agents"
+          class="whitespace-nowrap text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Open the agent list
+        </a>
+      </div>
+
+      <dl class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {
+          statRows.map((row) => (
+            <div class="rounded-lg border border-border bg-card p-3">
+              <dt class="text-xs tracking-[0.08em] text-muted-foreground uppercase">{row.label}</dt>
+              <dd class="mt-1 text-xl font-medium tabular-nums">{row.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+
+      <div class="grid gap-3 rounded-lg border border-border bg-card p-4 lg:grid-cols-3">
+        <div>
+          <p class="text-xs tracking-[0.08em] text-muted-foreground uppercase">Last run</p>
+          <p class="mt-1 text-sm tabular-nums">
+            {
+              lastRun
+                ? `${formatRelativeTime(lastRun.startedAt)} (${lastRun.status})`
+                : 'Has not run yet'
+            }
+          </p>
+        </div>
+        <div>
+          <p class="text-xs tracking-[0.08em] text-muted-foreground uppercase">Next run</p>
+          <p class="mt-1 text-sm tabular-nums">
+            {
+              nextRunAt
+                ? formatDate(new Date(nextRunAt))
+                : scheduleMode === 'manual'
+                  ? 'Manual schedule, the scheduler skips it'
+                  : 'Not scheduled yet'
+            }
+          </p>
+        </div>
+        <div class="min-w-0">
+          <p class="text-xs tracking-[0.08em] text-muted-foreground uppercase">Last result</p>
+          <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+            {lastRun?.summary ?? 'No run has recorded a result yet.'}
+          </p>
+        </div>
+      </div>
+
+      {
+        disconnectedSources.length > 0 ? (
+          <div class="rounded-lg border border-chart-3/50 bg-chart-3/10 p-4">
+            <p class="text-sm font-medium text-foreground">
+              {`${disconnectedSources.length} of ${state.sources.length} data sources are not connected`}
+            </p>
+            <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+              {`${formatAnalystSourceList(disconnectedLabels)} cannot be read, so the rules that depend on them stay dormant and the queue below is incomplete by design. The analyst never treats a missing source as zero.`}
+            </p>
+            <a
+              href="#analyst-sources"
+              class="mt-2 inline-block text-sm underline-offset-4 hover:underline"
+            >
+              See what each source needs
+            </a>
+          </div>
+        ) : null
+      }
+
+      {
+        state.agent === null ? (
+          <div class="rounded-lg border border-chart-3/50 bg-chart-3/10 p-4">
+            <p class="text-sm font-medium text-foreground">The analyst is not created yet</p>
+            <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+              The scheduled agent run creates the Performance Analyst. Until it exists there is no
+              schedule to change and no run to report on.
+            </p>
+          </div>
+        ) : null
+      }
+    </section>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <AnalystFindingsQueue
+        client:load
+        initial={findingsPage}
+        unconnectedSources={disconnectedLabels}
+        dismissalWindowDays={ANALYST_DISMISSAL_WINDOW_DAYS}
+      />
+
+      <AnalystScheduleCard client:visible initial={state} />
+    </div>
+  </div>
+</DashboardLayout>

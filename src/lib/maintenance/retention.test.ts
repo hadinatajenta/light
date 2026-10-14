@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ANALYST_FINDING_RETENTION_DAYS,
+  ANALYST_SOURCE_STATUS_RETENTION_DAYS,
+  analystRetentionCutoffs,
   RETENTION_DAYS,
   RETENTION_INTERVAL_MS,
   retentionCutoffIso,
@@ -8,6 +11,7 @@ import {
 } from './retention';
 
 const NOW = Date.parse('2026-10-12T12:00:00.000Z');
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface FakeWrite {
   sql: string;
@@ -18,6 +22,8 @@ function createFakeDatabase(options: {
   ranAt: string | null;
   activityChanges?: number;
   runsChanges?: number;
+  analystSourceChanges?: number;
+  analystFindingsChanges?: number;
 }): { database: D1Database; writes: FakeWrite[] } {
   const writes: FakeWrite[] = [];
 
@@ -40,6 +46,12 @@ function createFakeDatabase(options: {
           }
           if (sql.includes('DELETE FROM agent_runs')) {
             return { meta: { changes: options.runsChanges ?? 0 } };
+          }
+          if (sql.includes('DELETE FROM analyst_source_status')) {
+            return { meta: { changes: options.analystSourceChanges ?? 0 } };
+          }
+          if (sql.includes('DELETE FROM analyst_findings')) {
+            return { meta: { changes: options.analystFindingsChanges ?? 0 } };
           }
           return { meta: { changes: 1 } };
         },
@@ -71,6 +83,17 @@ describe('retentionCutoffIso', () => {
 
   it('keeps a row written exactly at the cutoff out of the expired set', () => {
     expect('2026-07-14T12:00:00.000Z' < retentionCutoffIso(NOW)).toBe(false);
+  });
+});
+
+describe('analystRetentionCutoffs', () => {
+  it('keeps analyst source status for 90 days and closed findings for 180', () => {
+    const cutoffs = analystRetentionCutoffs(NOW);
+
+    expect(cutoffs.sourceStatus).toBe(new Date(NOW - 90 * DAY_MS).toISOString());
+    expect(cutoffs.findings).toBe(new Date(NOW - 180 * DAY_MS).toISOString());
+    expect(ANALYST_SOURCE_STATUS_RETENTION_DAYS).toBe(90);
+    expect(ANALYST_FINDING_RETENTION_DAYS).toBe(180);
   });
 });
 
@@ -113,30 +136,44 @@ describe('runRetention', () => {
       skipped: true,
       activityDeleted: 0,
       runsDeleted: 0,
+      analystSourceStatusDeleted: 0,
+      analystFindingsDeleted: 0,
     });
     expect(writes).toEqual([]);
   });
 
-  it('deletes expired activity and finished runs, then records the run', async () => {
+  it('deletes expired activity, runs, and analyst rows, then records the run', async () => {
     const { database, writes } = createFakeDatabase({
       ranAt: null,
       activityChanges: 12,
       runsChanges: 3,
+      analystSourceChanges: 40,
+      analystFindingsChanges: 7,
     });
 
     await expect(runRetention(database, NOW)).resolves.toEqual({
       skipped: false,
       activityDeleted: 12,
       runsDeleted: 3,
+      analystSourceStatusDeleted: 40,
+      analystFindingsDeleted: 7,
     });
+
+    const cutoffs = analystRetentionCutoffs(NOW);
 
     expect(writes[0].sql).toContain('DELETE FROM activity WHERE created_at <');
     expect(writes[0].params).toEqual([retentionCutoffIso(NOW)]);
     expect(writes[1].sql).toContain('DELETE FROM agent_runs');
     expect(writes[1].sql).toContain("status != 'running'");
     expect(writes[1].params).toEqual([retentionCutoffIso(NOW)]);
-    expect(writes[2].sql).toContain('INSERT INTO maintenance_state');
-    expect(writes[2].params).toEqual(['retention', new Date(NOW).toISOString()]);
+    expect(writes[2].sql).toContain('DELETE FROM analyst_source_status');
+    expect(writes[2].params).toEqual([cutoffs.sourceStatus]);
+    expect(writes[3].sql).toContain('DELETE FROM analyst_findings');
+    expect(writes[3].sql).toContain("status IN ('resolved', 'dismissed', 'expired')");
+    expect(writes[3].sql).not.toContain("'open'");
+    expect(writes[3].params).toEqual([cutoffs.findings]);
+    expect(writes[4].sql).toContain('INSERT INTO maintenance_state');
+    expect(writes[4].params).toEqual(['retention', new Date(NOW).toISOString()]);
   });
 
   it('runs again once the interval since the recorded run has elapsed', async () => {
@@ -145,7 +182,7 @@ describe('runRetention', () => {
     });
 
     await expect(runRetention(database, NOW)).resolves.toMatchObject({ skipped: false });
-    expect(writes).toHaveLength(3);
+    expect(writes).toHaveLength(5);
   });
 
   it('reports zero deletions when no rows are affected', async () => {
@@ -155,6 +192,8 @@ describe('runRetention', () => {
       skipped: false,
       activityDeleted: 0,
       runsDeleted: 0,
+      analystSourceStatusDeleted: 0,
+      analystFindingsDeleted: 0,
     });
   });
 });

@@ -7,7 +7,7 @@ import { reapStaleRuns } from '@/lib/agents/reaper';
 import { sortAgentsByRoleOrder } from '@/lib/agents/roles';
 import { withRunDeadline } from '@/lib/agents/run-deadline';
 import { runAgent } from '@/lib/agents/runner';
-import { listDueAgents } from '@/lib/agents/store';
+import { listDueAgents, reconcileSystemAgents, SYSTEM_ANALYST_AGENT_ID } from '@/lib/agents/store';
 import { requireContentDatabase } from '@/lib/content/database';
 import { createRequestContext, jsonOk, toErrorResponse } from '@/lib/http';
 import { backfillOneCover } from '@/lib/media/covers';
@@ -38,6 +38,20 @@ export const POST = async (context: APIContext): Promise<Response> => {
     await requireCronAuthorization(context.request);
 
     const database = await requireContentDatabase();
+    const reconciliation = await reconcileSystemAgents(database);
+
+    if (reconciliation.summary) {
+      await insertActivity(database, {
+        actorId: 'system-agent-reconciler',
+        actorType: 'agent',
+        actorLabel: 'System',
+        action: reconciliation.changed ? 'agent.reconciled' : 'agent.reconcile_conflict',
+        targetType: 'agent',
+        targetId: SYSTEM_ANALYST_AGENT_ID,
+        summary: reconciliation.summary,
+      });
+    }
+
     const reaped = await reapStaleRuns(database);
     const schedule = await publishDuePosts(database);
     const due = sortAgentsByRoleOrder(await listDueAgents(database, new Date().toISOString()));
@@ -104,6 +118,7 @@ export const POST = async (context: APIContext): Promise<Response> => {
       {
         published: schedule.published,
         reaped,
+        analystReconciled: reconciliation.changed,
         coversGenerated,
         processed,
         remaining: due.length - processed,

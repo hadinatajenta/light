@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ApiRequestError, requestJson, toErrorMessage } from './api-client';
+import { ApiRequestError, requestJson, toErrorMessage, toFieldErrorMap } from './api-client';
 
 const AGENTS_ENDPOINT = '/api/dashboard/agents';
 const CATEGORIES_ENDPOINT = '/api/dashboard/categories';
@@ -23,7 +23,7 @@ const PROMPT_ROWS = 10;
 const TEXTAREA_CLASS =
   'w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
-type AgentRole = 'writer' | 'reviewer' | 'qc' | 'scrapper';
+type AgentRole = 'planner' | 'writer' | 'reviewer' | 'qc' | 'scrapper' | 'analyst';
 type AgentFormMode = 'create' | 'edit';
 type RunStatus = 'running' | 'succeeded' | 'failed' | 'skipped';
 
@@ -37,6 +37,8 @@ interface AgentRecord {
   enabled: boolean;
   autoPublish: boolean;
   categories: string[];
+  scheduleMode: string;
+  systemManaged: boolean;
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
@@ -121,32 +123,6 @@ const RUN_STATUS_VARIANT: Record<RunStatus, 'default' | 'secondary' | 'destructi
   skipped: 'secondary',
 };
 
-function mapFieldErrors(details: unknown): Record<string, string> {
-  const mapped: Record<string, string> = {};
-  if (!details || typeof details !== 'object') {
-    return mapped;
-  }
-  const issues = (details as { issues?: unknown }).issues;
-  if (!Array.isArray(issues)) {
-    return mapped;
-  }
-  for (const issue of issues) {
-    if (!issue || typeof issue !== 'object') {
-      continue;
-    }
-    const field = (issue as { field?: unknown }).field;
-    const message = (issue as { message?: unknown }).message;
-    if (typeof field !== 'string' || typeof message !== 'string') {
-      continue;
-    }
-    const key = field.split('.').pop() ?? field;
-    if (!mapped[key]) {
-      mapped[key] = message;
-    }
-  }
-  return mapped;
-}
-
 function formatTimestamp(value: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -221,6 +197,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
   const [runs, setRuns] = useState<AgentRunRecord[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [values, setValues] = useState<AgentFormValues | null>(null);
+  const [isSystemManaged, setIsSystemManaged] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -280,6 +257,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
           return;
         }
         setRuns(detail.runs);
+        setIsSystemManaged(detail.agent.systemManaged);
         setValues(toFormValues(detail.agent));
       } else {
         setValues(createDefaultValues(metaPayload.meta));
@@ -367,7 +345,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       prompt: values.prompt,
       model: values.model,
       runsPerDay: Number.isNaN(runsPerDay) ? 0 : runsPerDay,
-      enabled: values.enabled,
+      enabled: isSystemManaged ? true : values.enabled,
       autoPublish: values.role === 'reviewer' ? values.autoPublish : false,
       categories: values.role === 'writer' ? values.categories : [],
     };
@@ -393,7 +371,7 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
       window.location.href = '/dashboard/agents';
     } catch (error) {
       if (error instanceof ApiRequestError) {
-        setFieldErrors(mapFieldErrors(error.details));
+        setFieldErrors(toFieldErrorMap(error));
       }
       const message = toErrorMessage(error);
       setFormError(message);
@@ -458,6 +436,22 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
         noValidate
         aria-busy={isSubmitting}
       >
+        {isSystemManaged ? (
+          <div className="rounded-md border border-border bg-muted/40 p-3">
+            <p className="text-sm font-medium text-foreground">
+              {activeRole?.label ?? values.role} is built in
+            </p>
+            <p className="mt-1 max-w-prose text-sm text-muted-foreground">
+              It cannot be deleted, cannot change role or model, and cannot be switched off. It can
+              only be scheduled. Its schedule, thresholds, and data sources live on the Performance
+              page.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3 whitespace-nowrap">
+              <a href="/dashboard/analyst">Open Performance</a>
+            </Button>
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-2">
           <Label htmlFor="agent-name">Name</Label>
           <Input
@@ -479,30 +473,39 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="agent-role">Role</Label>
-          <Select
-            id="agent-role"
-            value={values.role}
-            aria-invalid={Boolean(roleError)}
-            aria-describedby={roleError ? 'agent-role-error agent-role-help' : 'agent-role-help'}
-            onChange={(event) => handleRoleChange(event.target.value as AgentRole)}
-          >
-            {roleDefinitions.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.label}
-              </option>
-            ))}
-          </Select>
-          <p id="agent-role-help" className="text-xs text-muted-foreground">
-            {activeRole?.description ?? 'Choose how this agent works on the content pipeline.'}
-          </p>
-          {roleError ? (
-            <p id="agent-role-error" className="text-sm text-destructive">
-              {roleError}
+        {isSystemManaged ? (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-foreground">Role</p>
+            <p className="text-sm text-muted-foreground">
+              {activeRole?.label ?? values.role}. {activeRole?.description ?? ''}
             </p>
-          ) : null}
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="agent-role">Role</Label>
+            <Select
+              id="agent-role"
+              value={values.role}
+              aria-invalid={Boolean(roleError)}
+              aria-describedby={roleError ? 'agent-role-error agent-role-help' : 'agent-role-help'}
+              onChange={(event) => handleRoleChange(event.target.value as AgentRole)}
+            >
+              {roleDefinitions.map((role) => (
+                <option key={role.id} value={role.id}>
+                  {role.label}
+                </option>
+              ))}
+            </Select>
+            <p id="agent-role-help" className="text-xs text-muted-foreground">
+              {activeRole?.description ?? 'Choose how this agent works on the content pipeline.'}
+            </p>
+            {roleError ? (
+              <p id="agent-role-error" className="text-sm text-destructive">
+                {roleError}
+              </p>
+            ) : null}
+          </div>
+        )}
 
         {values.role === 'writer' ? (
           <fieldset
@@ -584,76 +587,82 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="agent-model">Model</Label>
-            <Select
-              id="agent-model"
-              value={values.model}
-              aria-invalid={Boolean(modelError)}
-              aria-describedby={modelError ? 'agent-model-error' : undefined}
-              onChange={(event) =>
-                setValues((current) =>
-                  current ? { ...current, model: event.target.value } : current,
-                )
-              }
-            >
-              {meta.models.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </Select>
-            {modelError ? (
-              <p id="agent-model-error" className="text-sm text-destructive">
-                {modelError}
-              </p>
-            ) : null}
-          </div>
+          {isSystemManaged ? null : (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="agent-model">Model</Label>
+              <Select
+                id="agent-model"
+                value={values.model}
+                aria-invalid={Boolean(modelError)}
+                aria-describedby={modelError ? 'agent-model-error' : undefined}
+                onChange={(event) =>
+                  setValues((current) =>
+                    current ? { ...current, model: event.target.value } : current,
+                  )
+                }
+              >
+                {meta.models.map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
+              </Select>
+              {modelError ? (
+                <p id="agent-model-error" className="text-sm text-destructive">
+                  {modelError}
+                </p>
+              ) : null}
+            </div>
+          )}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="agent-runs">Runs per day</Label>
-            <Input
-              id="agent-runs"
-              type="number"
-              inputMode="numeric"
-              min={meta.minRunsPerDay}
-              max={meta.maxRunsPerDay}
-              value={values.runsPerDay}
-              aria-invalid={Boolean(runsError)}
-              aria-describedby={runsError ? 'agent-runs-error' : 'agent-runs-help'}
-              onChange={(event) =>
-                setValues((current) =>
-                  current ? { ...current, runsPerDay: event.target.value } : current,
-                )
-              }
-            />
-            {runsError ? (
-              <p id="agent-runs-error" className="text-sm text-destructive">
-                {runsError}
-              </p>
-            ) : (
-              <p id="agent-runs-help" className="text-xs tabular-nums text-muted-foreground">
-                Between {meta.minRunsPerDay} and {meta.maxRunsPerDay} times per day.
-              </p>
-            )}
-          </div>
+          {isSystemManaged ? null : (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="agent-runs">Runs per day</Label>
+              <Input
+                id="agent-runs"
+                type="number"
+                inputMode="numeric"
+                min={meta.minRunsPerDay}
+                max={meta.maxRunsPerDay}
+                value={values.runsPerDay}
+                aria-invalid={Boolean(runsError)}
+                aria-describedby={runsError ? 'agent-runs-error' : 'agent-runs-help'}
+                onChange={(event) =>
+                  setValues((current) =>
+                    current ? { ...current, runsPerDay: event.target.value } : current,
+                  )
+                }
+              />
+              {runsError ? (
+                <p id="agent-runs-error" className="text-sm text-destructive">
+                  {runsError}
+                </p>
+              ) : (
+                <p id="agent-runs-help" className="text-xs tabular-nums text-muted-foreground">
+                  Between {meta.minRunsPerDay} and {meta.maxRunsPerDay} times per day.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <input
-              id="agent-enabled"
-              type="checkbox"
-              className="size-4 rounded border-input accent-primary"
-              checked={values.enabled}
-              onChange={(event) =>
-                setValues((current) =>
-                  current ? { ...current, enabled: event.target.checked } : current,
-                )
-              }
-            />
-            <Label htmlFor="agent-enabled">Enabled</Label>
-          </div>
+          {isSystemManaged ? null : (
+            <div className="flex items-center gap-3">
+              <input
+                id="agent-enabled"
+                type="checkbox"
+                className="size-4 rounded border-input accent-primary"
+                checked={values.enabled}
+                onChange={(event) =>
+                  setValues((current) =>
+                    current ? { ...current, enabled: event.target.checked } : current,
+                  )
+                }
+              />
+              <Label htmlFor="agent-enabled">Enabled</Label>
+            </div>
+          )}
 
           {isReviewer ? (
             <div className="flex items-center gap-3">
@@ -710,11 +719,13 @@ export default function AgentForm({ mode, agentId }: AgentFormProps) {
           </h2>
           <p className="mt-1 max-w-prose text-sm text-muted-foreground">
             {mode === 'edit'
-              ? 'Update the role, prompt, and schedule for this agent.'
+              ? isSystemManaged
+                ? 'Update the name and prompt of a built-in agent. Everything else about it is fixed by the engine.'
+                : 'Update the role, prompt, and schedule for this agent.'
               : 'Pick a role, tune the prompt, and set how often the agent should run.'}
           </p>
         </div>
-        {mode === 'edit' ? (
+        {mode === 'edit' && !isSystemManaged ? (
           isConfirmingDelete ? (
             <div
               role="alert"

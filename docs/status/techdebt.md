@@ -147,6 +147,38 @@ pipeline only handles build time assets. No responsive `srcset`, no WebP.
 Trigger: add an image transform route (Cloudflare Images, or the `/_image`
 endpoint) when image weight shows up in the metrics.
 
+### Two reviewers can dead-end a draft
+
+The editorial reviewer can clear a draft and the strict reviewer can then request
+changes on the same draft, repeatedly. Each bounce sends the draft back to the
+writer for another paid revision, and once `revision_count` reaches
+`MAX_REVISION_ROUNDS` the draft can never be approved, so the quota that drives
+catch-up can never be met.
+
+Current mitigation, applied without touching the agent code: `Reviewer Strict` is
+disabled, so one reviewer decides, and the drafts that had already hit the limit
+were archived with their topics requeued.
+
+Trigger: give a draft a single decision. Either the strict reviewer runs as a
+pre-gate before the editorial one, or it only attaches findings without
+overturning an approval. Also close a draft at the revision limit, requeue its
+topic, and record an activity entry so a stalled draft is visible instead of
+silently burning revisions.
+
+### Quota catch-up bypasses the per agent schedule
+
+`runQuotaCatchUp` runs agents with `force: true`, which ignores `runs_per_day`.
+With a publish target of 20 and nothing publishing, it forced up to three runs
+every fifteen minutes, and one writer reached 95 runs in 36 hours.
+
+Current mitigation: a 30 minute cooldown between catch-up passes, and the writer
+is dropped from catch-up while three or more drafts are waiting for review. The
+brake applies to the catch-up path only; scheduled writer runs still add drafts
+while the review backlog grows.
+
+Trigger: apply the same pending-draft brake to the scheduled writer path, and
+review the publish target whenever the review loop changes.
+
 ### The legacy `category` column on agents
 
 Migration 0022 added `categories` (a JSON array of a writer's beat) and left the

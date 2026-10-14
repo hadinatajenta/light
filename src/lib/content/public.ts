@@ -162,7 +162,9 @@ export function renderMarkdown(
 
   const withTables = wrapMarkdownTables(withHeadingIds);
 
-  const redirectLinks = new Map([...affiliateLinks.keys()].map((slug) => [slug, `/go/${slug}`]));
+  const redirectLinks = new Map(
+    [...affiliateLinks.keys()].map((slug) => [slug, `/go/${slug}?p=body`]),
+  );
   const resolved = resolveAffiliateLinks(withTables, redirectLinks);
 
   return {

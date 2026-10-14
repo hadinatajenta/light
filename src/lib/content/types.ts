@@ -14,6 +14,8 @@ export interface PostSummary {
   reviewStatus?: string | null;
   pubDate: string | null;
   updatedDate: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface PostDocument {

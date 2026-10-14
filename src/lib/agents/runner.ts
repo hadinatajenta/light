@@ -1,23 +1,30 @@
 import { recordActivity } from '../activity/record';
 import { ApiError } from '../errors';
+import {
+  buildAnalystFindingsReadyNotification,
+  buildAnalystSourcesDegradedNotification,
+} from '../notifications/analyst';
 import { describeDeepseekFailure } from '../notifications/deepseek-failure';
 import { notify } from '../notifications/notify';
 import { readLastPublishedAt } from '../scheduling/store';
+import { listOpenPlannerFindings, markFindingActioned } from './analyst/findings';
+import { type AnalystRunReport, runPerformanceAnalyst } from './analyst/runner';
+import { MODEL_TAIL_BRANCHES, resolveAgentRunBranch } from './branches';
 import { readBudgetState, recordModelUsage } from './budget';
 import { rankCatalogForTopic } from './catalog';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './deepseek';
 import { formatDemandBrief, loadDemandBrief } from './demand';
 import { stripWriterEnvelope } from './envelope';
-import { type PlannerTopic, parsePlannerTopics } from './planner';
+import { type PlannerFindingRef, type PlannerTopic, parsePlannerTopics } from './planner';
 import { formatPreflightIssues, runPreflight } from './preflight';
-import { nextPublishSlot, readQuotaSettings, shouldPublishNow } from './quota';
+import { nextPublishSlot, readQuotaSettings } from './quota';
 import { runScrapperResearch } from './research';
 import {
   claimPendingDraft,
   createDraftPost,
   type DraftTarget,
+  listRecentPublishedPosts,
   listRecentPublishedTitles,
-  publishPost,
   releaseClaimedDraft,
   schedulePostPublish,
   setPostReview,
@@ -28,6 +35,7 @@ import { resolveReviewClaimStage, reviewStageAfterPass } from './review-stages';
 import {
   claimRevisionTarget,
   findRevisionTarget,
+  parkExhaustedRevisions,
   type RevisionTarget,
   replaceDraftBody,
   saveReviewNotes,
@@ -43,6 +51,7 @@ import {
   createAgentRun,
   finishAgentRun,
   hasRepeatedFailures,
+  listAgents,
   markAgentRun,
   mergeWriterCategories,
   parseAgentCategories,
@@ -51,8 +60,10 @@ import {
   blockTopic,
   claimTopicForScrapper,
   claimTopicForWriter,
+  countTopics,
   createTopic,
   findTopicByPost,
+  isTopicQueueFull,
   listTopics,
   markTopicFetched,
   markTopicResearched,
@@ -95,6 +106,8 @@ const MAX_OUTPUT_CHARS = 200_000;
 const MAX_DRAFT_CHARS = 40_000;
 const MAX_CATALOG_ITEMS = 12;
 const SCRAPPER_RESEARCH_BUDGET_MS = 180_000;
+const MAX_PLANNER_FINDINGS = 10;
+const MIN_CHAINED_REVIEW_MS = 20_000;
 const NEEDS_RESEARCH_PATTERN = /^\s*NEEDS RESEARCH/i;
 
 function truncate(value: string, limit: number): string {
@@ -160,10 +173,23 @@ async function loadPlannerCategories(db: D1Database): Promise<string[]> {
   return [...new Set((posts.results ?? []).map((row) => row.category.trim()))];
 }
 
+function formatPlannerFindings(findings: readonly PlannerFindingRef[]): string {
+  if (findings.length === 0) {
+    return '';
+  }
+
+  const lines = findings
+    .map((finding) => `- ${finding.id} | score ${finding.score} | ${finding.title}`)
+    .join('\n');
+
+  return `\n\nOpen performance findings that a new article could answer, highest score first:\n${lines}\n\nWhen a topic addresses one of these findings, include "sourceFindingId" with that finding id. Omit the field for topics that address none.`;
+}
+
 function buildPlannerMessage(
   categories: readonly string[],
   topicTitles: readonly string[],
   publishedTitles: readonly string[],
+  findings: readonly PlannerFindingRef[],
   demandBrief: string | null,
 ): string {
   const categoryList = categories.length > 0 ? categories.join(', ') : 'general';
@@ -175,9 +201,10 @@ function buildPlannerMessage(
     publishedTitles.length > 0
       ? `\n\nArticles already published, do not duplicate:\n- ${publishedTitles.join('\n- ')}`
       : '';
+  const findingsBlock = formatPlannerFindings(findings);
   const demand = demandBrief ? `\n\n${demandBrief}` : '';
 
-  return `Allowed categories, choose exactly one per topic: ${categoryList}.${queued}${published}${demand}
+  return `Allowed categories, choose exactly one per topic: ${categoryList}.${queued}${published}${findingsBlock}${demand}
 
 Return a single JSON object with key "topics": an array of 5 to 8 objects, each with keys title (string, 10 to 70 characters), category (string, from the allowed list), intent ("informational", "commercial", "transactional", or "navigational"), keywords (array of 2 to 5 lowercase long-tail search phrases), and rationale (string, one sentence).`;
 }
@@ -243,10 +270,10 @@ Revise the article so every point in the notes is addressed, and keep the parts 
       return '';
     }
 
-    const [catalog, sources, titles] = await Promise.all([
+    const [catalog, sources, published] = await Promise.all([
       loadCatalogSlice(db, topic),
       listVerifiedSources(db, topic.id),
-      listRecentPublishedTitles(db, 12),
+      listRecentPublishedPosts(db, 12),
     ]);
 
     const research = renderSourcesForPrompt(sources);
@@ -254,8 +281,11 @@ Revise the article so every point in the notes is addressed, and keep the parts 
       ? `\n\nResearch notes gathered for this topic. Stay within them and do not go beyond what they support:\n${research}`
       : '\n\nNo research notes were gathered for this topic. If the article cannot be written accurately without specific facts, return NEEDS RESEARCH instead of writing it.';
 
+    const publishedLines = published.map((post) => `- ${post.title} (/blog/${post.id}/)`);
     const avoid =
-      titles.length > 0 ? `\n\nAlready published, do not duplicate:\n- ${titles.join('\n- ')}` : '';
+      publishedLines.length > 0
+        ? `\n\nAlready published, do not duplicate. Use these exact paths for internal links:\n${publishedLines.join('\n')}`
+        : '';
     const keywords = topic.keywords.length > 0 ? `\nKeywords: ${topic.keywords.join(', ')}` : '';
     const category = topic.category ? `\nCategory: ${topic.category}` : '';
 
@@ -345,6 +375,8 @@ async function applyResult(
     const claimStage = resolveReviewClaimStage(agent.role, agent.autoPublish) ?? 'fact_check';
 
     if (decision === 'approve') {
+      const linkedTopic = await findTopicByPost(db, target.id);
+
       const preflightIssues = runPreflight({
         title: target.title,
         description: target.description,
@@ -373,40 +405,28 @@ async function applyResult(
       }
 
       if (claimStage === 'fact_check') {
-        await setPostReview(db, target.id, 'approved', agent.id);
-        await setPostStage(db, target.id, reviewStageAfterPass('fact_check'));
-
-        const linkedTopic = await findTopicByPost(db, target.id);
         const canPublish = linkedTopic ? await hasVerifiedSources(db, linkedTopic.id) : true;
-
-        if (!canPublish) {
-          return {
-            summary: `Passed fact check on "${target.title}" but auto publish was skipped: no verified research`,
-            output: truncate(notes, MAX_OUTPUT_CHARS),
-          };
-        }
-
         const [quotaSettings, lastPublishedAt] = await Promise.all([
           readQuotaSettings(db),
           readLastPublishedAt(db),
         ]);
-        const now = new Date();
         const minGapMs = quotaSettings.minGapMinutes * 60_000;
         const lastPublished = lastPublishedAt ? new Date(lastPublishedAt) : null;
+        const slot = nextPublishSlot(lastPublished, minGapMs, new Date());
 
-        if (shouldPublishNow(lastPublished, minGapMs, now)) {
-          await publishPost(db, target.id);
+        await setPostReview(db, target.id, 'approved', agent.id);
+        await setPostStage(db, target.id, reviewStageAfterPass('fact_check'));
+        await schedulePostPublish(db, target.id, slot.toISOString());
+
+        if (!canPublish) {
           return {
-            summary: `Passed fact check and published "${target.title}"`,
+            summary: `Approved "${target.title}" but its topic has no verified research, so it is left for a human: add verified research notes or publish it by hand`,
             output: truncate(notes, MAX_OUTPUT_CHARS),
           };
         }
 
-        const slot = nextPublishSlot(lastPublished, minGapMs, now);
-        await schedulePostPublish(db, target.id, slot.toISOString());
-
         return {
-          summary: `Passed fact check; scheduled "${target.title}" for ${slot.toISOString()} to space out publishing`,
+          summary: `Approved "${target.title}" for the publisher at ${slot.toISOString()}`,
           output: truncate(notes, MAX_OUTPUT_CHARS),
         };
       }
@@ -524,6 +544,23 @@ export async function maybeRecordFailureAlert(
   });
 }
 
+async function notifyAnalystReport(runId: string, report: AnalystRunReport): Promise<void> {
+  const notifications = [
+    buildAnalystFindingsReadyNotification({
+      runId,
+      window: report.window,
+      persisted: report.persisted,
+    }),
+    buildAnalystSourcesDegradedNotification({ statuses: report.statuses }),
+  ];
+
+  for (const notification of notifications) {
+    if (notification) {
+      await notify(notification);
+    }
+  }
+}
+
 async function recordRunFailureNotification(
   agent: AgentRecord,
   runId: string,
@@ -565,14 +602,41 @@ export interface RunAgentOptions {
   force?: boolean;
 }
 
+export interface ChainReviewDecisionInput {
+  role: string;
+  status: RunAgentResult['status'];
+  producedDraft: boolean;
+  signalAborted: boolean;
+  deadline: number | undefined;
+  now: number;
+}
+
+export function shouldChainReviewRun(input: ChainReviewDecisionInput): boolean {
+  if (input.role !== 'writer' || input.status !== 'succeeded' || !input.producedDraft) {
+    return false;
+  }
+
+  if (input.signalAborted) {
+    return false;
+  }
+
+  return input.deadline === undefined || input.deadline - input.now >= MIN_CHAINED_REVIEW_MS;
+}
+
+interface AgentRunExecution {
+  result: RunAgentResult;
+  producedDraft: boolean;
+}
+
 export async function runAgent(
   db: D1Database,
   agent: AgentRecord,
   options: RunAgentOptions = {},
 ): Promise<RunAgentResult> {
-  const result = await executeAgentRun(db, agent, options);
+  const execution = await executeAgentRun(db, agent, options);
+  const { result } = execution;
 
-  if (result.status === 'succeeded') {
+  if (result.status === 'succeeded' && agent.role !== 'analyst') {
     await notify({
       event: 'agent.run.succeeded',
       title: `Agent "${agent.name}" finished a run`,
@@ -584,24 +648,73 @@ export async function runAgent(
     });
   }
 
+  await chainReviewRun(db, agent, execution, options);
+
   return result;
+}
+
+async function chainReviewRun(
+  db: D1Database,
+  agent: AgentRecord,
+  execution: AgentRunExecution,
+  options: RunAgentOptions,
+): Promise<void> {
+  const decision = shouldChainReviewRun({
+    role: agent.role,
+    status: execution.result.status,
+    producedDraft: execution.producedDraft,
+    signalAborted: options.signal?.aborted ?? false,
+    deadline: options.deadline,
+    now: Date.now(),
+  });
+
+  if (!decision) {
+    return;
+  }
+
+  const reviewer = await findChainedReviewer(db);
+
+  if (!reviewer) {
+    return;
+  }
+
+  try {
+    await runAgent(db, reviewer, {
+      signal: options.signal,
+      deadline: options.deadline,
+      force: true,
+    });
+  } catch (error) {
+    console.error('The chained reviewer run failed', error);
+  }
+}
+
+async function findChainedReviewer(db: D1Database): Promise<AgentRecord | null> {
+  const reviewers = (await listAgents(db)).filter(
+    (candidate) => candidate.enabled && candidate.role === 'reviewer',
+  );
+
+  return reviewers.find((candidate) => candidate.autoPublish) ?? reviewers[0] ?? null;
 }
 
 async function executeAgentRun(
   db: D1Database,
   agent: AgentRecord,
   options: RunAgentOptions = {},
-): Promise<RunAgentResult> {
+): Promise<AgentRunExecution> {
   const { signal, deadline } = options;
 
   if (!(await claimAgentRun(db, agent, { force: options.force }))) {
     return {
-      runId: '',
-      status: 'skipped',
-      summary: 'Agent is not due or a run is already in progress',
-      output: '',
-      tokensIn: 0,
-      tokensOut: 0,
+      result: {
+        runId: '',
+        status: 'skipped',
+        summary: 'Agent is not due or a run is already in progress',
+        output: '',
+        tokensIn: 0,
+        tokensOut: 0,
+      },
+      producedDraft: false,
     };
   }
 
@@ -613,42 +726,99 @@ async function executeAgentRun(
   let draft: DraftTarget | null = null;
 
   try {
+    const branch = resolveAgentRunBranch(agent.role);
+    const role = getRoleDefinition(agent.role);
+
+    if (branch === 'analyst') {
+      const report = await runPerformanceAnalyst(db, {
+        agentId: agent.id,
+        runId,
+        signal: options.signal,
+      });
+
+      await finishAgentRun(db, runId, {
+        status: 'succeeded',
+        summary: report.summary,
+        output: truncate(report.output, MAX_OUTPUT_CHARS),
+      });
+      await markAgentRun(db, agent);
+      await recordAgentActivity(agent, runId, report.summary);
+      await notifyAnalystReport(runId, report);
+
+      return {
+        result: {
+          runId,
+          status: 'succeeded',
+          summary: report.summary,
+          output: truncate(report.output, MAX_OUTPUT_CHARS),
+          tokensIn: 0,
+          tokensOut: 0,
+        },
+        producedDraft: false,
+      };
+    }
+
     const budget = await readBudgetState(db);
     if (budget.paused || budget.tokensExhausted) {
       const summary = budget.paused ? 'Budget is paused' : 'Daily token budget reached';
       await finishAgentRun(db, runId, { status: 'skipped', summary });
-      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await markAgentRun(db, agent);
       await recordAgentActivity(agent, runId, summary);
-      return { runId, status: 'skipped', summary, output: '', tokensIn: 0, tokensOut: 0 };
+      return {
+        result: { runId, status: 'skipped', summary, output: '', tokensIn: 0, tokensOut: 0 },
+        producedDraft: false,
+      };
     }
 
     const apiKey = await requireDeepseekKey(db);
-    const role = getRoleDefinition(agent.role);
 
-    await notify({
-      event: 'agent.run.started',
-      title: `Agent "${agent.name}" started a run`,
-      body: `Role: ${agent.role}. Model: ${agent.model}.`,
-      link: '/dashboard/activity',
-      actorLabel: agent.name,
-      runId,
-      metadata: { role: agent.role, model: agent.model },
-    });
+    if (agent.role !== 'analyst') {
+      await notify({
+        event: 'agent.run.started',
+        title: `Agent "${agent.name}" started a run`,
+        body: `Role: ${agent.role}. Model: ${agent.model}.`,
+        link: '/dashboard/activity',
+        actorLabel: agent.name,
+        runId,
+        metadata: { role: agent.role, model: agent.model },
+      });
+    }
 
-    if (agent.role === 'planner') {
-      const [categories, existingTopics, publishedTitles, search] = await Promise.all([
+    if (branch === 'planner') {
+      const [categories, topicCounts] = await Promise.all([
         loadPlannerCategories(db),
+        countTopics(db),
+      ]);
+
+      if (categories.length === 0 || isTopicQueueFull(topicCounts)) {
+        throw new ApiError(
+          409,
+          'PLANNER_QUEUE_FULL',
+          'The topic queue already holds enough unclaimed work.',
+        );
+      }
+
+      const [existingTopics, publishedTitles, plannerFindings, search] = await Promise.all([
         listTopics(db, { limit: 200 }),
         listRecentPublishedTitles(db, 200),
+        listOpenPlannerFindings(db, MAX_PLANNER_FINDINGS),
         resolveSearchProvider(db),
       ]);
       const existingTitles = existingTopics.map((entry) => entry.title);
       const knownTitles = [...existingTitles, ...publishedTitles];
+      const findingRefs: PlannerFindingRef[] = plannerFindings.map((finding) => ({
+        id: finding.id,
+        title: finding.title,
+        detail: finding.detail,
+        score: finding.score,
+        actionType: finding.actionType,
+      }));
       const demandBrief = formatDemandBrief(await loadDemandBrief({ db, search, signal }));
       const userMessage = buildPlannerMessage(
         categories,
         existingTitles,
         publishedTitles,
+        findingRefs,
         demandBrief,
       );
 
@@ -669,10 +839,15 @@ async function executeAgentRun(
       await recordModelUsage(db, response.tokensIn, response.tokensOut);
 
       const parsed = extractJsonObject(response.content);
-      const planned = parsePlannerTopics(parsed, categories, knownTitles).topics;
+      const planned = parsePlannerTopics(
+        parsed,
+        categories,
+        knownTitles,
+        findingRefs.map((finding) => finding.id),
+      ).topics;
 
       for (const entry of planned) {
-        await createTopic(
+        const createdTopic = await createTopic(
           db,
           {
             title: entry.title,
@@ -682,6 +857,10 @@ async function executeAgentRun(
           },
           agent.id,
         );
+
+        if (entry.sourceFindingId) {
+          await markFindingActioned(db, entry.sourceFindingId, createdTopic.id, agent.id);
+        }
       }
 
       const summary = summarizePlannedTopics(planned);
@@ -692,20 +871,24 @@ async function executeAgentRun(
         tokensIn: response.tokensIn,
         tokensOut: response.tokensOut,
       });
-      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await markAgentRun(db, agent);
       await recordAgentActivity(agent, runId, summary);
 
       return {
-        runId,
-        status: 'succeeded',
-        summary,
-        output: truncate(response.content, MAX_OUTPUT_CHARS),
-        tokensIn: response.tokensIn,
-        tokensOut: response.tokensOut,
+        result: {
+          runId,
+          status: 'succeeded',
+          summary,
+          output: truncate(response.content, MAX_OUTPUT_CHARS),
+          tokensIn: response.tokensIn,
+          tokensOut: response.tokensOut,
+        },
+        producedDraft: false,
       };
     }
 
-    if (agent.role === 'writer') {
+    if (branch === 'writer') {
+      await parkExhaustedRevisions(db);
       topic = await claimTopicForWriter(db, agent.id, agent.categories);
 
       if (!topic) {
@@ -717,23 +900,23 @@ async function executeAgentRun(
       }
 
       if (!topic && !revisionTarget) {
-        const summary = 'No topic queued and nothing to revise';
-        await finishAgentRun(db, runId, { status: 'succeeded', summary });
-        await markAgentRun(db, agent.id, agent.runsPerDay);
-        await recordAgentActivity(agent, runId, summary);
-        return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
+        throw new ApiError(
+          409,
+          'NO_RESEARCHED_TOPIC',
+          'No researched topic is available. Run the Researcher to collect material first.',
+        );
       }
     }
 
-    if (agent.role === 'scrapper') {
+    if (branch === 'scrapper') {
       topic = await claimTopicForScrapper(db, agent.id);
 
       if (!topic) {
-        const summary = 'No topic queued';
-        await finishAgentRun(db, runId, { status: 'succeeded', summary });
-        await markAgentRun(db, agent.id, agent.runsPerDay);
-        await recordAgentActivity(agent, runId, summary);
-        return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
+        throw new ApiError(
+          409,
+          'NO_QUEUED_TOPIC',
+          'No queued topic is available. Run the Planner to propose topics first.',
+        );
       }
 
       const [search, searchConfig] = await Promise.all([
@@ -755,15 +938,18 @@ async function executeAgentRun(
       if (outcome.status === 'skipped' || outcome.status === 'deferred') {
         await releaseTopic(db, topic.id, outcome.summary, await scrapperResumeStatus(db, topic.id));
         await finishAgentRun(db, runId, { status: 'skipped', summary: outcome.summary });
-        await markAgentRun(db, agent.id, agent.runsPerDay);
+        await markAgentRun(db, agent);
         await recordAgentActivity(agent, runId, outcome.summary);
         return {
-          runId,
-          status: 'skipped',
-          summary: outcome.summary,
-          output: '',
-          tokensIn: 0,
-          tokensOut: 0,
+          result: {
+            runId,
+            status: 'skipped',
+            summary: outcome.summary,
+            output: '',
+            tokensIn: 0,
+            tokensOut: 0,
+          },
+          producedDraft: false,
         };
       }
 
@@ -782,30 +968,41 @@ async function executeAgentRun(
         tokensIn: outcome.tokensIn,
         tokensOut: outcome.tokensOut,
       });
-      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await markAgentRun(db, agent);
       await recordAgentActivity(agent, runId, outcome.summary);
 
       return {
-        runId,
-        status: 'succeeded',
-        summary: outcome.summary,
-        output: outcome.output,
-        tokensIn: outcome.tokensIn,
-        tokensOut: outcome.tokensOut,
+        result: {
+          runId,
+          status: 'succeeded',
+          summary: outcome.summary,
+          output: outcome.output,
+          tokensIn: outcome.tokensIn,
+          tokensOut: outcome.tokensOut,
+        },
+        producedDraft: false,
       };
     }
 
-    if (agent.role === 'reviewer' || agent.role === 'qc') {
+    if (branch === 'review') {
       const claimStage = resolveReviewClaimStage(agent.role, agent.autoPublish);
       draft = claimStage ? await claimPendingDraft(db, agent.id, claimStage) : null;
 
       if (!draft) {
-        const summary = 'No pending draft to review';
-        await finishAgentRun(db, runId, { status: 'succeeded', summary });
-        await markAgentRun(db, agent.id, agent.runsPerDay);
-        await recordAgentActivity(agent, runId, summary);
-        return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
+        throw new ApiError(
+          409,
+          'NO_PENDING_DRAFT',
+          'No draft is waiting for review. Run a Writer to produce one.',
+        );
       }
+    }
+
+    if (!MODEL_TAIL_BRANCHES.includes(branch)) {
+      throw new ApiError(
+        500,
+        'UNKNOWN_AGENT_ROLE',
+        `Agent role "${agent.role}" reached the model tail without a run branch.`,
+      );
     }
 
     const userMessage = await buildUserMessage(db, agent, topic, revisionTarget, draft);
@@ -816,9 +1013,12 @@ async function executeAgentRun(
       }
       const summary = 'No pending draft to process';
       await finishAgentRun(db, runId, { status: 'succeeded', summary });
-      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await markAgentRun(db, agent);
       await recordAgentActivity(agent, runId, summary);
-      return { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 };
+      return {
+        result: { runId, status: 'succeeded', summary, output: '', tokensIn: 0, tokensOut: 0 },
+        producedDraft: false,
+      };
     }
 
     const messages: ChatMessage[] = [
@@ -854,16 +1054,19 @@ async function executeAgentRun(
         tokensIn: response.tokensIn,
         tokensOut: response.tokensOut,
       });
-      await markAgentRun(db, agent.id, agent.runsPerDay);
+      await markAgentRun(db, agent);
       await recordAgentActivity(agent, runId, summary);
 
       return {
-        runId,
-        status: 'succeeded',
-        summary,
-        output: needsResearch,
-        tokensIn: response.tokensIn,
-        tokensOut: response.tokensOut,
+        result: {
+          runId,
+          status: 'succeeded',
+          summary,
+          output: needsResearch,
+          tokensIn: response.tokensIn,
+          tokensOut: response.tokensOut,
+        },
+        producedDraft: false,
       };
     }
 
@@ -884,16 +1087,19 @@ async function executeAgentRun(
       tokensIn: response.tokensIn,
       tokensOut: response.tokensOut,
     });
-    await markAgentRun(db, agent.id, agent.runsPerDay);
+    await markAgentRun(db, agent);
     await recordAgentActivity(agent, runId, applied.summary);
 
     return {
-      runId,
-      status: 'succeeded',
-      summary: applied.summary,
-      output: applied.output,
-      tokensIn: response.tokensIn,
-      tokensOut: response.tokensOut,
+      result: {
+        runId,
+        status: 'succeeded',
+        summary: applied.summary,
+        output: applied.output,
+        tokensIn: response.tokensIn,
+        tokensOut: response.tokensOut,
+      },
+      producedDraft: agent.role === 'writer' && Boolean(applied.postId),
     };
   } catch (error) {
     const baseMessage = error instanceof Error ? error.message : 'The run failed.';
@@ -935,19 +1141,22 @@ async function executeAgentRun(
       summary: `Run failed: ${message}`,
       error: message,
     });
-    await markAgentRun(db, agent.id, agent.runsPerDay);
+    await markAgentRun(db, agent);
     await recordAgentActivity(agent, runId, `Run failed: ${message}`);
     await maybeRecordFailureAlert(db, agent, runId);
     await recordRunFailureNotification(agent, runId, error, message);
 
     return {
-      runId,
-      status: 'failed',
-      summary: `Run failed: ${message}`,
-      output: '',
-      tokensIn: 0,
-      tokensOut: 0,
-      error: message,
+      result: {
+        runId,
+        status: 'failed',
+        summary: `Run failed: ${message}`,
+        output: '',
+        tokensIn: 0,
+        tokensOut: 0,
+        error: message,
+      },
+      producedDraft: false,
     };
   }
 }

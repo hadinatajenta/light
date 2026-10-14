@@ -1,16 +1,59 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCategoryFilter,
+  countUnclaimedTopics,
   isDuplicateTopicTitle,
   isTopicClaimable,
+  isTopicQueueFull,
   MAX_TOPIC_ATTEMPTS,
+  MAX_UNCLAIMED_TOPICS,
   normalizeTopicTitle,
+  type TopicCounts,
   topicRetryDelayMs,
 } from './topics';
 
 const NOW_ISO = '2026-10-11T08:00:00.000Z';
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
+
+function topicCounts(overrides: Partial<TopicCounts> = {}): TopicCounts {
+  return {
+    queued: 0,
+    fetched: 0,
+    researched: 0,
+    inProgress: 0,
+    used: 0,
+    blocked: 0,
+    dead: 0,
+    ...overrides,
+  };
+}
+
+describe('topic queue fullness', () => {
+  it('counts every topic that still waits for an agent', () => {
+    expect(countUnclaimedTopics(topicCounts({ queued: 2, fetched: 3, researched: 4 }))).toBe(9);
+  });
+
+  it('ignores topics an agent already claimed or closed', () => {
+    expect(
+      countUnclaimedTopics(topicCounts({ inProgress: 5, used: 6, blocked: 7, dead: 8, queued: 1 })),
+    ).toBe(1);
+  });
+
+  it('keeps the queue open up to the limit', () => {
+    expect(isTopicQueueFull(topicCounts({ queued: MAX_UNCLAIMED_TOPICS }))).toBe(false);
+    expect(
+      isTopicQueueFull(topicCounts({ fetched: MAX_UNCLAIMED_TOPICS - 1, researched: 1 })),
+    ).toBe(false);
+  });
+
+  it('closes the queue above the limit', () => {
+    expect(isTopicQueueFull(topicCounts({ queued: MAX_UNCLAIMED_TOPICS + 1 }))).toBe(true);
+    expect(isTopicQueueFull(topicCounts({ queued: MAX_UNCLAIMED_TOPICS, researched: 1 }))).toBe(
+      true,
+    );
+  });
+});
 
 describe('buildCategoryFilter', () => {
   it('matches any category for an empty list', () => {

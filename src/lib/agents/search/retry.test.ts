@@ -57,4 +57,20 @@ describe('withSearchRetry', () => {
     );
     expect(operation).toHaveBeenCalledTimes(1);
   });
+
+  it('uses a caller supplied retry predicate', async () => {
+    let calls = 0;
+    const operation = vi.fn(async () => {
+      calls += 1;
+      if (calls < 2) {
+        throw new ApiError(500, 'OTHER', 'boom');
+      }
+      return 'ok';
+    });
+
+    await expect(
+      withSearchRetry(operation, { attempts: 2, baseDelayMs: 1, isRetryable: () => true }),
+    ).resolves.toBe('ok');
+    expect(operation).toHaveBeenCalledTimes(2);
+  });
 });

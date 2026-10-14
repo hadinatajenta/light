@@ -1,0 +1,36 @@
+---
+import NotificationSettings from '@/components/dashboard/notification-settings';
+import SettingsNav from '@/components/dashboard/settings-nav.astro';
+import DashboardLayout from '@/layouts/DashboardLayout.astro';
+import { SETTINGS_SECTION_NOTIFICATIONS } from '@/lib/dashboard/settings-sections';
+
+export const prerender = false;
+---
+
+<DashboardLayout title="Settings: Notifications">
+  <div class="flex flex-col gap-6">
+    <div class="min-w-0">
+      <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+        {SETTINGS_SECTION_NOTIFICATIONS.label}
+      </h2>
+      <p class="mt-1 max-w-prose text-sm text-muted-foreground">
+        {SETTINGS_SECTION_NOTIFICATIONS.purpose}
+      </p>
+    </div>
+
+    <SettingsNav />
+
+    <NotificationSettings client:load />
+
+    <p class="max-w-prose text-sm text-muted-foreground">
+      Every event is recorded in the dashboard whether or not it is pushed.{' '}
+      <a
+        href="/dashboard/notifications"
+        class="text-foreground underline-offset-4 hover:underline"
+      >
+        Open the notification feed
+      </a>
+      .
+    </p>
+  </div>
+</DashboardLayout>

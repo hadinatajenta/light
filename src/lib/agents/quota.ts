@@ -2,6 +2,7 @@ import { getSetting } from '../settings/store';
 import type { AgentRole } from './roles';
 
 export const DEFAULT_PUBLISH_TARGET = 5;
+export const PENDING_DRAFT_BRAKE = 3;
 export const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 export const MIN_PUBLISH_GAP_MINUTES = 15;
 export const PUBLISH_TARGET_SETTING = 'publish_daily_target';
@@ -59,7 +60,10 @@ export function selectCatchUpRoles(workload: QuotaWorkload): AgentRole[] {
     roles.push('scrapper');
   }
 
-  if (workload.researchedTopics > 0 || workload.revisionDrafts > 0) {
+  if (
+    (workload.researchedTopics > 0 || workload.revisionDrafts > 0) &&
+    workload.pendingDrafts < PENDING_DRAFT_BRAKE
+  ) {
     roles.push('writer');
   }
 

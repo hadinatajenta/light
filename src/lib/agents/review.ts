@@ -100,6 +100,25 @@ export async function listRecentPublishedTitles(db: D1Database, limit = 12): Pro
   return (result.results ?? []).map((row) => row.title);
 }
 
+export interface RecentPublishedPost {
+  id: string;
+  title: string;
+}
+
+export async function listRecentPublishedPosts(
+  db: D1Database,
+  limit = 12,
+): Promise<RecentPublishedPost[]> {
+  const result = await db
+    .prepare(
+      "SELECT id, title FROM posts WHERE status = 'published' ORDER BY COALESCE(pub_date, created_at) DESC LIMIT ?",
+    )
+    .bind(limit)
+    .all<{ id: string; title: string }>();
+
+  return (result.results ?? []).map((row) => ({ id: row.id, title: row.title }));
+}
+
 export async function setPostReview(
   db: D1Database,
   id: string,

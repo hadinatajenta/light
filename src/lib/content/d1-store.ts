@@ -25,6 +25,7 @@ interface PostRow {
   published_at: string | null;
   updated_date: string | null;
   updated_at: string;
+  created_at: string;
 }
 
 function readStatus(value: string): PostStatus {
@@ -61,6 +62,8 @@ function toSummary(row: PostRow): PostSummary {
     reviewStatus: row.review_status,
     pubDate: row.pub_date,
     updatedDate: row.updated_date,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -147,8 +150,8 @@ export function createD1Store(db: D1Database) {
       const result = await db
         .prepare(
           `SELECT id, title, description, status, category, tags, updated_date, updated_at,
-                  pub_date, seo_title, cover_url, cover_alt, review_status, canonical, noindex,
-                  focus_keyword, affiliate, faq, body
+                  created_at, pub_date, seo_title, cover_url, cover_alt, review_status, canonical,
+                  noindex, focus_keyword, affiliate, faq, body
            FROM posts
            ORDER BY COALESCE(updated_date, pub_date) DESC`,
         )

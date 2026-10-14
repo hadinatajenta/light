@@ -16,6 +16,28 @@ const GENERIC_LINK_LABELS = new Set([
   'view product details',
 ]);
 
+export const ARTICLE_TAG_CATEGORIES: Record<string, string> = {
+  'eye-strain': 'lighting',
+  'monitor-setup': 'monitors',
+  'monitor-arm': 'monitors',
+  'dual-monitor': 'monitors',
+  'desk-height': 'desk-setup',
+  'desk-upgrade': 'desk-setup',
+  'home-office': 'desk-setup',
+  'cable-management': 'accessories',
+  'desk-accessories': 'accessories',
+  'keyboard-tray': 'accessories',
+  'under-desk-storage': 'accessories',
+  drawers: 'accessories',
+  switches: 'keyboards',
+  noise: 'audio',
+  'office-chair': 'chairs',
+  'tall-users': 'chairs',
+  ergonomics: 'chairs',
+  'desk-ergonomics': 'chairs',
+  'office-ergonomics': 'chairs',
+};
+
 export interface FeaturedProduct {
   slug: string;
   label: string;
@@ -88,6 +110,23 @@ export function shortenFeaturedNote(value: string | null): string | null {
   return `${collapsed.slice(0, FEATURED_NOTE_MAX_LENGTH - 1).trimEnd()}…`;
 }
 
+function matchedCategories(category: string | null, tags: string[]): Set<string> {
+  const categories = new Set<string>();
+
+  if (category) {
+    categories.add(category);
+  }
+
+  for (const tag of tags) {
+    const mapped = ARTICLE_TAG_CATEGORIES[tag];
+    if (mapped) {
+      categories.add(mapped);
+    }
+  }
+
+  return categories;
+}
+
 export function selectFeaturedProducts(input: FeaturedSelectionInput): FeaturedProduct[] {
   const limit = Math.max(1, input.limit ?? FEATURED_PRODUCT_LIMIT);
   const bySlug = new Map(input.products.map((product) => [product.slug, product]));
@@ -113,12 +152,14 @@ export function selectFeaturedProducts(input: FeaturedSelectionInput): FeaturedP
     });
   }
 
-  if (!input.category) {
+  const categories = matchedCategories(input.category, input.tags);
+
+  if (categories.size === 0) {
     return selected;
   }
 
   const eligible = input.products.filter(
-    (product) => !taken.has(product.slug) && product.topics.includes(input.category as string),
+    (product) => !taken.has(product.slug) && product.topics.some((topic) => categories.has(topic)),
   );
 
   const ranked = rankCatalogForTopic(

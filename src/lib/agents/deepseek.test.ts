@@ -143,3 +143,63 @@ describe('createChatCompletion', () => {
     });
   });
 });
+
+describe('createChatCompletion empty responses', () => {
+  const EMPTY_BODY = {
+    choices: [{ message: { content: '', reasoning_content: '' }, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 10, completion_tokens: 0 },
+  };
+
+  const FULL_BODY = {
+    choices: [{ message: { content: '{"ok":true}' }, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 10, completion_tokens: 5 },
+  };
+
+  it('retries once when the model returns nothing at all', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(EMPTY_BODY))
+      .mockResolvedValueOnce(jsonResponse(FULL_BODY));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const completion = await createChatCompletion(BASE_REQUEST);
+
+    expect(completion.content).toBe('{"ok":true}');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after the bounded attempts and reports the empty completion', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(EMPTY_BODY)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const completion = await createChatCompletion(BASE_REQUEST);
+
+    expect(completion.content).toBe('');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a completion that reasoned but returned no content', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        choices: [
+          { message: { content: '', reasoning_content: 'thought' }, finish_reason: 'stop' },
+        ],
+        usage: { prompt_tokens: 10, completion_tokens: 3 },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createChatCompletion(BASE_REQUEST);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes a single request when the first answer is usable', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(FULL_BODY));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createChatCompletion(BASE_REQUEST);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

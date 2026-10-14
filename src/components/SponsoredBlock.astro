@@ -35,7 +35,7 @@ const product = await loadSponsorableProduct();
     <aside class="sponsored" aria-label="Sponsored placement">
       <span class="sponsored-label">Sponsored</span>
       <p class="sponsored-name">
-        <a href={`/go/${product.slug}`} rel="sponsored noopener">
+        <a href={`/go/${product.slug}?p=sponsored`} rel="sponsored noopener">
           {product.name}
         </a>
       </p>

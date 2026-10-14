@@ -27,6 +27,7 @@ function sleep(ms: number): Promise<void> {
 export interface SearchRetryOptions {
   attempts?: number;
   baseDelayMs?: number;
+  isRetryable?: (error: unknown) => boolean;
 }
 
 export async function withSearchRetry<T>(
@@ -35,6 +36,7 @@ export async function withSearchRetry<T>(
 ): Promise<T> {
   const attempts = Math.max(options.attempts ?? 3, 1);
   const baseDelayMs = options.baseDelayMs ?? 500;
+  const isRetryable = options.isRetryable ?? isRetryableSearchError;
   let lastError: unknown;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -42,7 +44,7 @@ export async function withSearchRetry<T>(
       return await operation();
     } catch (error) {
       lastError = error;
-      if (!isRetryableSearchError(error) || attempt === attempts - 1) {
+      if (!isRetryable(error) || attempt === attempts - 1) {
         throw error;
       }
       await sleep(retryDelay(error, attempt, baseDelayMs));

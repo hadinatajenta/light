@@ -1,11 +1,21 @@
+import { viewDayKey } from '../analytics/views';
 import { buildAffiliateUrl } from './links';
 import { getProgram } from './store';
+
+const CLICK_PLACEMENTS = ['body', 'list', 'rail', 'sponsored'] as const;
+
+export type ClickPlacement = (typeof CLICK_PLACEMENTS)[number] | 'unknown';
+
+export function normalizeClickPlacement(value: string | null): ClickPlacement {
+  return CLICK_PLACEMENTS.find((placement) => placement === value) ?? 'unknown';
+}
 
 export interface ClickInput {
   productId: string;
   postId: string | null;
   path: string | null;
   referrer: string | null;
+  placement: ClickPlacement;
 }
 
 export interface ClickTotals {
@@ -57,8 +67,8 @@ export async function findClickTarget(db: D1Database, slug: string): Promise<Cli
 export async function recordClick(db: D1Database, input: ClickInput): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO clicks (id, product_id, post_id, path, referrer, created_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO clicks (id, product_id, post_id, path, referrer, placement, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       crypto.randomUUID(),
@@ -66,9 +76,57 @@ export async function recordClick(db: D1Database, input: ClickInput): Promise<vo
       input.postId,
       input.path,
       input.referrer,
+      input.placement,
       new Date().toISOString(),
     )
     .run();
+}
+
+export interface RedirectMissInput {
+  slug: string;
+  referrerPath: string;
+  now?: Date;
+}
+
+export interface RedirectMiss {
+  day: string;
+  slug: string;
+  referrerPath: string;
+  count: number;
+}
+
+export async function recordRedirectMiss(db: D1Database, input: RedirectMissInput): Promise<void> {
+  const now = input.now ?? new Date();
+
+  await db
+    .prepare(
+      `INSERT INTO redirect_misses (day, slug, referrer_path, count, updated_at)
+       VALUES (?, ?, ?, 1, ?)
+       ON CONFLICT(day, slug, referrer_path) DO UPDATE SET count = count + 1, updated_at = excluded.updated_at`,
+    )
+    .bind(viewDayKey(now), input.slug, input.referrerPath, now.toISOString())
+    .run();
+}
+
+export async function listRecentRedirectMisses(
+  db: D1Database,
+  limit: number,
+): Promise<RedirectMiss[]> {
+  const result = await db
+    .prepare(
+      `SELECT day, slug, referrer_path, count FROM redirect_misses
+       ORDER BY day DESC, count DESC
+       LIMIT ?`,
+    )
+    .bind(Math.min(Math.max(limit, 1), 50))
+    .all<{ day: string; slug: string; referrer_path: string; count: number }>();
+
+  return (result.results ?? []).map((row) => ({
+    day: row.day,
+    slug: row.slug,
+    referrerPath: row.referrer_path,
+    count: row.count,
+  }));
 }
 
 function isoSince(days: number): string {

@@ -23,7 +23,7 @@ const { products, disclosure, variant = 'article' } = Astro.props;
           {products.map((product) => (
             <li>
               <a
-                href={`/go/${product.slug}`}
+                href={`/go/${product.slug}?p=rail`}
                 rel="sponsored nofollow noopener"
                 target="_blank"
                 class="product-rail-link"
@@ -56,7 +56,7 @@ const { products, disclosure, variant = 'article' } = Astro.props;
             </div>
             <a
               class="btn btn-primary btn-sm product-list-cta"
-              href={`/go/${product.slug}`}
+              href={`/go/${product.slug}?p=list`}
               rel="sponsored nofollow noopener"
               target="_blank"
             >

@@ -1,4 +1,5 @@
 import { publishDuePosts } from '../scheduling/store';
+import { getSetting, setSetting } from '../settings/store';
 import { readBudgetState } from './budget';
 import { type QuotaWorkload, selectCatchUpRoles } from './quota';
 import { reapStaleRuns } from './reaper';
@@ -10,6 +11,8 @@ import { countTopics } from './topics';
 
 const MIN_RUN_MS = 15_000;
 const MIN_ROUND_MS = 20_000;
+export const CATCH_UP_COOLDOWN_MS = 30 * 60 * 1000;
+const CATCH_UP_AT_SETTING = 'quota_catchup_at';
 
 export interface PipelineRunSummary {
   agentId: string;
@@ -140,6 +143,12 @@ export async function runQuotaCatchUp(
   db: D1Database,
   options: { deadline: number; maxRuns: number },
 ): Promise<PipelineRunSummary[]> {
+  const lastCatchUp = await getSetting(db, CATCH_UP_AT_SETTING);
+
+  if (lastCatchUp && Date.now() - Date.parse(lastCatchUp) < CATCH_UP_COOLDOWN_MS) {
+    return [];
+  }
+
   const workload = await loadQuotaWorkload(db);
   const roles = selectCatchUpRoles(workload);
 
@@ -163,6 +172,10 @@ export async function runQuotaCatchUp(
       status: result.status,
       summary: result.summary,
     });
+  }
+
+  if (runs.length > 0) {
+    await setSetting(db, CATCH_UP_AT_SETTING, new Date().toISOString());
   }
 
   return runs;

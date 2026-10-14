@@ -5,7 +5,9 @@ import { describeDeepseekKey } from '@/lib/agents/settings';
 import { listPrograms } from '@/lib/affiliate/store';
 import { DEFAULT_BRANCH, DEFAULT_REPOSITORY } from '@/lib/content/config';
 import { resolveContentDatabase } from '@/lib/content/database';
+import { SETTINGS_SECTION_IDENTITY } from '@/lib/dashboard/settings-sections';
 import { readJsonSetting } from '@/lib/settings/store';
+import SettingsNav from '@/components/dashboard/settings-nav.astro';
 import SiteSettingsForm from '@/components/dashboard/site-settings-form';
 import DashboardLayout from '@/layouts/DashboardLayout.astro';
 
@@ -70,12 +72,15 @@ const adNetworkLabel = AD_NETWORK_LABELS[integrations.adNetwork] ?? integrations
 <DashboardLayout title="Settings">
   <div class="flex flex-col gap-6">
     <div class="min-w-0">
-      <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">Settings</h2>
+      <h2 class="font-display text-lg font-bold tracking-[-0.02em] text-foreground">
+        {SETTINGS_SECTION_IDENTITY.label}
+      </h2>
       <p class="mt-1 max-w-prose text-sm text-muted-foreground">
-        The site title, description, and social defaults. These render into every page head and
-        apply immediately, because the site reads them from the database.
+        {SETTINGS_SECTION_IDENTITY.purpose}
       </p>
     </div>
+
+    <SettingsNav />
 
     <SiteSettingsForm client:load />
 
@@ -86,7 +91,15 @@ const adNetworkLabel = AD_NETWORK_LABELS[integrations.adNetwork] ?? integrations
       <div class="min-w-0">
         <h3 class="text-sm font-medium text-foreground">Integrations</h3>
         <p class="mt-1 max-w-prose text-sm text-muted-foreground">
-          Read-only status for the services this site depends on. Configure these elsewhere.
+          Read-only status for the services this site depends on. The DeepSeek key, the search
+          provider, and the spending budget are configured on the{' '}
+          <a
+            href="/dashboard/settings/providers"
+            class="text-foreground underline underline-offset-4"
+          >
+            Providers page
+          </a>
+          .
         </p>
       </div>
 
@@ -111,7 +124,7 @@ const adNetworkLabel = AD_NETWORK_LABELS[integrations.adNetwork] ?? integrations
               </span>
             ) : (
               <span class="mt-0.5 block text-muted-foreground">
-                Add a key on the Agents page.
+                Add a key on the Providers page.
               </span>
             )}
           </dd>

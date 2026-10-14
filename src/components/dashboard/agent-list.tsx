@@ -1,5 +1,6 @@
 import {
   BotIcon,
+  ClockIcon,
   Loader2Icon,
   PencilIcon,
   PlayIcon,
@@ -23,16 +24,26 @@ const SKELETON_CARDS = ['agent-skeleton-1', 'agent-skeleton-2'];
 
 type AgentRole = 'writer' | 'reviewer' | 'qc' | 'scrapper';
 
+const SCHEDULE_MODE_LABELS: Record<string, string> = {
+  manual: 'Manual schedule',
+  interval: 'Runs per day schedule',
+  daily: 'Daily schedule',
+  weekly: 'Weekly schedule',
+  hours: 'Fixed hour schedule',
+};
+
 interface AgentRecord {
   id: string;
   name: string;
-  role: AgentRole;
+  role: string;
   prompt: string;
   model: string;
   runsPerDay: number;
   enabled: boolean;
   autoPublish: boolean;
   categories: string[];
+  scheduleMode: string;
+  systemManaged: boolean;
   lastRunAt: string | null;
   nextRunAt: string | null;
   createdAt: string;
@@ -161,7 +172,9 @@ function AgentCard({ agent, roleLabel, isRunning, isToggling, onRun, onToggle }:
           {agent.name}
         </h3>
         <p className="truncate font-mono text-xs text-muted-foreground">
-          {agent.model} · {agent.runsPerDay}x per day
+          {agent.systemManaged
+            ? 'Built-in engine, no model calls'
+            : `${agent.model} · ${agent.runsPerDay}x per day`}
         </p>
       </div>
 
@@ -169,22 +182,40 @@ function AgentCard({ agent, roleLabel, isRunning, isToggling, onRun, onToggle }:
         <span className="tabular-nums">
           {agent.lastRunAt ? `Last run ${formatRelativeTime(agent.lastRunAt)}` : 'Never run'}
         </span>
-        <StatusIndicator enabled={agent.enabled} />
+        {agent.systemManaged ? (
+          <>
+            <Badge variant="outline" className="text-[0.625rem] tracking-[0.08em] uppercase">
+              Built in
+            </Badge>
+            <span>{SCHEDULE_MODE_LABELS[agent.scheduleMode] ?? agent.scheduleMode}</span>
+          </>
+        ) : (
+          <StatusIndicator enabled={agent.enabled} />
+        )}
       </div>
 
       <div className="mt-auto flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="whitespace-nowrap"
-          aria-pressed={agent.enabled}
-          disabled={isBusy}
-          onClick={() => onToggle(agent)}
-        >
-          {isToggling ? <Loader2Icon className="animate-spin" /> : null}
-          {agent.enabled ? 'Disable' : 'Enable'}
-        </Button>
+        {agent.systemManaged ? (
+          <Button asChild variant="ghost" size="sm" className="whitespace-nowrap">
+            <a href="/dashboard/analyst">
+              <ClockIcon />
+              Schedule
+            </a>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="whitespace-nowrap"
+            aria-pressed={agent.enabled}
+            disabled={isBusy}
+            onClick={() => onToggle(agent)}
+          >
+            {isToggling ? <Loader2Icon className="animate-spin" /> : null}
+            {agent.enabled ? 'Disable' : 'Enable'}
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"

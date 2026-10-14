@@ -81,6 +81,8 @@ interface PostSummary {
   reviewStatus?: string | null;
   pubDate: string | null;
   updatedDate: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }
 
 interface CategorySummary {
@@ -454,6 +456,7 @@ function PostTableRows({
         const isSelected = selected.has(post.id);
         const reviewStatus = resolveReviewStatus(post.reviewStatus);
         const updatedLabel = formatRelativeTime(post.updatedDate);
+        const createdLabel = post.createdAt ? formatRelativeTime(post.createdAt) : null;
         const categoryLabel = post.category
           ? (categoryLabels.get(post.category) ?? post.category)
           : DASH;
@@ -511,11 +514,24 @@ function PostTableRows({
               <TagCount tags={post.tags} />
             </TableCell>
             <TableCell className="whitespace-nowrap text-muted-foreground">
-              {post.updatedDate ? (
-                <time dateTime={post.updatedDate} title={formatUpdatedDate(post.updatedDate)}>
-                  {updatedLabel}
+              {post.createdAt ? (
+                <time
+                  className="block"
+                  dateTime={post.createdAt}
+                  title={`Created ${formatUpdatedDate(post.createdAt)}`}
+                >
+                  Created {createdLabel}
                 </time>
-              ) : (
+              ) : null}
+              {post.updatedDate ? (
+                <time
+                  className="block"
+                  dateTime={post.updatedDate}
+                  title={`Updated ${formatUpdatedDate(post.updatedDate)}`}
+                >
+                  Updated {updatedLabel}
+                </time>
+              ) : post.createdAt ? null : (
                 DASH
               )}
             </TableCell>

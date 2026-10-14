@@ -239,4 +239,52 @@ describe('selectFeaturedProducts', () => {
 
     expect(featured[0].note).toBe('A 27-inch panel that holds its brightness in a bright room.');
   });
+
+  it('tops up from a tag when the category holds no products', () => {
+    const featured = select({
+      category: 'buying-basics',
+      tags: ['eye-strain'],
+      products: CATALOG,
+    });
+
+    expect(featured.map((entry) => entry.slug)).toEqual(['quntis-monitor-light']);
+  });
+
+  it('keeps a body reference ahead of a tag match', () => {
+    const body = '[Rocalt cushioned standing mat](product:rocalt-standing-mat)';
+
+    const featured = select({
+      body,
+      category: 'buying-basics',
+      tags: ['eye-strain'],
+      products: CATALOG,
+    });
+
+    expect(featured.map((entry) => entry.slug)).toEqual([
+      'rocalt-standing-mat',
+      'quntis-monitor-light',
+    ]);
+    expect(featured[0].matchedBy).toBe('reference');
+  });
+
+  it('ignores a tag that maps to no category', () => {
+    const featured = select({
+      category: 'buying-basics',
+      tags: ['unmapped-tag'],
+      products: CATALOG,
+    });
+
+    expect(featured).toEqual([]);
+  });
+
+  it('selects a lighting product for a buying-basics guide tagged eye-strain', () => {
+    const featured = select({
+      title: 'Reducing eye strain at a desk: distance and lighting breaks',
+      tags: ['eye-strain', 'monitor-setup', 'desk-ergonomics', 'buying-basics'],
+      category: 'buying-basics',
+      products: [DESK_MAT, MONITOR_ARM, MONITOR_LIGHT],
+    });
+
+    expect(featured.map((entry) => entry.slug)).toContain('quntis-monitor-light');
+  });
 });

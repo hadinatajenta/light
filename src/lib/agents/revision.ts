@@ -1,4 +1,8 @@
-export const MAX_REVISION_ROUNDS = 2;
+import { notify } from '../notifications/notify';
+
+export const MAX_REVISION_ROUNDS = 3;
+
+export const REVISION_EXHAUSTED_STAGE = 'revision_exhausted';
 
 export interface RevisionTarget {
   id: string;
@@ -52,6 +56,80 @@ export async function claimRevisionTarget(db: D1Database, id: string): Promise<b
     .run();
 
   return result.meta.changes === 1;
+}
+
+export interface ExhaustedRevisionTarget {
+  id: string;
+  title: string;
+  revisionCount: number;
+}
+
+interface ExhaustedRevisionRow {
+  id: string;
+  title: string;
+  revision_count: number;
+}
+
+async function markRevisionExhausted(db: D1Database, id: string): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `UPDATE posts SET review_stage = ?, updated_at = ?
+       WHERE id = ? AND status = 'draft' AND review_status = 'changes_requested'
+         AND revision_count >= ? AND COALESCE(review_stage, '') <> ?`,
+    )
+    .bind(
+      REVISION_EXHAUSTED_STAGE,
+      new Date().toISOString(),
+      id,
+      MAX_REVISION_ROUNDS,
+      REVISION_EXHAUSTED_STAGE,
+    )
+    .run();
+
+  return result.meta.changes === 1;
+}
+
+export async function parkExhaustedRevisions(db: D1Database): Promise<ExhaustedRevisionTarget[]> {
+  const result = await db
+    .prepare(
+      `SELECT id, title, revision_count FROM posts
+       WHERE status = 'draft' AND review_status = 'changes_requested'
+         AND revision_count >= ? AND COALESCE(review_stage, '') <> ?
+       ORDER BY updated_at ASC`,
+    )
+    .bind(MAX_REVISION_ROUNDS, REVISION_EXHAUSTED_STAGE)
+    .all<ExhaustedRevisionRow>();
+
+  const parked: ExhaustedRevisionTarget[] = [];
+
+  for (const row of result.results ?? []) {
+    if (!(await markRevisionExhausted(db, row.id))) {
+      continue;
+    }
+
+    const target: ExhaustedRevisionTarget = {
+      id: row.id,
+      title: row.title,
+      revisionCount: row.revision_count,
+    };
+
+    parked.push(target);
+
+    await notify({
+      event: 'post.revision.exhausted',
+      title: `"${target.title}" needs a human decision`,
+      body: `The reviewer still requests changes after ${target.revisionCount} automatic revisions, which reaches the limit of ${MAX_REVISION_ROUNDS}. The writer will not revise this draft again. Open it to finish it by hand or archive it.`,
+      link: `/dashboard/posts/${target.id}/edit`,
+      metadata: {
+        postId: target.id,
+        revisionCount: target.revisionCount,
+        limit: MAX_REVISION_ROUNDS,
+      },
+      dedupeSubject: target.id,
+    });
+  }
+
+  return parked;
 }
 
 export async function saveReviewNotes(db: D1Database, id: string, notes: string): Promise<void> {

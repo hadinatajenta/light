@@ -8,6 +8,7 @@ import type { AffiliateProduct } from '@/lib/affiliate/store';
 import { selectFeaturedProducts } from '@/lib/affiliate/featured';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
 import { getRelatedPosts } from '@/lib/content/related';
+import { topicLabel } from '@/lib/content/topics';
 import { findMediaCreditByUrl } from '@/lib/media/store';
 import { formatDate } from '@/utils/date';
 import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildCanonicalUrl, buildFaqJsonLd } from '@/utils/seo';
@@ -81,6 +82,7 @@ const jsonLd = [
   description={post.description}
   type="article"
   noindex={post.noindex}
+  image={post.coverUrl ?? undefined}
   jsonLd={jsonLd}
   contained={false}
 >
@@ -258,7 +260,7 @@ const jsonLd = [
               <span class="label">Filed under</span>
               {post.tags.map((tag) => (
                 <a class="topic" href={`/tag/${tag}/`}>
-                  {tag}
+                  {topicLabel(tag)}
                 </a>
               ))}
             </div>

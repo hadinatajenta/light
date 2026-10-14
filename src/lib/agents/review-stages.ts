@@ -37,8 +37,8 @@ export function reviewStageFilter(stage: ReviewClaimStage): string {
   }
 
   if (stage === 'editorial') {
-    return "review_stage = 'qc_passed'";
+    return "(review_stage IS NULL OR review_stage = 'qc_passed')";
   }
 
-  return "review_stage = 'editorial_passed'";
+  return "(review_stage IS NULL OR review_stage = 'qc_passed' OR review_stage = 'editorial_passed')";
 }

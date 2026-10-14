@@ -113,3 +113,60 @@ describe('parsePlannerTopics', () => {
     }
   });
 });
+
+describe('parsePlannerTopics finding pointers', () => {
+  it('attaches a finding id that the caller supplied', () => {
+    const result = parsePlannerTopics(
+      { topics: [validEntry({ sourceFindingId: 'finding-1' })] },
+      ALLOWED,
+      KNOWN,
+      ['finding-1'],
+    );
+
+    expect(result.topics[0]?.sourceFindingId).toBe('finding-1');
+  });
+
+  it('ignores an unknown finding id without failing the parse', () => {
+    const result = parsePlannerTopics(
+      { topics: [validEntry({ sourceFindingId: 'finding-9' })] },
+      ALLOWED,
+      KNOWN,
+      ['finding-1'],
+    );
+
+    expect(result.topics).toHaveLength(1);
+    expect(result.topics[0]?.sourceFindingId).toBeUndefined();
+  });
+
+  it('ignores finding ids when the caller allows none', () => {
+    const result = parsePlannerTopics(
+      { topics: [validEntry({ sourceFindingId: 'finding-1' })] },
+      ALLOWED,
+      KNOWN,
+    );
+
+    expect(result.topics[0]?.sourceFindingId).toBeUndefined();
+  });
+
+  it('ignores a non-string pointer', () => {
+    const result = parsePlannerTopics(
+      { topics: [validEntry({ sourceFindingId: 7 })] },
+      ALLOWED,
+      KNOWN,
+      ['finding-1'],
+    );
+
+    expect(result.topics[0]?.sourceFindingId).toBeUndefined();
+  });
+
+  it('trims the pointer before matching', () => {
+    const result = parsePlannerTopics(
+      { topics: [validEntry({ sourceFindingId: ' finding-1 ' })] },
+      ALLOWED,
+      KNOWN,
+      ['finding-1'],
+    );
+
+    expect(result.topics[0]?.sourceFindingId).toBe('finding-1');
+  });
+});

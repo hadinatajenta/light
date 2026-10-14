@@ -111,9 +111,19 @@ function withTimeout(request: ChatRequest): { signal: AbortSignal; cancel: () =>
   return { signal: controller.signal, cancel };
 }
 
-export async function createChatCompletion(request: ChatRequest): Promise<ChatResponse> {
-  const { signal, cancel } = withTimeout(request);
+const EMPTY_COMPLETION_ATTEMPTS = 2;
+const EMPTY_COMPLETION_RETRY_MS = 500;
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function performChatCompletion(
+  request: ChatRequest,
+  signal: AbortSignal,
+): Promise<ChatResponse> {
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}/chat/completions`, {
@@ -135,14 +145,11 @@ export async function createChatCompletion(request: ChatRequest): Promise<ChatRe
       signal,
     });
   } catch (error) {
-    cancel();
     if (error instanceof Error && error.name === 'AbortError') {
       throw new ApiError(504, 'DEEPSEEK_TIMEOUT', 'The DeepSeek request timed out.');
     }
     throw new ApiError(502, 'DEEPSEEK_UNREACHABLE', 'Could not reach the DeepSeek API.');
   }
-
-  cancel();
 
   if (!response.ok) {
     throw toStatusError(response, await readErrorDetail(response));
@@ -158,6 +165,34 @@ export async function createChatCompletion(request: ChatRequest): Promise<ChatRe
     tokensIn: payload.usage?.prompt_tokens ?? 0,
     tokensOut: payload.usage?.completion_tokens ?? 0,
   };
+}
+
+export function isEmptyCompletion(completion: ChatResponse): boolean {
+  return completion.content.trim() === '' && completion.reasoning.trim() === '';
+}
+
+export async function createChatCompletion(request: ChatRequest): Promise<ChatResponse> {
+  let lastCompletion: ChatResponse | null = null;
+
+  for (let attempt = 1; attempt <= EMPTY_COMPLETION_ATTEMPTS; attempt += 1) {
+    const { signal, cancel } = withTimeout(request);
+
+    try {
+      lastCompletion = await performChatCompletion(request, signal);
+
+      if (!isEmptyCompletion(lastCompletion)) {
+        return lastCompletion;
+      }
+    } finally {
+      cancel();
+    }
+
+    if (attempt < EMPTY_COMPLETION_ATTEMPTS) {
+      await delay(EMPTY_COMPLETION_RETRY_MS);
+    }
+  }
+
+  return lastCompletion as ChatResponse;
 }
 
 export async function verifyApiKey(apiKey: string): Promise<void> {
