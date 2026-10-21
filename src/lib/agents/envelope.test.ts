@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stripWriterEnvelope } from './envelope';
+import { stripProductReferences, stripWriterEnvelope } from './envelope';
 
 const ARTICLE = `## Why the clamp matters
 
@@ -69,5 +69,51 @@ ${ARTICLE}`;
 ${ARTICLE}`;
 
     expect(stripWriterEnvelope(body)).toBe(body);
+  });
+});
+
+describe('stripProductReferences', () => {
+  it('replaces a single product reference with its link text', () => {
+    expect(stripProductReferences('Buy [the Aeron](product:aeron) today.')).toBe(
+      'Buy the Aeron today.',
+    );
+  });
+
+  it('replaces several references in one body', () => {
+    const body = 'The [Aeron](product:aeron) and the [Embody](product:embody) both work.';
+
+    expect(stripProductReferences(body)).toBe('The Aeron and the Embody both work.');
+  });
+
+  it('keeps the punctuation around a replaced reference', () => {
+    expect(stripProductReferences('See [the clamp](product:desk-clamp), then measure.')).toBe(
+      'See the clamp, then measure.',
+    );
+  });
+
+  it('leaves an ordinary internal link untouched', () => {
+    const body = 'Read [the monitor guide](/blog/monitor-distance-guide/).';
+
+    expect(stripProductReferences(body)).toBe(body);
+  });
+
+  it('leaves an external link untouched', () => {
+    const body = 'See [ISO 9241](https://www.iso.org/standard/16818.html).';
+
+    expect(stripProductReferences(body)).toBe(body);
+  });
+
+  it('leaves a malformed or unterminated reference untouched without throwing', () => {
+    const body = 'Maybe [the Aeron](product:aeron and [the Embody](product:) here.';
+
+    expect(() => stripProductReferences(body)).not.toThrow();
+    expect(stripProductReferences(body)).toBe(body);
+  });
+
+  it('is idempotent', () => {
+    const body = 'Buy [the Aeron](product:aeron), not [a copy](product:aeron-clone).';
+    const once = stripProductReferences(body);
+
+    expect(stripProductReferences(once)).toBe(once);
   });
 });

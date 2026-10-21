@@ -1,4 +1,5 @@
 ---
+import { readAffiliateLinksEnabled } from '@/lib/affiliate/settings';
 import { listProducts, listPrograms } from '@/lib/affiliate/store';
 import { resolveContentDatabase } from '@/lib/content/database';
 import type { AffiliateProduct } from '@/lib/affiliate/store';
@@ -7,6 +8,10 @@ async function loadSponsorableProduct(): Promise<AffiliateProduct | null> {
   try {
     const database = await resolveContentDatabase();
     if (!database) {
+      return null;
+    }
+
+    if (!(await readAffiliateLinksEnabled(database))) {
       return null;
     }
 
@@ -52,12 +57,11 @@ const product = await loadSponsorableProduct();
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 18px;
-    margin: 0 auto 8px;
-    max-width: 80rem;
-    border: 1px solid var(--ink-20);
+    margin: 40px auto 0;
+    border: 1px solid var(--ink-12);
     border-radius: 2px;
-    background: var(--brand-soft);
-    padding: 20px 24px;
+    background: var(--paper-raised);
+    padding: 18px 22px;
     font-family: var(--font-sans);
   }
   .sponsored-label {

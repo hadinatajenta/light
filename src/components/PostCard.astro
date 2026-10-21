@@ -1,88 +1,64 @@
 ---
 import type { SitePostSummary } from '@/lib/content/public';
+import { topicLabel } from '@/lib/content/topics';
 import { formatDate } from '@/utils/date';
 
 interface Props {
   post: SitePostSummary;
-  variant?: 'default' | 'feature' | 'text' | 'alt';
-  symbol?: string;
+  variant?: 'standard' | 'lead';
+  ordinal?: number;
   headingLevel?: 2 | 3;
-  priority?: boolean;
 }
 
-const {
-  post,
-  variant = 'default',
-  symbol,
-  headingLevel = 3,
-  priority = false,
-} = Astro.props;
+const { post, variant = 'standard', ordinal, headingLevel = 3 } = Astro.props;
 
 const Heading = `h${headingLevel}` as 'h2' | 'h3';
-const isTextOnly = variant === 'text';
-const isFeature = variant === 'feature';
-const cardClass = ['m-card', isFeature ? 'm-card-feature' : '', isTextOnly ? 'm-card-text' : '']
-  .filter(Boolean)
-  .join(' ');
-const mediaClass = variant === 'alt' ? 'm-card-media alt' : 'm-card-media';
-const glyphClass = variant === 'alt' || isTextOnly ? 'sym-sm' : 'sym';
-const glyph = symbol ?? (post.tags[0] ? post.tags[0].charAt(0).toUpperCase() : 'L');
+const label = topicLabel(post.category ?? post.tags[0] ?? 'guide');
 const postHref = `/blog/${post.id}/`;
+const hasCover = Boolean(post.coverUrl);
+const cardClass = variant === 'lead' ? 'guide-card guide-card-lead' : 'guide-card';
+const plateClass = hasCover ? 'guide-plate has-image' : 'guide-plate';
 ---
 
 <article class={cardClass}>
-  {
-    !isTextOnly && (
-      <div class={mediaClass}>
-        {post.coverUrl ? (
-          <img
-            src={post.coverUrl}
-            alt={post.coverAlt ?? ''}
-            width={isFeature ? 1280 : 800}
-            height={isFeature ? 800 : 600}
-            loading={priority ? 'eager' : 'lazy'}
-            decoding={priority ? 'sync' : 'async'}
-            fetchpriority={priority ? 'high' : 'auto'}
-            class="m-card-image"
-          />
-        ) : (
-          <span class={glyphClass} aria-hidden="true">
-            {glyph}
-          </span>
-        )}
-      </div>
-    )
-  }
-  <Heading class="m-card-title">
-    <a href={postHref}>{post.title}</a>
-  </Heading>
-  <div class="m-card-rule"></div>
-  <p class="m-card-desc">{post.description}</p>
-  {
-    post.pubDate && (
-      <div class="m-card-meta">
-        <time datetime={post.pubDate}>{formatDate(new Date(post.pubDate))}</time>
-      </div>
-    )
-  }
-  {
-    post.tags.length > 0 && (
-      <div class="m-card-tags">
-        {post.tags.slice(0, 3).map((tag) => (
-          <a href={`/tag/${tag}/`}>#{tag}</a>
-        ))}
-        {post.tags.length > 3 && <span>+{post.tags.length - 3}</span>}
-      </div>
-    )
-  }
+  <div class={plateClass}>
+    {
+      ordinal !== undefined ? (
+        <span class="guide-plate-num">{String(ordinal).padStart(2, '0')}</span>
+      ) : null
+    }
+    {
+      hasCover ? (
+        <img
+          src={post.coverUrl ?? ''}
+          alt={post.coverAlt ?? ''}
+          width={variant === 'lead' ? 1280 : 800}
+          height={variant === 'lead' ? 720 : 500}
+          loading={ordinal === 1 ? 'eager' : 'lazy'}
+          decoding="async"
+          class="guide-plate-image"
+        />
+      ) : (
+        <span class="guide-plate-mark">{label}</span>
+      )
+    }
+    {hasCover ? <span class="guide-plate-cat">{label}</span> : null}
+  </div>
+  <div class="guide-card-body">
+    <p class="guide-meta">
+      <span>{label}</span>
+      {
+        post.pubDate ? (
+          <>
+            <span class="guide-meta-dot" aria-hidden="true" />
+            <time datetime={post.pubDate}>{formatDate(new Date(post.pubDate))}</time>
+          </>
+        ) : null
+      }
+    </p>
+    <Heading class="guide-card-title">
+      <a href={postHref}>{post.title}</a>
+    </Heading>
+    {post.description ? <p class="guide-card-excerpt">{post.description}</p> : null}
+  </div>
 </article>
-
-<style>
-  .m-card-tags a {
-    position: relative;
-    z-index: 1;
-  }
-  .m-card-tags a:hover {
-    text-decoration: underline;
-  }
-</style>

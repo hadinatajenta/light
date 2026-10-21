@@ -30,9 +30,16 @@ export const SETTINGS_SECTION_NOTIFICATIONS: SettingsSection = {
   purpose: 'Where alerts are delivered: email, Telegram, and which events leave this system.',
 };
 
+export const SETTINGS_SECTION_AFFILIATE: SettingsSection = {
+  href: '/dashboard/settings/affiliate',
+  label: 'Affiliate',
+  purpose: 'Control whether the site shows any affiliate link at all.',
+};
+
 export const SETTINGS_SECTIONS: readonly SettingsSection[] = [
   SETTINGS_SECTION_IDENTITY,
   SETTINGS_SECTION_PROVIDERS,
   SETTINGS_SECTION_PERFORMANCE,
   SETTINGS_SECTION_NOTIFICATIONS,
+  SETTINGS_SECTION_AFFILIATE,
 ];

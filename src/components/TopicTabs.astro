@@ -1,9 +1,5 @@
 ---
-interface TopicLink {
-  slug: string;
-  label: string;
-  count: number;
-}
+import type { TopicLink } from '@/lib/content/topics';
 
 interface Props {
   topics: TopicLink[];
@@ -11,49 +7,23 @@ interface Props {
 }
 
 const { topics, activeSlug } = Astro.props;
-const isHome = activeSlug === undefined;
-const latestHref = isHome ? '/' : '/blog/';
+const visibleTopics = topics.slice(0, 8);
 ---
 
-<div class="tabs-wrap">
-  <nav class="tabs" aria-label="Topics">
-    <a class="tab" href={latestHref} aria-current={isHome ? 'page' : undefined}>Latest</a>
-    {
-      topics.map((topic) => (
-        <a
-          class="tab"
-          href={`/tag/${topic.slug}/`}
-          aria-current={topic.slug === activeSlug ? 'page' : undefined}
-        >
-          {topic.label}
-          {topic.count > 0 && (
-            <span class="tab-count" aria-hidden="true">
-              {topic.count}
-            </span>
-          )}
-        </a>
-      ))
-    }
-  </nav>
-</div>
-
-<style>
-  .tabs {
-    mask-image: linear-gradient(
-      to right,
-      transparent 0,
-      #000 24px,
-      #000 calc(100% - 24px),
-      transparent 100%
-    );
-  }
-  .tab-count {
-    margin-left: 6px;
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-    color: var(--ink-40);
-  }
-  .tab[aria-current='page'] .tab-count {
-    color: inherit;
-  }
-</style>
+<section class="home-topics" aria-label="Browse by topic">
+  <div class="home-container home-topics-inner">
+    <p class="home-kicker home-kicker-muted">Browse by topic</p>
+    <nav class="home-topic-list" aria-label="Topics">
+      {
+        visibleTopics.map((topic) => (
+          <a
+            href={`/tag/${topic.slug}/`}
+            aria-current={topic.slug === activeSlug ? 'page' : undefined}
+          >
+            {topic.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</section>

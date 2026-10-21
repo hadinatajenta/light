@@ -7,22 +7,29 @@ import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_HOME_TITLE, SITE_TITLE, SOCIAL_PROFILES } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPostSummaries } from '@/lib/content/public';
-import { buildTopics } from '@/lib/content/topics';
-import { buildCanonicalUrl, buildItemListJsonLd, buildOrganizationJsonLd, buildWebsiteJsonLd } from '@/utils/seo';
+import { buildTopics, topicLabel } from '@/lib/content/topics';
+import { formatDate } from '@/utils/date';
+import {
+  buildCanonicalUrl,
+  buildItemListJsonLd,
+  buildOrganizationJsonLd,
+  buildWebsiteJsonLd,
+} from '@/utils/seo';
 
 export const prerender = false;
 
-const HOMEPAGE_POST_LIMIT = 8;
-const MAGAZINE_MIN_POSTS = 8;
-const FLOW_MIN_POSTS = 4;
-const SYMBOLS = ['※', '¶', '❦', '△', '❋', '◇', '✦', '◈'];
+const HOMEPAGE_POST_LIMIT = 12;
 
 const siteUrl =
   buildCanonicalUrl(Astro.site ?? undefined, '/') ?? new URL('/', Astro.url.origin).href;
 
 const publishedPosts = await getPublishedPostSummaries();
 const posts = publishedPosts.slice(0, HOMEPAGE_POST_LIMIT);
-const topics = buildTopics(publishedPosts);
+const heroPost = posts[0] ?? null;
+const leadPost = posts[1] ?? null;
+const sidePosts = posts.slice(2, 6);
+const gridPosts = posts.slice(6, 12);
+const topics = buildTopics(publishedPosts).slice(0, 8);
 
 const jsonLd = [
   buildWebsiteJsonLd({ name: SITE_TITLE, url: siteUrl, description: SITE_DESCRIPTION }),
@@ -43,130 +50,70 @@ const jsonLd = [
       ]
     : []),
 ];
-
-const layout = posts.length >= MAGAZINE_MIN_POSTS
-  ? 'magazine'
-  : posts.length >= FLOW_MIN_POSTS
-    ? 'flow'
-    : 'single';
-
-function variantForRank(rank: number): 'feature' | 'default' {
-  return rank === 1 ? 'feature' : 'default';
-}
 ---
 
 <BaseLayout contained={false} title={SITE_HOME_TITLE} jsonLd={jsonLd}>
-  <HomeIntro />
+  <HomeIntro featured={heroPost} />
   <TopicTabs topics={topics} />
 
   {
-    posts.length === 0 && (
+    leadPost ? (
+      <section class="home-latest" id="latest" aria-labelledby="home-latest-title">
+        <div class="home-container">
+          <div class="home-section-head">
+            <div>
+              <p class="home-kicker">The library</p>
+              <h2 class="home-section-title" id="home-latest-title">
+                Latest guides
+              </h2>
+            </div>
+            <a class="home-text-link" href="/blog/">View all guides</a>
+          </div>
+
+          <div class="home-latest-layout">
+            <PostCard post={leadPost} variant="lead" ordinal={2} headingLevel={3} />
+
+            <ol class="home-compact-list">
+              {sidePosts.map((post, index) => (
+                <li>
+                  <span class="home-list-num">{String(index + 3).padStart(2, '0')}</span>
+                  <div>
+                    <h3 class="home-list-title">
+                      <a href={`/blog/${post.id}/`}>{post.title}</a>
+                    </h3>
+                    <p class="guide-meta">
+                      <span>{topicLabel(post.category ?? post.tags[0] ?? 'guide')}</span>
+                      {post.pubDate ? (
+                        <>
+                          <span class="guide-meta-dot" aria-hidden="true" />
+                          <time datetime={post.pubDate}>
+                            {formatDate(new Date(post.pubDate))}
+                          </time>
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {gridPosts.length > 0 ? (
+            <div class="home-guide-grid">
+              {gridPosts.map((post, index) => (
+                <PostCard post={post} ordinal={index + 7} headingLevel={3} />
+              ))}
+            </div>
+          ) : null}
+
+          <SponsoredBlock />
+          <AdSlot slotId="home-top" format="leaderboard" />
+        </div>
+      </section>
+    ) : (
       <section class="home-empty">
         <p>Guides are on the way. The first buying guides are being written and reviewed now.</p>
       </section>
     )
   }
-
-  {
-    posts.length > 0 && (
-      <section class="home-section" aria-label="Latest guides">
-        <div class={`home-layout home-layout-${layout}`}>
-          {posts.map((post, index) => (
-            <div class={`home-slot home-slot-${index + 1}`}>
-              <PostCard
-                post={post}
-                variant={variantForRank(index + 1)}
-                headingLevel={2}
-                symbol={SYMBOLS[index % SYMBOLS.length]}
-                priority={index === 0}
-              />
-            </div>
-          ))}
-        </div>
-
-        <p class="home-archive">
-          <a href="/blog/">View all guides</a>
-        </p>
-      </section>
-    )
-  }
-
-  <SponsoredBlock />
-  <AdSlot slotId="home-top" format="leaderboard" />
 </BaseLayout>
-
-<style>
-  .home-section {
-    margin: 0 auto;
-    max-width: 80rem;
-    padding: 8px 24px 40px;
-  }
-  .home-empty {
-    margin: 0 auto;
-    max-width: 46rem;
-    padding: 24px 24px 64px;
-    text-align: center;
-    font-family: var(--font-sans);
-    font-size: 16px;
-    color: var(--ink-60);
-  }
-  .home-slot {
-    min-width: 0;
-  }
-  .home-layout-single {
-    display: grid;
-    gap: 52px;
-    margin: 0 auto;
-    max-width: 44rem;
-  }
-  .home-layout-flow {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 52px 40px;
-    align-items: start;
-  }
-  .home-layout-flow .home-slot-1 {
-    grid-column: 1 / -1;
-  }
-  .home-layout-magazine {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 52px 40px;
-    align-items: stretch;
-  }
-  .home-layout-magazine .home-slot-1 {
-    grid-column: span 2;
-  }
-  .home-archive {
-    margin-top: 40px;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-  }
-  .home-archive a {
-    color: var(--brand);
-    text-decoration: underline;
-    text-underline-offset: 4px;
-  }
-  @media (max-width: 1024px) {
-    .home-layout-magazine {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .home-layout-magazine .home-slot-1 {
-      grid-column: span 1;
-    }
-  }
-  @media (max-width: 680px) {
-    .home-section {
-      padding: 8px 20px 32px;
-    }
-    .home-layout-magazine,
-    .home-layout-flow {
-      display: flex;
-      flex-direction: column;
-      gap: 44px;
-    }
-  }
-</style>

@@ -37,14 +37,27 @@ const initialPerPage = perPageParam === 10 || perPageParam === 50 ? perPageParam
 ---
 
 <DashboardLayout title="Posts">
-  <PostTable
-    client:load
-    initialStatus={initialStatus}
-    initialCategory={initialCategory}
-    initialQuery={initialQuery}
-    initialPage={initialPage}
-    initialReview={initialReview}
-    initialSort={initialSort}
-    initialPerPage={initialPerPage}
-  />
+  <div class="flex flex-col gap-6">
+    <PostTable
+      client:load
+      initialStatus={initialStatus}
+      initialCategory={initialCategory}
+      initialQuery={initialQuery}
+      initialPage={initialPage}
+      initialReview={initialReview}
+      initialSort={initialSort}
+      initialPerPage={initialPerPage}
+    />
+
+    <p class="max-w-prose text-sm text-muted-foreground">
+      Product blocks and affiliate links come from the{' '}
+      <a
+        href="/dashboard/settings/affiliate"
+        class="text-foreground underline underline-offset-4"
+      >
+        Affiliate settings
+      </a>{' '}
+      switch, which turns them off across the whole site.
+    </p>
+  </div>
 </DashboardLayout>

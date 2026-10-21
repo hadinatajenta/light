@@ -1,6 +1,7 @@
 const MIN_KEPT_LENGTH = 200;
 const LABEL_PATTERN = /^(title|description|body|tags|editornotes):/i;
 const POST_BODY_LABELS = new Set(['body:', 'tags:', 'editornotes:']);
+const PRODUCT_REFERENCE_PATTERN = /\[([^\]]+)\]\(product:[a-z0-9]+(?:-[a-z0-9]+)*\)/g;
 
 function isLabelLine(line: string): boolean {
   return LABEL_PATTERN.test(line.trim());
@@ -45,4 +46,8 @@ export function stripWriterEnvelope(body: string): string {
   const stripped = lines.slice(index).join('\n').trim();
 
   return stripped.length >= MIN_KEPT_LENGTH ? stripped : body;
+}
+
+export function stripProductReferences(body: string): string {
+  return body.replace(PRODUCT_REFERENCE_PATTERN, '$1');
 }

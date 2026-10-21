@@ -11,9 +11,8 @@ import { listOpenPlannerFindings, markFindingActioned } from './analyst/findings
 import { type AnalystRunReport, runPerformanceAnalyst } from './analyst/runner';
 import { MODEL_TAIL_BRANCHES, resolveAgentRunBranch } from './branches';
 import { readBudgetState, recordModelUsage } from './budget';
-import { rankCatalogForTopic } from './catalog';
 import { formatDemandBrief, loadDemandBrief } from './demand';
-import { stripWriterEnvelope } from './envelope';
+import { stripProductReferences, stripWriterEnvelope } from './envelope';
 import { type ChatMessage, createChatCompletion, extractJsonObject } from './model-client';
 import { type PlannerFindingRef, type PlannerTopic, parsePlannerTopics } from './planner';
 import { formatPreflightIssues, runPreflight } from './preflight';
@@ -92,21 +91,8 @@ interface AppliedResult {
   topicBlocked?: boolean;
 }
 
-interface CatalogRow {
-  slug: string;
-  name: string;
-  target: string;
-  topics: string;
-  tracking_id: string | null;
-  link_template: string | null;
-  status: string;
-  network: string;
-  disclosure: string;
-}
-
 const MAX_OUTPUT_CHARS = 200_000;
 const MAX_DRAFT_CHARS = 40_000;
-const MAX_CATALOG_ITEMS = 12;
 const SCRAPPER_RESEARCH_BUDGET_MS = 180_000;
 const MAX_PLANNER_FINDINGS = 10;
 const MIN_CHAINED_REVIEW_MS = 20_000;
@@ -220,31 +206,6 @@ function summarizePlannedTopics(topics: readonly PlannerTopic[]): string {
     : `Proposed ${topics.length} ${label}`;
 }
 
-async function loadCatalogSlice(db: D1Database, topic: TopicRecord): Promise<string> {
-  const result = await db
-    .prepare(
-      `SELECT p.slug, p.name, p.target, p.topics,
-              pr.tracking_id, pr.link_template, pr.status, pr.network, pr.disclosure
-       FROM affiliate_products p
-       JOIN affiliate_programs pr ON pr.id = p.program_id
-       WHERE p.is_active = 1 AND pr.status = 'approved'
-       ORDER BY p.name ASC`,
-    )
-    .all<CatalogRow>();
-
-  const usable = (result.results ?? []).filter(
-    (row) => row.tracking_id && row.link_template && row.target,
-  );
-
-  if (usable.length === 0) {
-    return 'The product catalog is empty. Write the guide without product links and say nothing about missing links.';
-  }
-
-  const selected = rankCatalogForTopic(usable, topic, MAX_CATALOG_ITEMS);
-
-  return selected.map((row) => `- ${row.slug} | ${row.name}`).join('\n');
-}
-
 async function buildUserMessage(
   db: D1Database,
   agent: AgentRecord,
@@ -272,8 +233,7 @@ Revise the article so every point in the notes is addressed, and keep the parts 
       return '';
     }
 
-    const [catalog, sources, published] = await Promise.all([
-      loadCatalogSlice(db, topic),
+    const [sources, published] = await Promise.all([
       listVerifiedSources(db, topic.id),
       listRecentPublishedPosts(db, 12),
     ]);
@@ -293,8 +253,7 @@ Revise the article so every point in the notes is addressed, and keep the parts 
 
     return `Topic: ${topic.title}${category}${keywords}${researchBlock}
 
-Available products (use only these slugs, linked as [text](product:slug)):
-${catalog}
+Do not include affiliate or product links. Never write [text](product:slug), never name a retailer, and never write a price or a tracking parameter. Describe products in plain words without linking them.
 
 Return JSON with keys: title (string, 10 to 70 characters), description (string, 50 to 160 characters), tags (array of 2 to 4 lowercase slugs), body (markdown string, no H1), editorNotes (string).${avoid}`;
   }
@@ -336,7 +295,7 @@ async function applyResult(
     const parsed = extractJsonObject(content);
     const title = readString(parsed.title);
     const description = readString(parsed.description);
-    const body = stripWriterEnvelope(readString(parsed.body));
+    const body = stripProductReferences(stripWriterEnvelope(readString(parsed.body)));
     const tags = readStringArray(parsed.tags, 6);
     const editorNotes = readString(parsed.editorNotes);
 
@@ -400,7 +359,7 @@ async function applyResult(
     const parsed = extractJsonObject(content);
     const decision = parsed.decision === 'approve' ? 'approve' : 'changes_requested';
     const notes = readString(parsed.notes);
-    const revisedBody = stripWriterEnvelope(readString(parsed.revisedBody));
+    const revisedBody = stripProductReferences(stripWriterEnvelope(readString(parsed.revisedBody)));
     const claimStage = resolveReviewClaimStage(agent.role, agent.autoPublish) ?? 'fact_check';
 
     if (decision === 'approve') {

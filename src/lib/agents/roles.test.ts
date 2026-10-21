@@ -57,3 +57,28 @@ describe('agent roles', () => {
     expect(isAgentRole('editor')).toBe(false);
   });
 });
+
+describe('affiliate link instructions', () => {
+  it('no longer asks the writer to insert product links', () => {
+    const prompt = getRoleDefinition('writer').defaultPrompt;
+
+    expect(prompt).not.toMatch(/link to a product only as/i);
+    expect(prompt).not.toMatch(/link two to four/i);
+    expect(prompt).not.toMatch(/product slugs supplied in the request/i);
+  });
+
+  it('tells the writer never to write an affiliate or product link', () => {
+    const prompt = getRoleDefinition('writer').defaultPrompt;
+
+    expect(prompt).toContain('Never write an affiliate link or a product link.');
+    expect(prompt).toContain('Never write [text](product:slug)');
+  });
+
+  it('tells the reviewer to remove product links and never add one', () => {
+    const prompt = getRoleDefinition('reviewer').defaultPrompt;
+
+    expect(prompt).toContain('Remove every product link and affiliate link');
+    expect(prompt).toContain('Never add a product link');
+    expect(prompt).not.toMatch(/link to a product only as/i);
+  });
+});

@@ -26,3 +26,5 @@ pnpm-debug.log*
 UML/
 .wrangler/
 .dev.vars
+# agent session state
+.commandcode/

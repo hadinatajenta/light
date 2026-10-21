@@ -1,91 +1,88 @@
 ---
-const trustPoints = [
-  { label: 'Independent research', href: null },
-  { label: 'Sources cited', href: null },
-  { label: 'Affiliate links disclosed', href: '/affiliate-disclosure/' },
-];
+import type { SitePostSummary } from '@/lib/content/public';
+import { topicLabel } from '@/lib/content/topics';
+import { formatDate } from '@/utils/date';
+
+interface Props {
+  featured: SitePostSummary | null;
+}
+
+const { featured } = Astro.props;
+const featuredLabel = featured ? topicLabel(featured.category ?? featured.tags[0] ?? 'guide') : '';
+const featuredHref = featured ? `/blog/${featured.id}/` : '/blog/';
+const hasCover = Boolean(featured?.coverUrl);
 ---
 
-<section class="home-intro">
-  <h1 class="home-intro-title">Buying guides that hold up after the unboxing.</h1>
-  <p class="home-intro-line">Independent research for the desk you actually work at.</p>
-  <a class="btn btn-primary home-intro-cta" href="/blog/">Browse all guides</a>
-  <ul class="home-intro-trust">
-    {
-      trustPoints.map((point) => (
-        <li>
-          {point.href ? <a href={point.href}>{point.label}</a> : point.label}
-        </li>
-      ))
-    }
-  </ul>
-</section>
+<section class="home-hero" aria-labelledby="home-hero-title">
+  <div class="home-container home-hero-inner">
+    <div class="home-hero-copy">
+      <p class="home-kicker">Independent home-office research</p>
+      <h1 class="home-hero-title" id="home-hero-title">
+        Buying guides that hold up after the unboxing.
+      </h1>
+      <p class="home-hero-standfirst">
+        Desk, chair, monitor, and lighting research written from primary sources, measured before it
+        is recommended, and reviewed before it is published.
+      </p>
+      <div class="home-hero-actions">
+        <a class="btn btn-primary" href="/blog/">Read the latest guides</a>
+        <a class="btn btn-outline" href="/editorial-standards/">How we research</a>
+      </div>
+      <ul class="home-proof">
+        <li>Every guide cites its sources</li>
+        <li><a href="/affiliate-disclosure/">Affiliate links are disclosed</a></li>
+      </ul>
+    </div>
 
-<style>
-  .home-intro {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    margin: 0 auto;
-    max-width: 46rem;
-    padding: 32px 24px 24px;
-    text-align: center;
-  }
-  .home-intro-title {
-    font-family: var(--font-display);
-    font-size: clamp(30px, 3.6vw, 46px);
-    font-weight: 900;
-    letter-spacing: -0.035em;
-    line-height: 1.08;
-    text-wrap: balance;
-  }
-  .home-intro-line {
-    max-width: 34rem;
-    font-size: 17px;
-    line-height: 1.55;
-    color: var(--ink-75);
-    text-wrap: pretty;
-  }
-  .home-intro-cta {
-    margin-top: 6px;
-  }
-  .home-intro-trust {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px 20px;
-    margin-top: 4px;
-    font-family: var(--font-sans);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-75);
-  }
-  .home-intro-trust li {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .home-intro-trust li::before {
-    content: "";
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--brand);
-  }
-  .home-intro-trust a {
-    color: var(--brand);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-  @media (max-width: 680px) {
-    .home-intro {
-      padding: 28px 20px 24px;
+    {
+      featured ? (
+        <aside class="home-featured" aria-label="Featured guide">
+          <div
+            class={
+              hasCover ? 'guide-plate home-featured-plate has-image' : 'guide-plate home-featured-plate'
+            }
+          >
+            <span class="guide-plate-num">01</span>
+            {hasCover ? (
+              <img
+                src={featured.coverUrl ?? ''}
+                alt={featured.coverAlt ?? ''}
+                width={1280}
+                height={960}
+                loading="eager"
+                decoding="async"
+                fetchpriority="high"
+                class="guide-plate-image"
+              />
+            ) : (
+              <span class="guide-plate-mark">{featuredLabel}</span>
+            )}
+            {hasCover ? <span class="guide-plate-cat">{featuredLabel}</span> : null}
+          </div>
+          <div class="home-featured-body">
+            <p class="guide-meta">
+              <span>{featuredLabel}</span>
+              {
+                featured.pubDate ? (
+                  <>
+                    <span class="guide-meta-dot" aria-hidden="true" />
+                    <time datetime={featured.pubDate}>
+                      {formatDate(new Date(featured.pubDate))}
+                    </time>
+                  </>
+                ) : null
+              }
+            </p>
+            <h2 class="home-featured-title">
+              <a href={featuredHref}>{featured.title}</a>
+            </h2>
+            {featured.description ? (
+              <p class="home-featured-excerpt">{featured.description}</p>
+            ) : null}
+            <a class="home-read-link" href={featuredHref}>Read the guide</a>
+          </div>
+        </aside>
+      ) : null
     }
-    .home-intro-line {
-      font-size: 16px;
-    }
-  }
-</style>
+  </div>
+</section>

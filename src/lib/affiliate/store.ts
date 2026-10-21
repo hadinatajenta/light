@@ -8,6 +8,7 @@ import {
 import { ApiError } from '../errors';
 import { getSetting } from '../settings/store';
 import { buildAffiliateUrl, isSafeLinkTemplate, isSafeTarget, isSafeTrackingId } from './links';
+import { readAffiliateLinksEnabled } from './settings';
 
 export const AFFILIATE_NETWORKS = [
   'amazon',
@@ -623,15 +624,16 @@ export async function findBrokenProductReferences(
 export interface AffiliateContext {
   links: Map<string, string>;
   disclosure: string;
-}
-
-export interface AffiliateContext {
-  links: Map<string, string>;
-  disclosure: string;
   products: AffiliateProduct[];
 }
 
 export async function loadAffiliateContext(db: D1Database): Promise<AffiliateContext> {
+  const enabled = await readAffiliateLinksEnabled(db);
+
+  if (!enabled) {
+    return { links: new Map<string, string>(), products: [], disclosure: '' };
+  }
+
   const [programs, products, storedDisclosure] = await Promise.all([
     listPrograms(db),
     listProducts(db, { activeOnly: true }),

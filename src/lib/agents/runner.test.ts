@@ -650,6 +650,45 @@ describe('runAgent chained review', () => {
   });
 });
 
+describe('product reference guard', () => {
+  const linkedBody = `${DRAFT_BODY}
+
+For a bright room, buy [the monitor light bar](product:light-bar) and keep it off-axis.`;
+
+  it('strips a product reference from a writer body before it is stored', async () => {
+    const store = createRunnerDatabase({
+      agents: [agentRow(WRITER_AGENT)],
+      claimableTopic: topicRow(),
+    });
+
+    MODEL_CALL.mockResolvedValueOnce(writerCompletion(linkedBody));
+
+    const result = await runAgent(store.database, WRITER_AGENT, { force: true });
+
+    expect(result.status).toBe('succeeded');
+    const calls = mocks.createPost.mock.calls as unknown as Array<[{ body: string }]>;
+    expect(calls[0]?.[0]?.body).not.toContain('product:');
+    expect(calls[0]?.[0]?.body).toContain('the monitor light bar');
+  });
+
+  it('strips a product reference from a reviewer body before it is stored', async () => {
+    const store = createRunnerDatabase({
+      agents: [agentRow(REVIEWER_AGENT)],
+      claimableTopic: topicRow(),
+      pendingDraft: draftRow(),
+    });
+
+    MODEL_CALL.mockResolvedValueOnce(reviewerCompletion(linkedBody));
+
+    const result = await runAgent(store.database, REVIEWER_AGENT, { force: true });
+
+    expect(result.status).toBe('succeeded');
+    const bodyWrite = store.writes.find((write) => write.sql.includes('SET body = ?'));
+    expect(bodyWrite?.params[0]).not.toContain('product:');
+    expect(String(bodyWrite?.params[0])).toContain('the monitor light bar');
+  });
+});
+
 describe('runAgent without work', () => {
   it('fails the writer and names the Researcher when no topic is researched', async () => {
     const store = createRunnerDatabase({ agents: [], claimableTopic: null, revisionDraft: null });
