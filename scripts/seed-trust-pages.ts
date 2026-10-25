@@ -16,14 +16,14 @@ const PAGES: TrustPage[] = [
     id: 'about',
     title: 'About Light Scripts',
     description:
-      'Light Scripts is an independent publication for people setting up a home office, funded by affiliate commissions and committed to evidence-based buying guides.',
+      'Light Scripts is an independent publication for people setting up a home office, committed to evidence-based buying guides.',
     sortOrder: 10,
   },
   {
     id: 'editorial-standards',
     title: 'Editorial standards and research method',
     description:
-      'How Light Scripts researches buying guides: primary sources, verified quotes, how we recommend, how we use AI, and how we handle corrections and funding.',
+      'How Light Scripts researches buying guides: primary sources, verified quotes, how we recommend, how we use AI, and how we handle corrections.',
     sortOrder: 15,
   },
   {
