@@ -2,7 +2,7 @@ Light Scripts publishes buying guides for home-office equipment. This page expla
 
 ## Who is responsible
 
-Every article is produced by the Light Scripts editorial team and reviewed before it is published. If you find an error, tell us through the [contact page](/contact/) and we will correct it. We are an independent publication funded by affiliate commissions, which are disclosed on the pages that carry them and never decide what we recommend.
+Every article is produced by the Light Scripts editorial team and reviewed before it is published. If you find an error, tell us through the [contact page](/contact/) and we will correct it. We are an independent publication, and our editorial choices are never decided by commercial relationships.
 
 ## How we research
 
@@ -42,10 +42,6 @@ Articles list the sources they relied on. We cite authoritative material by name
 - We revise articles when the underlying products, prices, or standards change.
 - When we correct a factual error, we fix it rather than quietly delete it, and the updated date on the article reflects the change.
 - If you spot a mistake, email us. Corrections from readers are welcome and taken seriously.
-
-## How we make money
-
-Light Scripts earns affiliate commissions when a reader buys through a link on the site. This funds the work. It does not buy a recommendation: our editorial choices are independent of commercial relationships, and a product is included only when the evidence justifies it. Read the [affiliate disclosure](/affiliate-disclosure/) for the full statement.
 
 ## Contact
 

@@ -21,8 +21,6 @@ If you clear your browser storage, the site will ask again and will fall back to
 
 If advertising is enabled on the site, the advertising network may set cookies to select ads and to measure them. Those cookies belong to the network, not to us, and they are only set after you consent where consent is required.
 
-Affiliate links work without cookies on our side. When you click through to a retailer, that retailer and its affiliate network may record the visit to attribute a commission. That happens on their site, under their policy.
-
 Our hosting provider, Cloudflare, may set strictly necessary cookies for security and to keep the service available. These are required for the site to function.
 
 ## How to control cookies

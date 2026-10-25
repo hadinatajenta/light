@@ -21,8 +21,6 @@ These values stay in your browser. They are not sent to us and they are not used
 
 **Advertising and measurement.** If we display advertising, the advertising network may set its own cookies and may process data about your visit in order to select and measure ads. Where required, we ask for consent before advertising cookies are set. You can change your choice at any time by clearing the stored consent value in your browser.
 
-**Affiliate links.** When you click a link to a retailer, the retailer and its affiliate network may record that the visit came from this site. This is how a commission is attributed. We do not receive your personal data from that process; we see aggregate reports such as clicks and orders.
-
 ## What we do not do
 
 - We do not sell personal data.
@@ -54,7 +52,6 @@ This site is intended for adults making purchasing decisions. It is not directed
 
 - **Cloudflare** for hosting, content delivery, and security.
 - **Advertising networks** if advertising is enabled.
-- **Affiliate networks and retailers** when you follow a link to buy something.
 
 Each of these operates under its own privacy policy, and we encourage you to read the policy of any retailer you buy from.
 

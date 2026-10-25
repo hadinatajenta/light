@@ -12,10 +12,7 @@ Our recommendations are our own. We are not paid to recommend a specific product
 
 We do earn money in two ways, and both are disclosed:
 
-- **Affiliate links.** If you follow a link to a retailer and buy something, we may earn a commission. This does not change the price you pay.
 - **Advertising.** Advertisers pay for space on the site. Advertisers do not review or approve our editorial content.
-
-See the affiliate disclosure for more detail.
 
 ## Accuracy and no warranty
 

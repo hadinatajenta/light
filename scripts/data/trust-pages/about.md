@@ -8,9 +8,9 @@ We write buying guides and explainers, not press releases. Each guide is built a
 
 We research from primary sources, verify quotes against the pages we fetched, and only publish claims we can support. You can read the full process on our [editorial standards and research method](/editorial-standards/) page.
 
-## Independence and funding
+## Independence
 
-Light Scripts earns money through affiliate commissions when a reader buys through a link on the site. That never changes what we recommend: a product is included because the evidence supports it, not because it pays. We disclose affiliate links on the pages that carry them. Read our [affiliate disclosure](/affiliate-disclosure/) for the details.
+Our editorial choices are completely independent. A product is included because the evidence supports it, not because of commercial relationships.
 
 ## Who is responsible
 
@@ -18,4 +18,3 @@ Every article is produced by the Light Scripts editorial team and reviewed befor
 
 - Report a correction or an error through the [contact page](/contact/).
 - Read how we research and correct mistakes on the [editorial standards](/editorial-standards/) page.
-- Learn how affiliate links work on the [affiliate disclosure](/affiliate-disclosure/) page.

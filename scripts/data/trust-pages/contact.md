@@ -20,4 +20,4 @@ We are a small team, so please allow a few days for a reply. Anything about a co
 
 ## Before you write
 
-Our [editorial standards and research method](/editorial-standards/) page explains how we research and how we handle corrections. Our [affiliate disclosure](/affiliate-disclosure/) explains how we make money.
+Our [editorial standards and research method](/editorial-standards/) page explains how we research and how we handle corrections.
