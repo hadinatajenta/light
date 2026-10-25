@@ -10,7 +10,7 @@ tags:
   - agents
 pubDate: 2026-10-25T14:20:00.000Z
 updatedDate: 2026-10-25T14:20:00.000Z
-coverUrl: /media/openclaw-personal-ai-agent.jpg
+coverUrl: /media/5c6d7e8f-0a1b-4c2d-8e3f-4a5b6c7d8e9f.jpg
 coverAlt: "OpenClaw local-first AI assistant workstation with laptop and terminal interface"
 noindex: false
 affiliate: false

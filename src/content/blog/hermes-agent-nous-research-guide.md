@@ -6,7 +6,7 @@ category: buying-basics
 tags: ["buying-basics", "ai", "developer-tools", "agents"]
 pubDate: 2026-10-25T14:10:00.000Z
 updatedDate: 2026-10-25T14:10:00.000Z
-coverUrl: /media/hermes-agent-nous-research.jpg
+coverUrl: /media/8a1b2c3d-94e5-4f6a-8b7c-0d1e2f3a4b5c.jpg
 coverAlt: "Nous Research Hermes Agent terminal interface and function calling graph"
 noindex: false
 affiliate: false
