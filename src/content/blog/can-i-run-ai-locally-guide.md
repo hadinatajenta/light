@@ -43,19 +43,11 @@ Consumer hardware has advanced rapidly over the past two years. With *quantizati
 
 Many developers assume that local AI requires massive CPU core counts or high clock speeds. In reality, large language model inference is governed by a strict hierarchy of physical bottlenecks.
 
-```
-+-------------------------------------------------------------------------+
-| Local LLM Bottleneck Hierarchy                                          |
-|                                                                         |
-| 1. VRAM / RAM Capacity   ---> Model fits entirely in fast memory?       |
-|                               (If NO: disk swap drops speed to <1 t/s)   |
-|                                                                         |
-| 2. Memory Bandwidth      ---> How fast weights transfer to compute cores |
-|                               (DDR5: ~70 GB/s vs GDDR6X: ~1000 GB/s)     |
-|                                                                         |
-| 3. Compute (CUDA/Metal)  ---> Parallel matrix multiplication throughput |
-+-------------------------------------------------------------------------+
-```
+| Hierarchy Level | Bottleneck Stage | Core Question | Failure Impact |
+| :--- | :--- | :--- | :--- |
+| **Tier 1** | **VRAM / RAM Capacity** | Does the model fit completely in physical memory? | If memory is exhausted, disk swapping drops speed below 1 token/sec |
+| **Tier 2** | **Memory Bandwidth** | How fast do weights transfer to compute cores? | Dictates maximum token generation speed (DDR5 ~70 GB/s vs GDDR6X ~1,000 GB/s) |
+| **Tier 3** | **Compute (CUDA / Metal)** | How fast can parallel matrix math execute? | Governs initial prompt prefill latency and concurrent token throughput |
 
 ### 1. Memory Capacity (VRAM and System RAM)
 Model weights must sit in volatile memory during generation. If an 8B model requires 5.5GB of RAM, and your system only has 3GB available, the operating system pages data to disk. This causes *swap thrashing (a condition where disk I/O saturates while paging memory pages)*, collapsing output speed from 30 tokens per second to 0.5 tokens per second.
@@ -65,7 +57,9 @@ In addition to base model weights, you must allocate memory for the *KV cache (a
 ### 2. Memory Bandwidth
 During token generation, an LLM must read every single parameter in its neural network from memory to compute a single new token.
 
-$$\text{Theoretical Maximum Tokens/sec} = \frac{\text{Memory Bandwidth (GB/s)}}{\text{Model File Size (GB)}}$$
+```text
+Theoretical Maximum Tokens/sec = Memory Bandwidth (GB/s) / Model File Size (GB)
+```
 
 Consider an 8B model stored in 4-bit quantization, which takes up approximately 5.0GB:
 - On a PC using dual-channel DDR5 system RAM (roughly 70 GB/s bandwidth), maximum theoretical generation speed is $70 / 5.0 \approx 14$ tokens per second.
@@ -89,14 +83,12 @@ For users operating laptops with integrated graphics, our [Indonesian local LLM 
 
 You do not need to compile C++ source code or write complex Python scripts to run models on your computer. Four mature runtimes handle hardware detection, model downloading, and memory offloading automatically.
 
-```
-Local Inference Software Landscape
-
-[ Ollama ] ----------------> Best for terminal users, background daemons, and agent APIs
-[ LM Studio ] -------------> Best desktop GUI with search, chat presets, and VRAM estimation
-[ llama.cpp ] -------------> Best raw C++ performance, extreme low-level control, GGUF reference
-[ vLLM / Aphrodite ] ------> Best for multi-user production servers, continuous batching
-```
+| Inference Engine | Best For | Standout Advantage | Architectural Focus |
+| :--- | :--- | :--- | :--- |
+| **Ollama** | Terminal users and agent pipelines | Zero-configuration background daemon | Automated GPU layer offloading and local OpenAI-compatible API |
+| **LM Studio** | Desktop graphical interface users | Visual model discovery and parameter tuning | Inspects local hardware to flag compatible GGUF quantizations |
+| **llama.cpp** | Power users and embedded systems | Lowest memory footprint and raw C++ execution | Reference implementation with granular control over tensor splits |
+| **vLLM** | Team servers and production services | High concurrent request throughput | Utilizes PagedAttention to eliminate memory fragmentation |
 
 ### 1. Ollama (Best for Terminal & Automation)
 Ollama bundles llama.cpp into a single executable service that runs in the background on macOS, Linux, and Windows. It downloads models using a container-like syntax:
