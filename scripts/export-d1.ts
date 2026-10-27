@@ -22,6 +22,7 @@ interface PostRow {
   canonical: string | null;
   noindex: number;
   focus_keyword: string | null;
+  target_intent: string | null;
   affiliate: number;
   faq: string;
   pub_date: string | null;
@@ -48,7 +49,7 @@ function queryRows<T>(command: string): T[] {
   const output = execFileSync(
     'npx',
     ['wrangler', 'd1', 'execute', DATABASE_NAME, '--remote', '--json', '--command', command],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 128 * 1024 * 1024 },
   );
 
   const parsed = JSON.parse(output) as Array<{ results?: T[] }>;
@@ -97,6 +98,9 @@ function buildFrontmatter(row: PostRow): Record<string, unknown> {
   }
   if (row.focus_keyword) {
     frontmatter.focusKeyword = row.focus_keyword;
+  }
+  if (row.target_intent) {
+    frontmatter.targetIntent = row.target_intent;
   }
 
   return frontmatter;
