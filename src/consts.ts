@@ -5,6 +5,12 @@ export const SITE_HOME_TITLE = 'Home-office buying guides that hold up after the
 export const SITE_TAGLINE =
   'A reading room for people who would rather research once and buy well, than buy twice and regret it.';
 export const SITE_AUTHOR = 'Hadinata Jenta';
+export const SITE_AUTHOR_SLUG = 'hadinata-jenta';
+export const SITE_AUTHOR_JOB_TITLE = 'Editor, Light Scripts';
+export const SITE_AUTHOR_WEBSITE = 'https://hadinata.me';
+export const SITE_AUTHOR_LINKEDIN = 'https://www.linkedin.com/in/hadinata-jenta/';
+export const SITE_AUTHOR_BIO =
+  'Hadinata Jenta writes and edits Light Scripts, an independent publication about home-office equipment. He researches primary sources, manufacturer documentation, and independent test data, and explains the measurements that decide whether a desk, chair, monitor, or accessory fits a real room.';
 export const SITE_LOCALE = 'en-US';
 export const SITE_LANGUAGE = 'en';
 export const POSTS_PER_PAGE = 9;
@@ -25,7 +31,7 @@ export interface SocialProfile {
   href: string;
 }
 
-export const SOCIAL_PROFILES: SocialProfile[] = [];
+export const SOCIAL_PROFILES: SocialProfile[] = [{ label: 'LinkedIn', href: SITE_AUTHOR_LINKEDIN }];
 
 export interface Topic {
   label: string;
@@ -76,6 +82,7 @@ export const FOOTER_SECTIONS: FooterSection[] = [
     title: 'Company',
     links: [
       { label: 'About', href: '/about/' },
+      { label: 'Author', href: `/author/${SITE_AUTHOR_SLUG}/` },
       { label: 'Editorial standards', href: '/editorial-standards/' },
       { label: 'Contact', href: '/contact/' },
       { label: 'All Guides', href: '/blog/' },

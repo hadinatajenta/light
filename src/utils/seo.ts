@@ -26,6 +26,9 @@ export interface ArticleJsonLdInput {
   url: string;
   datePublished: Date;
   authorName: string;
+  authorUrl?: string;
+  authorSameAs?: string[];
+  authorJobTitle?: string;
   publisherName?: string;
   publisherLogoUrl?: string;
   image?: string;
@@ -33,6 +36,8 @@ export interface ArticleJsonLdInput {
 }
 
 export function buildArticleJsonLd(input: ArticleJsonLdInput): Record<string, unknown> {
+  const publisherName = input.publisherName ?? input.authorName;
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -41,10 +46,19 @@ export function buildArticleJsonLd(input: ArticleJsonLdInput): Record<string, un
     mainEntityOfPage: input.url,
     datePublished: input.datePublished.toISOString(),
     dateModified: (input.dateModified ?? input.datePublished).toISOString(),
-    author: { '@type': 'Organization', name: input.authorName },
+    author: {
+      '@type': 'Person',
+      name: input.authorName,
+      ...(input.authorUrl ? { url: input.authorUrl } : {}),
+      ...(input.authorJobTitle ? { jobTitle: input.authorJobTitle } : {}),
+      ...(input.authorSameAs && input.authorSameAs.length > 0
+        ? { sameAs: input.authorSameAs }
+        : {}),
+      worksFor: { '@type': 'Organization', name: publisherName },
+    },
     publisher: {
       '@type': 'Organization',
-      name: input.publisherName ?? input.authorName,
+      name: publisherName,
       ...(input.publisherLogoUrl
         ? { logo: { '@type': 'ImageObject', url: input.publisherLogoUrl } }
         : {}),

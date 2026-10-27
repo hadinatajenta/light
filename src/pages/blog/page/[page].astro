@@ -16,6 +16,7 @@ const { pageItems, totalPages, currentPage } = paginateItems(posts, requestedPag
 <BaseLayout
   title={`Guides - Page ${currentPage}`}
   description={`Page ${currentPage} of every buying guide and product review on the site.`}
+  noindex={true}
 >
   <h1 class="text-3xl font-semibold tracking-tight">Guides</h1>
   <div class="mt-8">

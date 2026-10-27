@@ -5,7 +5,6 @@ import { getPublishedPostSummaries } from '@/lib/content/public';
 import {
   buildTopics,
   listTopicPosts,
-  MIN_TOPIC_POSTS,
   topicContent,
   topicLabel,
 } from '@/lib/content/topics';
@@ -18,7 +17,6 @@ const publishedPosts = await getPublishedPostSummaries();
 const posts = listTopicPosts(publishedPosts, tag);
 const content = topicContent(tag);
 const label = topicLabel(tag);
-const isThin = posts.length < MIN_TOPIC_POSTS;
 const siblingTopics = buildTopics(publishedPosts)
   .filter((topic) => topic.slug !== tag)
   .slice(0, 6);
@@ -50,7 +48,7 @@ const jsonLd = [
 <BaseLayout
   title={content.title}
   description={content.description}
-  noindex={isThin}
+  noindex={true}
   jsonLd={jsonLd}
 >
   <nav aria-label="Breadcrumb" class="font-sans text-[12px] tracking-[0.08em] uppercase text-ink-75">

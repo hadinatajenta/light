@@ -964,6 +964,9 @@
 .post-byline strong {
   @apply font-semibold text-ink;
 }
+.author-link {
+  @apply underline-offset-4 hover:underline;
+}
 .byline-dot {
   @apply h-[3px] w-[3px] rounded-full bg-current opacity-50;
 }

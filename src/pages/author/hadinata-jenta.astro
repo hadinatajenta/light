@@ -1,0 +1,87 @@
+---
+import PostList from '@/components/PostList.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import {
+  SITE_AUTHOR,
+  SITE_AUTHOR_BIO,
+  SITE_AUTHOR_JOB_TITLE,
+  SITE_AUTHOR_LINKEDIN,
+  SITE_AUTHOR_SLUG,
+  SITE_AUTHOR_WEBSITE,
+  SITE_TITLE,
+} from '@/consts';
+import { getPublishedPostSummaries } from '@/lib/content/public';
+
+export const prerender = false;
+
+const posts = (await getPublishedPostSummaries()).slice(0, 9);
+const siteUrl = Astro.site ?? new URL(Astro.url.origin);
+const authorUrl = new URL(`/author/${SITE_AUTHOR_SLUG}/`, siteUrl).href;
+const pageTitle = `${SITE_AUTHOR}, editor at ${SITE_TITLE}`;
+const pageDescription = `${SITE_AUTHOR} is the editor of ${SITE_TITLE}. Read the research method behind the buying guides, and the latest guides he has written.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    mainEntity: {
+      '@type': 'Person',
+      name: SITE_AUTHOR,
+      url: authorUrl,
+      jobTitle: SITE_AUTHOR_JOB_TITLE,
+      description: SITE_AUTHOR_BIO,
+      sameAs: [SITE_AUTHOR_LINKEDIN, SITE_AUTHOR_WEBSITE],
+      worksFor: {
+        '@type': 'Organization',
+        name: SITE_TITLE,
+        url: new URL('/', siteUrl).href,
+      },
+    },
+  },
+];
+---
+
+<BaseLayout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <nav aria-label="Breadcrumb" class="font-sans text-[12px] tracking-[0.08em] uppercase text-ink-75">
+    <a href="/" class="hover:text-ink">Home</a>
+    <span aria-hidden="true"> / </span>
+    <span>Author</span>
+  </nav>
+
+  <header class="mt-6 max-w-2xl">
+    <div class="flex items-center gap-4">
+      <span class="avatar h-14 w-14 text-lg" aria-hidden="true">HJ</span>
+      <div>
+        <h1 class="text-3xl font-semibold tracking-tight">{SITE_AUTHOR}</h1>
+        <p class="mt-1 font-sans text-[12px] tracking-[0.08em] uppercase text-ink-75">
+          {SITE_AUTHOR_JOB_TITLE}
+        </p>
+      </div>
+    </div>
+
+    <p class="mt-6 text-base leading-relaxed text-ink-75">{SITE_AUTHOR_BIO}</p>
+
+    <div class="mt-6 flex flex-wrap gap-x-5 gap-y-2 font-sans text-sm">
+      <a class="underline-offset-4 hover:underline" href={SITE_AUTHOR_WEBSITE} rel="me noopener">
+        hadinata.me
+      </a>
+      <a class="underline-offset-4 hover:underline" href={SITE_AUTHOR_LINKEDIN} rel="me noopener">
+        LinkedIn
+      </a>
+      <a class="underline-offset-4 hover:underline" href="/editorial-standards/">
+        Editorial standards
+      </a>
+      <a class="underline-offset-4 hover:underline" href="/contact/">Contact</a>
+    </div>
+  </header>
+
+  <section class="mt-12 border-t border-ink-12 pt-8" aria-labelledby="latest-guides">
+    <h2 id="latest-guides" class="text-2xl font-semibold tracking-tight">Latest guides</h2>
+    <div class="mt-6">
+      <PostList
+        posts={posts}
+        emptyMessage="No guides are published yet."
+      />
+    </div>
+  </section>
+</BaseLayout>

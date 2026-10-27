@@ -1,13 +1,11 @@
 import type { APIRoute } from 'astro';
-import { POSTS_PER_PAGE } from '@/consts';
+import { SITE_AUTHOR_SLUG } from '@/consts';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { getPublishedPostSummaries } from '@/lib/content/public';
 import { listPublishedPages } from '@/lib/pages/store';
-import { collectPaginationPaths, collectTagPaths, toLastModified } from '@/utils/sitemap';
+import { toLastModified } from '@/utils/sitemap';
 
-const STATIC_PATHS = ['/', '/blog/'];
-
-const MINIMUM_TAG_POSTS = 2;
+const STATIC_PATHS = ['/', '/blog/', `/author/${SITE_AUTHOR_SLUG}/`];
 
 interface SitemapEntry {
   path: string;
@@ -51,8 +49,6 @@ export const GET: APIRoute = async (context) => {
       path: `/blog/${post.id}/`,
       lastModified: toLastModified(post.updatedDate ?? post.pubDate),
     })),
-    ...collectTagPaths(posts, MINIMUM_TAG_POSTS).map((path) => ({ path })),
-    ...collectPaginationPaths(posts.length, POSTS_PER_PAGE).map((path) => ({ path })),
   ];
 
   const urls = entries.map((entry) => toEntryXml(entry, origin)).join('\n');

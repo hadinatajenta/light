@@ -3,7 +3,14 @@ import AdSlot from '@/components/AdSlot.astro';
 import ProductList from '@/components/ProductList.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
 import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
-import { SITE_AUTHOR, SITE_TITLE } from '@/consts';
+import {
+  SITE_AUTHOR,
+  SITE_AUTHOR_JOB_TITLE,
+  SITE_AUTHOR_LINKEDIN,
+  SITE_AUTHOR_SLUG,
+  SITE_AUTHOR_WEBSITE,
+  SITE_TITLE,
+} from '@/consts';
 import type { AffiliateProduct } from '@/lib/affiliate/store';
 import { selectFeaturedProducts } from '@/lib/affiliate/featured';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
@@ -66,6 +73,9 @@ const jsonLd = [
     datePublished: publishedDate,
     dateModified: post.updatedDate ? new Date(post.updatedDate) : undefined,
     authorName: SITE_AUTHOR,
+    authorUrl: new URL(`/author/${SITE_AUTHOR_SLUG}/`, Astro.site ?? Astro.url.origin).href,
+    authorSameAs: [SITE_AUTHOR_LINKEDIN, SITE_AUTHOR_WEBSITE],
+    authorJobTitle: SITE_AUTHOR_JOB_TITLE,
     publisherName: SITE_TITLE,
     publisherLogoUrl: organizationLogoUrl,
     image: post.coverUrl
@@ -150,7 +160,9 @@ const jsonLd = [
         <p class="post-standfirst">{post.description}</p>
         <div class="post-byline">
           <span class="avatar">{authorInitials}</span>
-          <span><strong>{SITE_AUTHOR}</strong></span>
+          <a class="author-link" href={`/author/${SITE_AUTHOR_SLUG}/`} rel="author">
+            <strong>{SITE_AUTHOR}</strong>
+          </a>
           {post.pubDate && <span class="byline-dot" aria-hidden="true"></span>}
           {
             post.pubDate && (

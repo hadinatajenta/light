@@ -37,7 +37,7 @@ const googleSiteVerification = siteSettings.googleSiteVerification;
 <meta name="generator" content={Astro.generator} />
 <title>{title}</title>
 <meta name="description" content={description} />
-<meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
+<meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
 {googleSiteVerification && <meta name="google-site-verification" content={googleSiteVerification} />}
 {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
