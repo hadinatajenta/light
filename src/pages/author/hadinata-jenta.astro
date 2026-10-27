@@ -1,5 +1,4 @@
 ---
-import PostList from '@/components/PostList.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import {
   SITE_AUTHOR,
@@ -11,14 +10,69 @@ import {
   SITE_TITLE,
 } from '@/consts';
 import { getPublishedPostSummaries } from '@/lib/content/public';
+import { topicLabel } from '@/lib/content/topics';
+import { formatDate } from '@/utils/date';
+import { buildBreadcrumbJsonLd } from '@/utils/seo';
 
 export const prerender = false;
 
-const posts = (await getPublishedPostSummaries()).slice(0, 9);
+const posts = (await getPublishedPostSummaries()).slice(0, 10);
 const siteUrl = Astro.site ?? new URL(Astro.url.origin);
 const authorUrl = new URL(`/author/${SITE_AUTHOR_SLUG}/`, siteUrl).href;
-const pageTitle = `${SITE_AUTHOR}, editor at ${SITE_TITLE}`;
-const pageDescription = `${SITE_AUTHOR} is the editor of ${SITE_TITLE}. Read the research method behind the buying guides, and the latest guides he has written.`;
+const pageTitle = `${SITE_AUTHOR}, editor of ${SITE_TITLE}`;
+const pageDescription = `${SITE_AUTHOR} edits ${SITE_TITLE}, an independent home-office publication built on primary-source research, measurements, and disclosed AI assistance.`;
+
+const toc = [
+  { id: 'about', label: '01', text: 'About' },
+  { id: 'focus', label: '02', text: 'What I cover' },
+  { id: 'method', label: '03', text: 'How I research' },
+  { id: 'ai', label: '04', text: 'AI and corrections' },
+  { id: 'latest', label: '05', text: 'Latest guides' },
+  { id: 'contact', label: '06', text: 'Contact' },
+];
+
+const focusAreas = [
+  {
+    title: 'Standing desks',
+    href: '/blog/how-to-choose-a-standing-desk-for-a-small-home-office/',
+    note: 'Height range, stability, and the depth a small room can spare.',
+  },
+  {
+    title: 'Office chairs',
+    href: '/blog/how-to-choose-a-desk-chair-for-a-shared-workspace/',
+    note: 'Seat depth, adjustment range, and what shared use changes.',
+  },
+  {
+    title: 'Monitor arms',
+    href: '/blog/how-to-choose-a-monitor-arm/',
+    note: 'Clamp depth, weight limits, and the VESA plate that fits.',
+  },
+  {
+    title: 'Monitors',
+    href: '/blog/how-to-choose-a-monitor-for-a-home-office/',
+    note: 'Resolution, scaling, viewing distance, and desk depth.',
+  },
+  {
+    title: 'Keyboards',
+    href: '/blog/mechanical-vs-membrane-keyboards-for-long-writing/',
+    note: 'Switch weight, layout, and noise in a shared room.',
+  },
+  {
+    title: 'Audio and calls',
+    href: '/blog/what-actually-matters-in-noise-cancelling-headphones/',
+    note: 'Headsets, microphones, and the room noise between them.',
+  },
+  {
+    title: 'Cable management',
+    href: '/blog/cable-management-for-a-small-desk/',
+    note: 'Routing, trays, and clearance before the desk moves.',
+  },
+  {
+    title: 'Laptops and docks',
+    href: '/blog/how-to-choose-a-usb-c-docking-station-for-a-laptop/',
+    note: 'Ports, power, thermals, and one cable at the desk.',
+  },
+];
 
 const jsonLd = [
   {
@@ -31,57 +85,528 @@ const jsonLd = [
       jobTitle: SITE_AUTHOR_JOB_TITLE,
       description: SITE_AUTHOR_BIO,
       sameAs: [SITE_AUTHOR_LINKEDIN, SITE_AUTHOR_WEBSITE],
+      knowsAbout: [
+        'Standing desks',
+        'Office chairs',
+        'Monitor arms',
+        'Home-office monitors',
+        'Keyboards',
+        'Desk audio',
+        'Cable management',
+      ],
       worksFor: {
         '@type': 'Organization',
         name: SITE_TITLE,
         url: new URL('/', siteUrl).href,
       },
     },
+    dateModified: new Date().toISOString(),
   },
+  buildBreadcrumbJsonLd([
+    { name: 'Home', url: new URL('/', siteUrl).href },
+    { name: SITE_AUTHOR, url: authorUrl },
+  ]),
 ];
 ---
 
-<BaseLayout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
-  <nav aria-label="Breadcrumb" class="font-sans text-[12px] tracking-[0.08em] uppercase text-ink-75">
-    <a href="/" class="hover:text-ink">Home</a>
-    <span aria-hidden="true"> / </span>
-    <span>Author</span>
-  </nav>
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  type="profile"
+  jsonLd={jsonLd}
+  contained={false}
+>
+  <div id="progress"></div>
 
-  <header class="mt-6 max-w-2xl">
-    <div class="flex items-center gap-4">
-      <span class="avatar h-14 w-14 text-lg" aria-hidden="true">HJ</span>
-      <div>
-        <h1 class="text-3xl font-semibold tracking-tight">{SITE_AUTHOR}</h1>
-        <p class="mt-1 font-sans text-[12px] tracking-[0.08em] uppercase text-ink-75">
-          {SITE_AUTHOR_JOB_TITLE}
+  <div class="read-shell">
+    <aside class="toc-wrap">
+      <details class="toc-details">
+        <summary class="toc-summary">
+          <span class="toc-title">Contents</span>
+          <span class="toc-progress" aria-live="polite"><span id="toc-progress">0%</span></span>
+          <svg
+            class="toc-chevron"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </summary>
+        <nav class="toc-nav" aria-label="On this page">
+          <ol class="toc-list">
+            {
+              toc.map((entry) => (
+                <li>
+                  <a href={`#${entry.id}`} class="toc-link" data-target={entry.id}>
+                    <span class="toc-num">{entry.label}</span>
+                    <span>{entry.text}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ol>
+        </nav>
+      </details>
+    </aside>
+
+    <div class="read-col">
+      <a href="/about/" class="back">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M19 12H5M12 19l-7-7 7-7"></path>
+        </svg>
+        About Light Scripts
+      </a>
+
+      <header class="post-head">
+        <span class="label">Author &middot; Editor</span>
+        <h1 class="post-title">{SITE_AUTHOR}</h1>
+        <p class="post-standfirst">
+          I write and edit Light Scripts, an independent publication about the equipment that makes a
+          home office work. The method is simple: measure first, name the trade-off, and never invent a
+          number.
         </p>
+        <div class="post-byline">
+          <span class="avatar">HJ</span>
+          <strong>{SITE_AUTHOR}</strong>
+          <span class="byline-dot" aria-hidden="true"></span>
+          <span>{SITE_AUTHOR_JOB_TITLE}</span>
+          <span class="byline-dot" aria-hidden="true"></span>
+          <a href={SITE_AUTHOR_LINKEDIN} rel="me noopener">LinkedIn</a>
+          <span class="byline-dot" aria-hidden="true"></span>
+          <a href={SITE_AUTHOR_WEBSITE} rel="me noopener">hadinata.me</a>
+        </div>
+      </header>
+
+
+      <article class="post-body author-body">
+        <p class="author-lead">
+          Most home-office buying advice starts with a product and works backwards to a reason to buy
+          it. I start with the decision. A desk has to reach your standing elbow height without
+          wobbling, a chair has to put its seat depth behind your knee, and a monitor arm has to clamp a
+          top that is thick enough to hold it. Those are measurable constraints, and they decide more
+          than a brand name does.
+        </p>
+
+        <h2 id="about">About</h2>
+        <p>
+          Light Scripts exists to put those constraints in one place. The guides cover standing desks,
+          office chairs, monitor arms, monitors, keyboards, audio, and the cables that connect them.
+          Where a standard, a manufacturer drawing, or an independent lab has a number, the article uses
+          it. Where the number is missing, the article says so.
+        </p>
+        <p>
+          I write for people who would rather buy once. That usually means fewer recommendations, a
+          clear statement of who a product does not fit, and a source a reader can check. The site is
+          independent, and the editorial choices are not decided by a commercial relationship.
+        </p>
+
+        <blockquote>
+          If a figure cannot be attributed to a source, it does not go into the article.
+        </blockquote>
+
+        <h2 id="focus">What I cover</h2>
+        <p>
+          The work is organised around the decisions a home-office buyer actually faces: the height a
+          desk has to reach, the depth a room can spare, the clamp a desktop can take, and the weight a
+          monitor arm has to hold. These are the areas I return to most.
+        </p>
+
+        <div class="author-topics">
+          {
+            focusAreas.map((area) => (
+              <a class="author-topic" href={area.href}>
+                <strong>{area.title}</strong>
+                <span>{area.note}</span>
+              </a>
+            ))
+          }
+        </div>
+
+        <h2 id="method">How I research</h2>
+        <p>
+          The method is the same across every guide. It starts with the decision, not with the product.
+        </p>
+        <ol>
+          <li>
+            <strong>Start with the decision.</strong> The first question is not which product is best. It
+            is which measurement decides the answer: seat depth, clamp range, height range, VESA
+            pattern, or the depth of the room.
+          </li>
+          <li>
+            <strong>Fetch the primary source.</strong> Manufacturer documentation, standards bodies,
+            regulator guidance, and independent labs. I quote the line I rely on and keep the URL, so
+            the claim can be checked.
+          </li>
+          <li>
+            <strong>Separate the claim from the measurement.</strong> A manufacturer's load rating and an
+            independent lab's result are different kinds of evidence. The article labels which is which.
+          </li>
+          <li>
+            <strong>State the gap.</strong> When a maker does not publish a number, the article says so.
+            It does not estimate a figure to fill the space.
+          </li>
+          <li>
+            <strong>Review before publishing.</strong> Every draft runs through a deterministic check for
+            title and description length, heading structure, links, and placeholder text, then an
+            editorial pass. A correction changes the update date.
+          </li>
+        </ol>
+        <p>
+          The full policy, including how sources are recorded and how corrections are handled, is on the
+          <a href="/editorial-standards/">editorial standards page</a>.
+        </p>
+
+        <h2 id="ai">AI, corrections, and independence</h2>
+        <p>
+          Some drafts are prepared with AI assistance. The assistance is used to organise research and
+          draft prose, not to invent facts. Every claim is checked against a page the system fetched, and
+          a draft that cannot support a claim is sent back.
+        </p>
+        <p>
+          The site does not claim hands-on testing unless an article says otherwise. Affiliate links,
+          when they appear, are disclosed. If you find an error, send it through the
+          <a href="/contact/">contact page</a>; a correction is published with the update date changed.
+        </p>
+
+        <h2 id="latest">Latest guides</h2>
+        <p>
+          The most recent work, newest first. Every guide is written from the same method and checked
+          before it is published.
+        </p>
+
+        <ul class="author-guide-list">
+          {
+            posts.map((post) => (
+              <li class="author-guide">
+                <a href={`/blog/${post.id}/`}>
+                  <span class="author-guide-meta">
+                    {post.pubDate ? formatDate(new Date(post.pubDate)) : 'Guide'}
+                    {' · '}
+                    {post.category ? topicLabel(post.category) : 'Guide'}
+                  </span>
+                  <span class="author-guide-title">{post.title}</span>
+                  <span class="author-guide-desc">{post.description}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+
+        <h2 id="contact">Contact</h2>
+        <p>
+          Corrections, source suggestions, and questions about the research are welcome. The
+          <a href="/contact/">contact page</a> is the fastest route. For public replies,
+          <a href={SITE_AUTHOR_LINKEDIN} rel="me noopener">LinkedIn</a> works, and
+          <a href={SITE_AUTHOR_WEBSITE} rel="me noopener">hadinata.me</a> has the rest of my work.
+        </p>
+      </article>
+
+      <footer class="post-foot">
+        <div class="tag-row">
+          <span class="label">Follow</span>
+          <a class="topic" href={SITE_AUTHOR_LINKEDIN} rel="me noopener">LinkedIn</a>
+          <a class="topic" href={SITE_AUTHOR_WEBSITE} rel="me noopener">hadinata.me</a>
+          <a class="topic" href="/editorial-standards/">Editorial standards</a>
+          <a class="topic" href="/contact/">Contact</a>
+        </div>
+        <p class="author-updated">
+          Last updated <time datetime={new Date().toISOString()}>{formatDate(new Date())}</time>
+        </p>
+      </footer>
+    </div>
+
+    <aside class="read-rail">
+      <div class="rail-card">
+        <div class="rail-card-head">
+          <span>At a glance</span>
+          <span>01</span>
+        </div>
+        <div class="rail-card-body">
+          <dl class="author-facts">
+            <div>
+              <dt>Role</dt>
+              <dd>Editor, Light Scripts</dd>
+            </div>
+            <div>
+              <dt>Focus</dt>
+              <dd>Home-office equipment</dd>
+            </div>
+            <div>
+              <dt>Method</dt>
+              <dd>Primary-source research</dd>
+            </div>
+            <div>
+              <dt>Since</dt>
+              <dd>2026</dd>
+            </div>
+          </dl>
+        </div>
       </div>
-    </div>
 
-    <p class="mt-6 text-base leading-relaxed text-ink-75">{SITE_AUTHOR_BIO}</p>
+      <div class="rail-card">
+        <div class="rail-card-head">
+          <span>Editorial standards</span>
+          <span>02</span>
+        </div>
+        <div class="rail-card-body">
+          <h4>How the research works</h4>
+          <p>
+            Sources are fetched, quoted, and linked. Manufacturer claims are separated from independent
+            measurements.
+          </p>
+          <a class="btn btn-outline btn-sm" href="/editorial-standards/">Read the standards</a>
+        </div>
+      </div>
 
-    <div class="mt-6 flex flex-wrap gap-x-5 gap-y-2 font-sans text-sm">
-      <a class="underline-offset-4 hover:underline" href={SITE_AUTHOR_WEBSITE} rel="me noopener">
-        hadinata.me
-      </a>
-      <a class="underline-offset-4 hover:underline" href={SITE_AUTHOR_LINKEDIN} rel="me noopener">
-        LinkedIn
-      </a>
-      <a class="underline-offset-4 hover:underline" href="/editorial-standards/">
-        Editorial standards
-      </a>
-      <a class="underline-offset-4 hover:underline" href="/contact/">Contact</a>
-    </div>
-  </header>
+      <div class="rail-card">
+        <div class="rail-card-head">
+          <span>Connect</span>
+          <span>03</span>
+        </div>
+        <div class="rail-card-body">
+          <h4>Elsewhere</h4>
+          <p>Work, notes, and the rest of the writing.</p>
+          <div class="author-rail-links">
+            <a href={SITE_AUTHOR_WEBSITE} rel="me noopener">hadinata.me</a>
+            <a href={SITE_AUTHOR_LINKEDIN} rel="me noopener">LinkedIn</a>
+            <a href="/contact/">Contact</a>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
 
-  <section class="mt-12 border-t border-ink-12 pt-8" aria-labelledby="latest-guides">
-    <h2 id="latest-guides" class="text-2xl font-semibold tracking-tight">Latest guides</h2>
-    <div class="mt-6">
-      <PostList
-        posts={posts}
-        emptyMessage="No guides are published yet."
-      />
-    </div>
-  </section>
+  <style>
+    .author-lead {
+      font-family: var(--font-serif);
+      font-size: 20px;
+      line-height: 1.6;
+      color: var(--ink);
+    }
+    .author-body > h2:first-of-type {
+      margin-top: 36px;
+    }
+    .author-topics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 28px;
+      margin: 20px 0 28px;
+    }
+    .post-body .author-topic {
+      display: block;
+      padding: 14px 0 16px;
+      border-top: 1px solid var(--ink-12);
+      text-decoration: none;
+    }
+    .author-topic strong {
+      display: block;
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .author-topic span {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--ink-75);
+    }
+    .post-body .author-topic:hover strong {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .author-guide-list {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+    }
+    .author-guide {
+      border-top: 1px solid var(--ink-12);
+    }
+    .author-guide:last-child {
+      border-bottom: 1px solid var(--ink-12);
+    }
+    .post-body .author-guide a {
+      display: block;
+      padding: 16px 0 18px;
+      text-decoration: none;
+    }
+    .author-guide-meta {
+      display: block;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-40);
+    }
+    .author-guide-title {
+      display: block;
+      margin-top: 5px;
+      font-family: var(--font-display);
+      font-size: 21px;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: -0.018em;
+      color: var(--ink);
+    }
+    .author-guide-desc {
+      display: block;
+      margin-top: 5px;
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--ink-75);
+    }
+    .post-body .author-guide a:hover .author-guide-title {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .author-facts {
+      margin: 0;
+    }
+    .author-facts div {
+      display: grid;
+      grid-template-columns: 62px 1fr;
+      gap: 8px;
+      padding: 9px 0;
+      border-top: 1px solid var(--ink-08);
+    }
+    .author-facts div:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+    .author-facts dt {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-40);
+    }
+    .author-facts dd {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+      color: var(--ink);
+    }
+    .author-rail-links {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      font-family: var(--font-sans);
+      font-size: 13.5px;
+    }
+    .author-rail-links a {
+      color: var(--ink);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: var(--ink-20);
+    }
+    .author-rail-links a:hover {
+      text-decoration-color: var(--ink);
+    }
+    .author-updated {
+      margin-top: 14px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--ink-40);
+    }
+    @media (max-width: 640px) {
+      .author-topics {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <script>
+    const tocDetails = document.querySelector<HTMLDetailsElement>('.toc-details');
+    if (tocDetails && window.matchMedia('(min-width: 1000px)').matches) {
+      tocDetails.open = true;
+    }
+
+    const progressBar = document.getElementById('progress');
+    const tocPercent = document.getElementById('toc-progress');
+    const article = document.querySelector<HTMLElement>('.post-body');
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.toc-link'));
+
+    const sections = links
+      .map((link) => {
+        const target = link.dataset.target;
+        return target ? document.getElementById(target) : null;
+      })
+      .filter((section): section is HTMLElement => section instanceof HTMLElement);
+
+    if (sections.length > 0) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
+
+          if (!visible) {
+            return;
+          }
+
+          for (const link of links) {
+            link.classList.toggle('active', link.dataset.target === visible.target.id);
+          }
+        },
+        { rootMargin: '-140px 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] },
+      );
+
+      for (const section of sections) {
+        observer.observe(section);
+      }
+    }
+
+    let animationFrame = 0;
+
+    const updateProgress = (): void => {
+      animationFrame = 0;
+      const scrollableDistance = document.documentElement.scrollHeight - window.innerHeight;
+      const ratio =
+        scrollableDistance > 0 ? Math.min(Math.max(window.scrollY / scrollableDistance, 0), 1) : 0;
+
+      if (progressBar) {
+        progressBar.classList.add('on');
+        progressBar.style.width = `${ratio * 100}%`;
+      }
+
+      if (tocPercent && article) {
+        const rect = article.getBoundingClientRect();
+        const articleTop = rect.top + window.scrollY;
+        const readRatio = Math.min(
+          Math.max((window.scrollY + window.innerHeight - articleTop) / rect.height, 0),
+          1,
+        );
+        tocPercent.textContent = `${Math.round(readRatio * 100)}%`;
+      }
+    };
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (animationFrame === 0) {
+          animationFrame = requestAnimationFrame(updateProgress);
+        }
+      },
+      { passive: true },
+    );
+
+    updateProgress();
+  </script>
 </BaseLayout>
