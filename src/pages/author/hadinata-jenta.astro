@@ -16,6 +16,7 @@ import { buildBreadcrumbJsonLd } from '@/utils/seo';
 
 export const prerender = false;
 
+const AUTHOR_UPDATED = new Date('2026-10-27T00:00:00.000Z');
 const posts = (await getPublishedPostSummaries()).slice(0, 10);
 const siteUrl = Astro.site ?? new URL(Astro.url.origin);
 const authorUrl = new URL(`/author/${SITE_AUTHOR_SLUG}/`, siteUrl).href;
@@ -100,7 +101,7 @@ const jsonLd = [
         url: new URL('/', siteUrl).href,
       },
     },
-    dateModified: new Date().toISOString(),
+    dateModified: AUTHOR_UPDATED.toISOString(),
   },
   buildBreadcrumbJsonLd([
     { name: 'Home', url: new URL('/', siteUrl).href },
@@ -323,7 +324,7 @@ const jsonLd = [
           <a class="topic" href="/contact/">Contact</a>
         </div>
         <p class="author-updated">
-          Last updated <time datetime={new Date().toISOString()}>{formatDate(new Date())}</time>
+          Last updated <time datetime={AUTHOR_UPDATED.toISOString()}>{formatDate(AUTHOR_UPDATED)}</time>
         </p>
       </footer>
     </div>
