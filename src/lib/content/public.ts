@@ -1,6 +1,5 @@
 import { marked } from 'marked';
 import { wrapMarkdownTables } from '../../utils/markdown';
-import { resolveAffiliateLinks } from '../affiliate/links';
 import type { PostStatus } from './post-schema';
 import { sanitizeMarkdownTokens } from './sanitize-markdown';
 import { toSlug } from './slug';
@@ -138,16 +137,13 @@ export function extractHeadings(body: string): SiteHeading[] {
     .filter((heading) => heading.depth === 2 || heading.depth === 3);
 }
 
+const PRODUCT_LINK_PATTERN = /<a href="product:[^"]+"[^>]*>([\s\S]*?)<\/a>/g;
+
 export interface RenderResult {
   html: string;
-  affiliateLinks: number;
-  unresolvedProductSlugs: string[];
 }
 
-export function renderMarkdown(
-  body: string,
-  affiliateLinks: Map<string, string> = new Map(),
-): RenderResult {
+export function renderMarkdown(body: string): RenderResult {
   const tokens = marked.lexer(body);
   sanitizeMarkdownTokens(tokens);
   const rawHtml = marked.parser(tokens, { async: false }) as string;
@@ -162,16 +158,7 @@ export function renderMarkdown(
 
   const withTables = wrapMarkdownTables(withHeadingIds);
 
-  const redirectLinks = new Map(
-    [...affiliateLinks.keys()].map((slug) => [slug, `/go/${slug}?p=body`]),
-  );
-  const resolved = resolveAffiliateLinks(withTables, redirectLinks);
-
-  return {
-    html: resolved.html,
-    affiliateLinks: resolved.affiliateLinks,
-    unresolvedProductSlugs: resolved.unresolvedSlugs,
-  };
+  return { html: withTables.replace(PRODUCT_LINK_PATTERN, '$1') };
 }
 
 export function formatReadingTime(body: string): number {

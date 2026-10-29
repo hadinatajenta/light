@@ -74,7 +74,7 @@ When comparing products, prefer measurements taken under a named standard. IEEE 
 
 ## Fitting a microphone into a small desk
 
-A boom arm clamps to the desk edge and sweeps across the work surface, which is awkward when monitors and a keyboard already occupy the space. If your displays sit on a monitor arm instead of their own feet, the area in front of you opens up, and that is where a boom wants to live. A mount such as the [MOUNTUP Dual Monitor Desk Mount](product:mountup-dual-monitor-arm) is one way to reclaim that footprint before you commit to a boom.
+A boom arm clamps to the desk edge and sweeps across the work surface, which is awkward when monitors and a keyboard already occupy the space. If your displays sit on a monitor arm instead of their own feet, the area in front of you opens up, and that is where a boom wants to live. A mount such as the MOUNTUP Dual Monitor Desk Mount is one way to reclaim that footprint before you commit to a boom.
 
 Room treatment does more than any software filter at this stage. A rug, heavy curtains, and a bookshelf behind the microphone reduce reflections, and a bare room with hard floors will be audible on every call regardless of which microphone you choose.
 

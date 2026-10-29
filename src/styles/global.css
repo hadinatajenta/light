@@ -971,10 +971,6 @@
   @apply h-[3px] w-[3px] rounded-full bg-current opacity-50;
 }
 
-.post-disclosure {
-  @apply mb-8 rounded-[2px] border border-ink-20 bg-paper-raised px-4 py-3.5 font-sans text-[13px] leading-[1.5] text-ink-75;
-}
-
 .post-body {
   font-family: var(--font-serif);
   font-size: 19px;

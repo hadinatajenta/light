@@ -1,8 +1,6 @@
 ---
 import AdSlot from '@/components/AdSlot.astro';
-import ProductList from '@/components/ProductList.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
-import { DEFAULT_AFFILIATE_DISCLOSURE } from '@/config/monetization';
 import {
   SITE_AUTHOR,
   SITE_AUTHOR_JOB_TITLE,
@@ -11,8 +9,6 @@ import {
   SITE_AUTHOR_WEBSITE,
   SITE_TITLE,
 } from '@/consts';
-import type { AffiliateProduct } from '@/lib/affiliate/store';
-import { selectFeaturedProducts } from '@/lib/affiliate/featured';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
 import { getRelatedPosts } from '@/lib/content/related';
 import { topicLabel } from '@/lib/content/topics';
@@ -24,29 +20,11 @@ import BaseLayout from './BaseLayout.astro';
 
 interface Props {
   post: SitePost;
-  affiliateLinks?: Map<string, string>;
-  affiliateProducts?: AffiliateProduct[];
-  affiliateDisclosure?: string;
 }
 
-const {
-  post,
-  affiliateLinks = new Map<string, string>(),
-  affiliateProducts = [],
-  affiliateDisclosure,
-} = Astro.props;
+const { post } = Astro.props;
 
-const rendered = renderMarkdown(post.body, affiliateLinks);
-const html = rendered.html;
-const showsAffiliateDisclosure = post.affiliate || rendered.affiliateLinks > 0;
-const disclosureText = affiliateDisclosure || DEFAULT_AFFILIATE_DISCLOSURE;
-const featuredProducts = selectFeaturedProducts({
-  body: post.body,
-  title: post.title,
-  tags: post.tags,
-  category: post.category ?? null,
-  products: affiliateProducts,
-});
+const { html } = renderMarkdown(post.body);
 const tableOfContents = buildTableOfContents(extractHeadings(post.body));
 const readingMinutes = formatReadingTime(post.body);
 const primaryTag = post.tags[0] ?? 'guide';
@@ -236,10 +214,6 @@ const jsonLd = [
 
       <AdSlot slotId="in-article-top" format="leaderboard" />
 
-      {
-        showsAffiliateDisclosure && <p class="post-disclosure">{disclosureText}</p>
-      }
-
       <article class="post-body">
         <Fragment set:html={html} />
         {
@@ -258,12 +232,6 @@ const jsonLd = [
           )
         }
       </article>
-
-      {
-        featuredProducts.length > 0 && (
-          <ProductList products={featuredProducts} disclosure={disclosureText} />
-        )
-      }
 
       <RelatedLinks posts={related} />
 
@@ -287,11 +255,6 @@ const jsonLd = [
 
     <aside class="read-rail">
       <AdSlot slotId="article-rail-top" format="rectangle" />
-      {
-        featuredProducts.length > 0 && (
-          <ProductList products={featuredProducts} disclosure={disclosureText} variant="rail" />
-        )
-      }
       <AdSlot slotId="article-rail-bottom" format="rail" />
     </aside>
   </div>

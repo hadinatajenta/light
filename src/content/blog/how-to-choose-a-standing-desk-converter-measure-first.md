@@ -66,7 +66,7 @@ The table compares the common lift mechanisms on what you notice daily.
 
 Frequency of switching decides more than price. Someone who raises the desk once in the morning will not care about a manual lift. Someone alternating every hour will resent it, and an electric model earns its cost. Check whether adjustment is continuous or stepped, because a handful of detents may not include your elbow height.
 
-If you go electric, read the specification sheet rather than the images. Electric desktop converters such as the [Huuger electric standing desktop model](product:huuger-electric-standing-desktop-computer) are only useful to you if the published height range, capacity and footprint clear your measurements.
+If you go electric, read the specification sheet rather than the images. Electric desktop converters such as the Huuger electric standing desktop model are only useful to you if the published height range, capacity and footprint clear your measurements.
 
 ## Stability, materials and durability
 
@@ -80,7 +80,7 @@ Buy a converter if you cannot change the desk: a rental, a built-in desk, a shar
 
 Skip it if your desk is shallow and your payload is heavy, because footprint and platform requirements start to conflict. Skip it if you want the full range and stability of a real sit-stand desk; a converter inherits the height of whatever it sits on, seated as well as standing. And if you work from a laptop alone, a raised stand plus an external keyboard solves the same posture problem, usually for less money and with less depth.
 
-If you already own a monitor arm, read the mounting section of the manual first. Converters rarely have a pass-through for an arm base, and combining the two often leaves displays at a compromise height that suits neither sitting nor standing. Some people keep monitors on a desk-mounted dual arm such as the [MOUNTUP dual monitor desk mount](product:mountup-dual-monitor-arm) and use the converter for keyboard and mouse only. That works if you stand for most of the day, and is a poor fix if you alternate.
+If you already own a monitor arm, read the mounting section of the manual first. Converters rarely have a pass-through for an arm base, and combining the two often leaves displays at a compromise height that suits neither sitting nor standing. Some people keep monitors on a desk-mounted dual arm such as the MOUNTUP dual monitor desk mount and use the converter for keyboard and mouse only. That works if you stand for most of the day, and is a poor fix if you alternate.
 
 Standing tolerance is a separate problem from the converter itself: footwear, flooring and how long you stay upright matter as much as the platform.
 

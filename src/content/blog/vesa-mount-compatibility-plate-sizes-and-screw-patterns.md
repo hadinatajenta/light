@@ -97,7 +97,7 @@ Some displays skip VESA holes entirely and need a model-specific adapter. No uni
 
 - Confirm the pattern from the spec sheet, then measure the holes to verify. Both numbers should read width x height.
 - Note whether your panel has one pattern or two. Two sets widen your options.
-- Read the mount's published pattern list, not its marketing summary. A gas-spring arm such as the [HUANUO FlowLift tool-free monitor arm](product:huanuo-flowlifttm-mechaspring-fully-adjustable-tool-free) still fits only the patterns it lists.
+- Read the mount's published pattern list, not its marketing summary. A gas-spring arm such as the HUANUO FlowLift tool-free monitor arm still fits only the patterns it lists.
 - Compare the arm's net panel weight rating against the bare panel weight, then decide how much headroom you want for extension.
 - Measure the depth of the mounting well. If it is recessed, budget for standoff spacers.
 - Plan the cable run before the panel goes up, since a mount that tilts and swivels pulls on anything left slack. [Cable management for a small desk](/blog/cable-management-for-a-small-desk/) covers the order to do it in.
@@ -109,10 +109,10 @@ Measuring, reusing the display's own screws, and pulling the arm closer to its b
 
 | Situation | Product |
 | --- | --- |
-| One panel, 75 x 75 or 100 x 100 back, tool-free gas-spring arm wanted | [HUANUO FlowLift gas-spring monitor arm](product:huanuo-flowlifttm-mechaspring-fully-adjustable-tool-free) |
-| Two panels with different patterns on one desk | [MOUNTUP dual monitor desk mount](product:mountup-dual-monitor-arm) |
-| Recessed back, or a tilt joint that will not hold a large panel | [Single monitor articulating arm](product:single-monitor-mount-articulating-adjustable) |
-| Two screens to raise without clamping the desk edge | [HUANUO dual monitor stand](product:huanuo-dual-monitor-stand-adjustable) |
+| One panel, 75 x 75 or 100 x 100 back, tool-free gas-spring arm wanted | HUANUO FlowLift gas-spring monitor arm |
+| Two panels with different patterns on one desk | MOUNTUP dual monitor desk mount |
+| Recessed back, or a tilt joint that will not hold a large panel | Single monitor articulating arm |
+| Two screens to raise without clamping the desk edge | HUANUO dual monitor stand |
 
 Each of these still needs its published pattern list checked against your measured holes. The mount is the last purchase in this sequence, not the first.
 

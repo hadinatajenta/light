@@ -1,6 +1,5 @@
 ---
 import PostLayout from '@/layouts/PostLayout.astro';
-import { loadAffiliateContext } from '@/lib/affiliate/store';
 import { normalizeViewPath, recordView, shouldRecordView } from '@/lib/analytics/views';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { getPublishedPost } from '@/lib/content/public';
@@ -35,15 +34,6 @@ if (database && shouldRecordView(Astro.request)) {
     await recording;
   }
 }
-
-const affiliate = database
-  ? await loadAffiliateContext(database)
-  : { links: new Map<string, string>(), products: [], disclosure: '' };
 ---
 
-<PostLayout
-  post={post}
-  affiliateLinks={affiliate.links}
-  affiliateProducts={affiliate.products}
-  affiliateDisclosure={affiliate.disclosure}
-/>
+<PostLayout post={post} />

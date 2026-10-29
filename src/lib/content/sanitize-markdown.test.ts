@@ -8,15 +8,8 @@ vi.mock('./store', () => ({
   listPosts: vi.fn(),
 }));
 
-function renderTokens(body: string): string {
-  const tokens = marked.lexer(body);
-  sanitizeMarkdownTokens(tokens);
-
-  return marked.parser(tokens, { async: false });
-}
-
-function renderBody(body: string, affiliateLinks: Map<string, string> = new Map()): string {
-  return renderMarkdown(body, affiliateLinks).html;
+function renderBody(body: string): string {
+  return renderMarkdown(body).html;
 }
 
 describe('sanitizeMarkdownTokens', () => {
@@ -27,12 +20,6 @@ describe('sanitizeMarkdownTokens', () => {
 
     expect(tokens.map((token) => token.type)).toEqual(['paragraph']);
     expect(tokens[0]).toMatchObject({ text: '&lt;script&gt;alert(1)&lt;/script&gt;' });
-  });
-
-  it('keeps product destinations intact for affiliate resolution', () => {
-    expect(renderTokens('[buy](product:some-slug)')).toBe(
-      '<p><a href="product:some-slug">buy</a></p>\n',
-    );
   });
 });
 
@@ -126,17 +113,6 @@ describe('renderMarkdown link neutralization', () => {
     );
     expect(renderBody('[anchor](#section)')).toBe('<p><a href="#section">anchor</a></p>\n');
     expect(renderBody('[path](/blog/light)')).toBe('<p><a href="/blog/light">path</a></p>\n');
-  });
-
-  it('resolves product links through the affiliate map', () => {
-    const result = renderMarkdown(
-      '[buy](product:some-slug)',
-      new Map([['some-slug', 'https://aff.example/track']]),
-    );
-
-    expect(result.affiliateLinks).toBe(1);
-    expect(result.html).toContain('href="/go/some-slug?p=body"');
-    expect(result.html).toContain('rel="sponsored nofollow noopener"');
   });
 });
 

@@ -2,7 +2,6 @@
 import AdSlot from '@/components/AdSlot.astro';
 import HomeIntro from '@/components/HomeIntro.astro';
 import PostCard from '@/components/PostCard.astro';
-import SponsoredBlock from '@/components/SponsoredBlock.astro';
 import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_HOME_TITLE, SITE_TITLE, SOCIAL_PROFILES } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -106,7 +105,6 @@ const jsonLd = [
             </div>
           ) : null}
 
-          <SponsoredBlock />
           <AdSlot slotId="home-top" format="leaderboard" />
         </div>
       </section>
