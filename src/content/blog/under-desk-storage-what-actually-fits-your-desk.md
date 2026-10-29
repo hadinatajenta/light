@@ -81,7 +81,7 @@ IKEA lists the fixed ALEX at 22 7/8 inches deep and the MICKE desk at 19 5/8 inc
 
 Add the drawer travel. Accuride describes its 3832E slide as full extension, in lengths from 6 to 28 inches, rated to 100 lb with a 24 inch maximum drawer width and 0.50 inch of side space. A 20 inch drawer on a full-extension slide needs about 20 inches of clear space in front of the cabinet.
 
-Inside depth is smaller again: 20 1/2 inches on the 22 7/8 inch ALEX and 16 1/2 inches on the 18 7/8 inch caster version. Check the inside figure for paper or a laptop. The same measurements decide [whether a filing cabinet fits under a desk](/blog/how-to-choose-a-filing-cabinet-that-fits-under-a-desk/).
+Inside depth is smaller again: 20 1/2 inches on the 22 7/8 inch ALEX and 16 1/2 inches on the 18 7/8 inch caster version. Check the inside figure for paper or a laptop. The same measurements decide whether a filing cabinet fits under a desk.
 
 ## Four types of under-desk storage
 

@@ -67,7 +67,7 @@ The V2 column is deliberately empty. Uplift does not publish a current V2 specif
 
 The Uplift starts 2.4 inches lower. That matters most for shorter users, because a lower minimum is what lets you sit with both feet flat instead of perching or using a footrest. The E7 Pro starts at 25 inches, which is a common floor for a two-leg frame and is fine for many adults but can be too high for someone around 5 feet 4 inches or shorter.
 
-At the top, the E7 Pro reaches 50.6 inches against 48.7 for the Uplift, a 1.9-inch advantage. That is useful for taller users and for anyone who likes to stand with the desktop above elbow height. The difference is small enough that both desks will work for most people in the middle of the range. Measure your seated elbow height and your standing elbow height before choosing, and use the [standing desk height guide](/blog/standing-desk-height-range-measuring-for-sit-stand-use/) to turn those numbers into a required range.
+At the top, the E7 Pro reaches 50.6 inches against 48.7 for the Uplift, a 1.9-inch advantage. That is useful for taller users and for anyone who likes to stand with the desktop above elbow height. The difference is small enough that both desks will work for most people in the middle of the range. Measure your seated elbow height and your standing elbow height before choosing, and use the standing desk height guide to turn those numbers into a required range.
 
 One caveat applies to both: the published range is for the desk as configured, and a thicker top moves the surface up. A 1.5-inch butcher block and a 1-inch laminate do not produce the same seated height even when the frame is identical.
 
@@ -91,7 +91,7 @@ If you plan to keep the desk for a decade, the warranty difference is worth more
 
 Both desks use two motors, and both publish anti-collision systems that stop and reverse when the desk meets an obstacle. Uplift describes the V3 Essential frame as a three-stage design with a 22.6-inch low end and a BIFMA G1-2013 height range. Flexispot describes the E7 Pro as a dual-motor frame with thicker legs and a 30,000-cycle lift test.
 
-Those are manufacturer claims, not independent wobble measurements. Neither company publishes a side-to-side rigidity figure that can be compared directly, and a desk's stability depends on the top, the frame, the floor, and how the load is distributed. The honest answer is that both are two-leg desks in the same class, and neither is a four-leg platform. If stability at full height is the priority, read the [standing desk stability checklist](/blog/standing-desk-stability-what-to-check-before-buying/) and consider a four-leg frame. The [two-leg versus four-leg comparison](/blog/two-leg-vs-four-leg-standing-desks-stability-and-foot-clearance/) covers the difference in foot clearance and rigidity before you spend more on either of these.
+Those are manufacturer claims, not independent wobble measurements. Neither company publishes a side-to-side rigidity figure that can be compared directly, and a desk's stability depends on the top, the frame, the floor, and how the load is distributed. The honest answer is that both are two-leg desks in the same class, and neither is a four-leg platform. If stability at full height is the priority, read the [standing desk stability checklist](/blog/standing-desk-stability-what-to-check-before-buying/) and consider a four-leg frame. The two-leg versus four-leg comparison covers the difference in foot clearance and rigidity before you spend more on either of these.
 
 The V3's cable management is the other practical change. Uplift's FlexMount system mounts accessories to the frame without drilling, and the V3 Essential includes a cable manager. Flexispot's E7 Pro integrates a cable management tray into the frame. Both solve the same problem, and neither changes the height or load numbers.
 
@@ -151,5 +151,5 @@ On the published numbers, yes. The E7 Pro reaches 50.6 inches against 48.7 for t
 - [Flexispot E7 Pro Line Standing Desk](https://www.flexispot.com/e7-pro-line-standing-desk). Height range, 440 lb static load, dual motors, and anti-collision.
 - [Flexispot warranty](https://www.flexispot.com/warranty). Frame, motor, controller, and desktop coverage terms.
 - [Flexispot E7 Pro manual and test report](https://www.flexispot.com/e7-pro-line-standing-desk). The 30,000-cycle lift claim and the published load test.
-- [Standing desk height guide](/blog/standing-desk-height-range-measuring-for-sit-stand-use/). Turning seated and standing elbow height into a required range.
+- Standing desk height guide. Turning seated and standing elbow height into a required range.
 - [Standing desk stability checklist](/blog/standing-desk-stability-what-to-check-before-buying/). What to test beyond the load rating.

@@ -1,29 +1,28 @@
 ---
 title: "Gemini 4 Argon vs Claude Opus 5.5: Frontier AI Coding Compared"
-description: "A technical evaluation of Gemini 4 Argon vs Claude Opus 5.5 across DeepSWE benchmarks, 1M context decode limits, terminal tool calling, and API pricing."
-slug: gemini-argon-vs-claude-opus-guide
+description: A technical evaluation of Gemini 4 Argon vs Claude Opus 5.5 across DeepSWE benchmarks, 1M context decode limits, terminal tool calling, and API pricing.
 status: published
-category: accessories
+slug: gemini-argon-vs-claude-opus-guide
 tags:
   - accessories
   - ai
   - developer-tools
   - agents
 pubDate: 2026-10-25T14:30:00.000Z
-updatedDate: 2026-10-25T14:30:00.000Z
-coverUrl: /media/gemini-argon-vs-claude-opus-5-5.jpg
-coverAlt: "Gemini 4 Argon vs Claude Opus 5.5 frontier AI architecture and coding benchmark comparison"
-focusKeyword: "Gemini 4 Argon vs Claude Opus 5.5"
-targetIntent: informational
 noindex: false
 affiliate: false
 faq:
-  - question: "What is the primary architectural difference between Gemini 4 Argon and Claude Opus 5.5?"
-    answer: "Gemini 4 Argon uses a sparse Mixture-of-Experts transformer with native omnimodal processing and a 1,048,576 output token limit. Claude Opus 5.5 uses a dense frontier transformer with adaptive thinking blocks, capping single-turn output at 128,000 tokens while optimizing for terminal tool execution."
-  - question: "Which model performs better on autonomous CLI and terminal tasks?"
-    answer: "Claude Opus 5.5 leads terminal operations with a 66.4% score on Terminal-Bench 4.0 compared to 57.4% for Gemini 4 Argon, completing multi-step shell jobs with approximately 40% fewer tool calls."
-  - question: "How does pricing compare between the two models?"
-    answer: "Both models reach standard list pricing at $4.00 per million input tokens and $20.00 per million output tokens. Gemini 4 Argon offers an introductory rate of $2.00 input and $10.00 output through November 2026, alongside 50% discounts for asynchronous batch jobs."
+  - question: What is the primary architectural difference between Gemini 4 Argon and Claude Opus 5.5?
+    answer: Gemini 4 Argon uses a sparse Mixture-of-Experts transformer with native omnimodal processing and a 1,048,576 output token limit. Claude Opus 5.5 uses a dense frontier transformer with adaptive thinking blocks, capping single-turn output at 128,000 tokens while optimizing for terminal tool execution.
+  - question: Which model performs better on autonomous CLI and terminal tasks?
+    answer: Claude Opus 5.5 leads terminal operations with a 66.4% score on Terminal-Bench 4.0 compared to 57.4% for Gemini 4 Argon, completing multi-step shell jobs with approximately 40% fewer tool calls.
+  - question: How does pricing compare between the two models?
+    answer: Both models reach standard list pricing at $4.00 per million input tokens and $20.00 per million output tokens. Gemini 4 Argon offers an introductory rate of $2.00 input and $10.00 output through November 2026, alongside 50% discounts for asynchronous batch jobs.
+category: accessories
+updatedDate: 2026-10-25T14:30:00.000Z
+coverUrl: /media/gemini-argon-vs-claude-opus-5-5.jpg
+coverAlt: Gemini 4 Argon vs Claude Opus 5.5 frontier AI architecture and coding benchmark comparison
+focusKeyword: Gemini 4 Argon vs Claude Opus 5.5
 ---
 
 ## Quick answer

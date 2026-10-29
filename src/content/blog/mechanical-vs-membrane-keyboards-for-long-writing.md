@@ -6,11 +6,13 @@ slug: mechanical-vs-membrane-keyboards-for-long-writing
 tags:
   - keyboards
   - buying-basics
-pubDate: 2026-07-02
+pubDate: 2026-07-02T00:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
+coverUrl: /media/24ccb172-4203-4f8c-b035-b11763cce242.jpg
+coverAlt: Mechanical vs membrane keyboards for long writing
 ---
 
 Writing all day puts a different kind of demand on a keyboard than gaming does. You are not chasing

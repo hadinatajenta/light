@@ -129,7 +129,7 @@ Read across the table: 1080p60 is available on four of the five, the wide views 
 - [Logitech MX Brio](https://www.logitech.com/en-us/shop/p/mx-brio-4k-webcam.960-001510)
 - [Insta360 Link 2](https://store.insta360.com/product/link-2)
 
-Camera choice is only part of a call setup. The [monitor guide](/blog/how-to-choose-a-monitor-for-a-home-office/) covers screen height and viewing distance, the [task lighting guide](/blog/task-lighting-vs-ambient-lighting-at-a-desk/) covers the light on your face, and the [headset versus desk microphone guide](/blog/headset-vs-desk-microphone-for-calls-what-actually-decides-it/) covers the audio half of the call.
+Camera choice is only part of a call setup. The [monitor guide](/blog/how-to-choose-a-monitor-for-a-home-office/) covers screen height and viewing distance, the task lighting guide covers the light on your face, and the [headset versus desk microphone guide](/blog/headset-vs-desk-microphone-for-calls-what-actually-decides-it/) covers the audio half of the call.
 
 ## Frequently asked questions
 

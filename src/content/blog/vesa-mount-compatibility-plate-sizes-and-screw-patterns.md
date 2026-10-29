@@ -83,7 +83,7 @@ The standard splits the responsibility. The bracket manufacturer is expected to 
 
 That division matters when you run close to a limit. An arm's stated capacity refers to the net weight of the display panel itself, not the packaged weight and not the weight with the original stand attached. Look up the bare panel figure before comparing.
 
-Capacity also depends on arm position. A fully extended arm supports less weight than one kept close to its base, so a printed rating is a ceiling rather than a promise at every angle. Material tells you the rest: steel mounts hold the highest capacity for heavy professional monitors, aluminium sits below that, and plastic parts in budget mounts reduce capacity and can deteriorate. A pattern mismatch can reduce usable capacity or create unsafe mounting conditions, so this is a safety question as much as a fit question. Large curved panels carry their own complications, covered in [how to choose a monitor arm for a heavy ultrawide monitor](/blog/how-to-choose-a-monitor-arm-for-a-heavy-ultrawide-monitor/).
+Capacity also depends on arm position. A fully extended arm supports less weight than one kept close to its base, so a printed rating is a ceiling rather than a promise at every angle. Material tells you the rest: steel mounts hold the highest capacity for heavy professional monitors, aluminium sits below that, and plastic parts in budget mounts reduce capacity and can deteriorate. A pattern mismatch can reduce usable capacity or create unsafe mounting conditions, so this is a safety question as much as a fit question. Large curved panels carry their own complications, covered in how to choose a monitor arm for a heavy ultrawide monitor.
 
 ## Why does a curved or recessed back change the answer?
 
@@ -91,7 +91,7 @@ Deep curves move the centre of gravity farther from the mounting plate. On a dee
 
 Recessed or circular mounting areas cause a different problem. A standard flat VESA plate may not seat properly without 10 to 20 mm standoff spacers, and the wrong spacers either scratch the housing or fail to reach the holes. If the back of your monitor curves inward around the mounting area, check that depth first.
 
-Some displays skip VESA holes entirely and need a model-specific adapter. No universal part substitutes for it. If you are mounting two different models, [how to choose a monitor arm for a two-monitor setup](/blog/how-to-choose-a-monitor-arm-for-a-two-monitor-setup/) walks through the matching work.
+Some displays skip VESA holes entirely and need a model-specific adapter. No universal part substitutes for it. If you are mounting two different models, how to choose a monitor arm for a two-monitor setup walks through the matching work.
 
 ## What should you check before you click buy?
 

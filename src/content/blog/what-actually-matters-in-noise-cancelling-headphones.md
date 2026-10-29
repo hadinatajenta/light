@@ -6,11 +6,13 @@ slug: what-actually-matters-in-noise-cancelling-headphones
 tags:
   - audio
   - buying-basics
-pubDate: 2026-07-21
+pubDate: 2026-07-21T00:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
+coverUrl: /media/fafb7b29-3523-40cf-acee-5d7bf294195e.jpg
+coverAlt: What actually matters in noise-cancelling headphones
 ---
 
 Noise cancelling is one of the most oversold features in consumer audio. Adverts promise silence, and what you actually get depends entirely on which sounds you are trying to remove. Understanding that difference is the difference between a satisfying purchase and a disappointing one.

@@ -2,7 +2,7 @@
 title: How to choose a desk lamp for long working hours
 description: Colour temperature, flicker, and placement matter more than raw brightness. Here is how to pick a desk lamp for long days of reading and writing.
 status: published
-category: desk-setup
+slug: how-to-choose-a-desk-lamp-for-long-working-hours
 tags:
   - desk-setup
   - buying-basics
@@ -10,7 +10,10 @@ pubDate: 2026-10-11T09:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
-slug: how-to-choose-a-desk-lamp-for-long-working-hours
+category: desk-setup
+updatedDate: 2026-10-25T15:45:45.514Z
+coverUrl: /media/21ecfda5-3af8-49ca-9f89-7960601d4f8a.jpg
+coverAlt: How to choose a desk lamp for long working hours
 ---
 
 Most people buy a desk lamp the way they buy a lightbulb: by wattage. That is the wrong number. A lamp that is bright but badly placed makes text harder to read, and a lamp that flickers will tire your eyes long before it runs out of output.

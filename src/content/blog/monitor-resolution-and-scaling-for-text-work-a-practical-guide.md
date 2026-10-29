@@ -141,7 +141,7 @@ On macOS each display keeps its own backing store, and ownership transfers once 
 
 A 27-inch 4K at 150 percent gives 108.8 logical ppi, comfortable but no roomier than 1440p. A 32-inch 4K at 100 percent gives 137.7, uncomfortably small for many readers.
 
-Brightness and contrast decide how the panel feels after a long day, and the [office lighting guide](/blog/monitor-brightness-and-contrast-for-office-lighting/) covers that half. Density is the part you cannot change later. Panel type, stand range and ports belong to the [home office monitor guide](/blog/how-to-choose-a-monitor-for-a-home-office/).
+Brightness and contrast decide how the panel feels after a long day, and the office lighting guide covers that half. Density is the part you cannot change later. Panel type, stand range and ports belong to the [home office monitor guide](/blog/how-to-choose-a-monitor-for-a-home-office/).
 
 ## Frequently asked questions
 

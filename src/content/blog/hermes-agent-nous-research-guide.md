@@ -2,20 +2,24 @@
 title: "Hermes Agent: Inside Nous Research's Self-Improving Open-Source Agent"
 description: "An architectural guide to Nous Research's Hermes Agent: native function calling in Hermes 3, self-improving skills loops, and sandboxed tool execution."
 status: published
-category: buying-basics
-tags: ["buying-basics", "ai", "developer-tools", "agents"]
+slug: hermes-agent-nous-research-guide
+tags:
+  - buying-basics
+  - ai
+  - developer-tools
+  - agents
 pubDate: 2026-10-25T14:10:00.000Z
-updatedDate: 2026-10-25T14:10:00.000Z
-coverUrl: /media/8a1b2c3d-94e5-4f6a-8b7c-0d1e2f3a4b5c.jpg
-coverAlt: "Nous Research Hermes Agent terminal interface and function calling graph"
 noindex: false
 affiliate: false
-slug: hermes-agent-nous-research-guide
 faq:
-  - question: "What makes Hermes Agent different from standard LLM chatbots?"
-    answer: "Hermes Agent operates as a persistent execution harness with native XML structured token parsing (<tool_call>, <SCRATCHPAD>) and a self-improving skill loop that stores verified workflows for future reuse."
-  - question: "Can Hermes Agent run with local open-weights models?"
-    answer: "Yes, it is designed around the open-weights Hermes 3 model family (8B, 70B, and 405B) and runs on local hardware or private servers via Ollama, vLLM, or LM Studio without vendor lock-in."
+  - question: What makes Hermes Agent different from standard LLM chatbots?
+    answer: Hermes Agent operates as a persistent execution harness with native XML structured token parsing (<tool_call>, <SCRATCHPAD>) and a self-improving skill loop that stores verified workflows for future reuse.
+  - question: Can Hermes Agent run with local open-weights models?
+    answer: Yes, it is designed around the open-weights Hermes 3 model family (8B, 70B, and 405B) and runs on local hardware or private servers via Ollama, vLLM, or LM Studio without vendor lock-in.
+category: buying-basics
+updatedDate: 2026-10-25T14:10:00.000Z
+coverUrl: /media/8a1b2c3d-94e5-4f6a-8b7c-0d1e2f3a4b5c.jpg
+coverAlt: Nous Research Hermes Agent terminal interface and function calling graph
 ---
 
 ## Quick answer

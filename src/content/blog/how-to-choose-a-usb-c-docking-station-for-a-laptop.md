@@ -2,7 +2,7 @@
 title: How to choose a USB-C docking station for a laptop
 description: Power delivery, display support, and port count decide whether a dock simplifies your desk or creates a new problem. What to check before buying.
 status: published
-category: accessories
+slug: how-to-choose-a-usb-c-docking-station-for-a-laptop
 tags:
   - accessories
   - desk-setup
@@ -10,7 +10,10 @@ pubDate: 2026-10-11T12:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
-slug: how-to-choose-a-usb-c-docking-station-for-a-laptop
+category: accessories
+updatedDate: 2026-10-25T15:00:49.063Z
+coverUrl: /media/5186a1b8-02a1-42e0-bf3d-48d1cf585ab3.jpg
+coverAlt: How to choose a USB-C docking station for a laptop
 ---
 
 A docking station promises one cable for everything. Whether it delivers depends on three numbers that are usually buried in a specification table: how much power it passes through, how many displays it can drive, and how fast its data ports actually run.

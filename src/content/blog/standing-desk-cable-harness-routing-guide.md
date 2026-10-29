@@ -1,26 +1,26 @@
 ---
 title: "Standing Desk Cable Harnesses: Types, Sizing, and Routing Rules"
-description: "How to choose and route a standing desk cable management harness without snagging cords, stretching cables, or overloading desk motors."
+description: How to choose and route a standing desk cable management harness without snagging cords, stretching cables, or overloading desk motors.
 status: published
-category: desk-setup
+slug: standing-desk-cable-harness-routing-guide
 tags:
   - desk-setup
   - accessories
   - standing-desks
 pubDate: 2026-10-25T13:40:00.000Z
-updatedDate: 2026-10-25T13:40:00.000Z
-coverUrl: /media/9a4e81b2-5c31-41fa-8a19-9403d517e3bf.jpg
-coverAlt: "Articulated standing desk cable management harness with weighted base plate under oak desktop"
 noindex: false
 affiliate: false
-slug: standing-desk-cable-harness-routing-guide
 faq:
-  - question: "How long should a standing desk cable harness be?"
-    answer: "A standing desk cable harness must span your desk's maximum extended height (typically 120 cm to 130 cm for standard BIFMA-compliant frames) plus an additional 15 cm of routing slack to prevent cable tension at full extension."
-  - question: "Why do articulated cable spines have separate internal channels?"
-    answer: "Separate channels isolate high-voltage AC mains power cords from low-voltage USB, Ethernet, and video cables, eliminating electromagnetic interference (EMI) and preventing thicker power cables from crushing delicate display lines."
-  - question: "Is a weighted base necessary for an under-desk cable spine?"
-    answer: "Yes. A weighted steel or cast-iron base plate weighing between 0.8 kg and 1.2 kg keeps the bottom segment anchored to the floor so the spine folds and unfolds along a predictable vertical path rather than swinging into your legs."
+  - question: How long should a standing desk cable harness be?
+    answer: A standing desk cable harness must span your desk's maximum extended height (typically 120 cm to 130 cm for standard BIFMA-compliant frames) plus an additional 15 cm of routing slack to prevent cable tension at full extension.
+  - question: Why do articulated cable spines have separate internal channels?
+    answer: Separate channels isolate high-voltage AC mains power cords from low-voltage USB, Ethernet, and video cables, eliminating electromagnetic interference (EMI) and preventing thicker power cables from crushing delicate display lines.
+  - question: Is a weighted base necessary for an under-desk cable spine?
+    answer: Yes. A weighted steel or cast-iron base plate weighing between 0.8 kg and 1.2 kg keeps the bottom segment anchored to the floor so the spine folds and unfolds along a predictable vertical path rather than swinging into your legs.
+category: desk-setup
+updatedDate: 2026-10-25T13:40:00.000Z
+coverUrl: /media/9a4e81b2-5c31-41fa-8a19-9403d517e3bf.jpg
+coverAlt: Articulated standing desk cable management harness with weighted base plate under oak desktop
 ---
 
 ## Quick answer

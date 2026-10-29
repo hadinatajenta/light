@@ -2,7 +2,7 @@
 title: "Cable management for a small desk: what to plan before you buy"
 description: Plan power, routing, and length before buying anything. A tidy desk is a layout decision, not a box of clips you order afterwards.
 status: published
-category: desk-setup
+slug: cable-management-for-a-small-desk
 tags:
   - desk-setup
   - accessories
@@ -10,7 +10,10 @@ pubDate: 2026-10-11T11:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
-slug: cable-management-for-a-small-desk
+category: desk-setup
+updatedDate: 2026-10-25T15:15:45.625Z
+coverUrl: /media/ba967b54-f686-4696-9a8b-facd9f2caed8.jpg
+coverAlt: "Cable management for a small desk: what to plan before you buy"
 ---
 
 Cable management is usually sold as a box of accessories. That is the last step, not the first. The reason a desk looks messy is almost never a lack of clips. It is that the power, the routing, and the cable lengths were never planned, so every cable has to cross the desk to reach something.

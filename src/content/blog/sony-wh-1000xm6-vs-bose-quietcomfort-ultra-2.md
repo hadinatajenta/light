@@ -119,7 +119,7 @@ RTINGS rates the Bose's recording quality as decent with a "fairly flat" vocal-r
 
 Sony has one codec trick the Bose lacks. It supports LC3 over Bluetooth LE with the TMAP profile, and RTINGS published the same call over HFP and over LC3. That only helps if your phone supports LC3, which many recent Android phones do and iPhones do not.
 
-For four hours of calls a day, a boom or desk microphone still beats an array in an earcup at any codec. That trade-off is covered in our look at [headsets versus a desk microphone](/blog/headset-vs-desk-microphone-for-calls-what-actually-decides-it/), and the weight and battery math for eight-hour wear is in our [wired versus wireless headset breakdown](/blog/wired-vs-wireless-headset-for-all-day-calls-weight-and-battery/). Our guide to [what actually matters in noise cancelling headphones](/blog/what-actually-matters-in-noise-cancelling-headphones/) explains which cancellation figures matter for your room.
+For four hours of calls a day, a boom or desk microphone still beats an array in an earcup at any codec. That trade-off is covered in our look at [headsets versus a desk microphone](/blog/headset-vs-desk-microphone-for-calls-what-actually-decides-it/), and the weight and battery math for eight-hour wear is in our wired versus wireless headset breakdown. Our guide to [what actually matters in noise cancelling headphones](/blog/what-actually-matters-in-noise-cancelling-headphones/) explains which cancellation figures matter for your room.
 
 ## What spatial audio costs in battery
 

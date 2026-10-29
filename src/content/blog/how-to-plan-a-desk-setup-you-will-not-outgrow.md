@@ -6,11 +6,13 @@ slug: how-to-plan-a-desk-setup-you-will-not-outgrow
 tags:
   - desk-setup
   - buying-basics
-pubDate: 2026-08-14
+pubDate: 2026-08-14T00:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
+coverUrl: /media/c1856441-2c94-430d-9420-5e6b0fa7b765.jpg
+coverAlt: How to plan a desk setup you will not outgrow
 ---
 
 A desk setup is easy to buy and hard to get right, because the mistakes only appear once you are

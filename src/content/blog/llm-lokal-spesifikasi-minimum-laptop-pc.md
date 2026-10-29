@@ -1,19 +1,13 @@
 ---
 title: "LLM lokal: spesifikasi laptop dan PC minimum untuk menjalankannya"
-description: "RAM, VRAM, dan bandwidth memori menentukan apakah laptop atau PC Anda sanggup menjalankan LLM lokal. Ini spesifikasi minimum yang realistis."
+description: RAM, VRAM, dan bandwidth memori menentukan apakah laptop atau PC Anda sanggup menjalankan LLM lokal. Ini spesifikasi minimum yang realistis.
 status: published
 slug: llm-lokal-spesifikasi-minimum-laptop-pc
-category: laptops
 tags:
   - laptops
   - local-llm
   - ai
 pubDate: 2026-10-21
-updatedDate: 2026-10-21T09:00:00.000Z
-coverUrl: /media/6e77f5cd-4820-489a-a442-27fb426f9fbb.jpg
-coverAlt: Komputer desktop dengan kartu grafis, pendingin besar, dan pencahayaan RGB di dalam casing kaca.
-focusKeyword: LLM lokal
-targetIntent: informational
 noindex: false
 affiliate: false
 faq:
@@ -27,6 +21,11 @@ faq:
     answer: Tidak untuk model besar. NPU pada laptop Copilot+ dirancang untuk model kecil dan tugas latar belakang. Model 7-8 miliar parameter tetap lebih nyaman dijalankan di GPU dengan VRAM cukup atau di memori terpadu Apple Silicon.
   - question: Apakah context length memengaruhi kebutuhan memori?
     answer: Ya. KV cache tumbuh seiring panjang context. Context 32 ribu atau 128 ribu token bisa menambah beberapa GB memori di luar bobot model. Jika kehabisan memori, turunkan context length sebelum menurunkan kuantisasi.
+category: laptops
+updatedDate: 2026-10-21T09:00:00.000Z
+coverUrl: /media/6e77f5cd-4820-489a-a442-27fb426f9fbb.jpg
+coverAlt: Komputer desktop dengan kartu grafis, pendingin besar, dan pencahayaan RGB di dalam casing kaca.
+focusKeyword: LLM lokal
 ---
 
 Menjalankan LLM di laptop sendiri terdengar seperti pekerjaan untuk workstation mahal. Kenyataannya, model 7-8 miliar parameter dengan kuantisasi 4-bit bisa berjalan di laptop 16 GB RAM, hanya lebih lambat. Yang menentukan bukan merek atau harga laptop, melainkan berapa banyak memori yang bisa dipakai model dan seberapa cepat memori itu memasok bobot model.

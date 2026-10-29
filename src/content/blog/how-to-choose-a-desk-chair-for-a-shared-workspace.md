@@ -1,7 +1,7 @@
 ---
 title: How to choose a desk chair for a shared workspace
 description: "How to choose a desk chair for a shared workspace: seat range, adjustment speed, cleaning needs and warranty terms for one chair used by several people."
-status: published
+status: archived
 slug: how-to-choose-a-desk-chair-for-a-shared-workspace
 tags:
   - office-chairs

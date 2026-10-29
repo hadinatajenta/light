@@ -1,7 +1,7 @@
 ---
 title: How to Reduce Keyboard Noise in a Shared Room
 description: Diagnose which part of your keyboard is making the noise, then fix it with the right switches, stabilizer tuning, and honest trade-offs.
-status: published
+status: archived
 slug: how-to-reduce-keyboard-noise-in-a-shared-room
 tags:
   - keyboards

@@ -1,7 +1,7 @@
 ---
 title: How to choose a monitor arm for a two-monitor setup
 description: Weight per arm, VESA pattern, screw depth and desk clamp limits decide whether a dual monitor arm works. Here is the order to check them in.
-status: published
+status: archived
 slug: how-to-choose-a-monitor-arm-for-a-two-monitor-setup
 tags:
   - monitor-arm

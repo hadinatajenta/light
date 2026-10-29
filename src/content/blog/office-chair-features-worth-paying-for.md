@@ -6,11 +6,13 @@ slug: office-chair-features-worth-paying-for
 tags:
   - chairs
   - buying-basics
-pubDate: 2026-09-03
+pubDate: 2026-09-03T00:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
+coverUrl: /media/5eb15eea-c81a-4f1e-adff-03517a8caa00.jpg
+coverAlt: Office chair features actually worth paying for
 ---
 
 An office chair is the one piece of home office equipment you cannot easily work around. A slow monitor is annoying and a poor keyboard is tiring, but a bad chair becomes a back and neck problem. The features that prevent that are not the ones the marketing leads with.

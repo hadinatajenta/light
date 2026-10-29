@@ -1,31 +1,30 @@
 ---
-title: "Can I Run AI Locally? Hardware Requirements and Best Setups"
-description: "Can I run AI locally? A guide to hardware requirements, VRAM sizing, memory bandwidth, GGUF quantization, and the best local inference setups."
-slug: can-i-run-ai-locally-guide
+title: Can I Run AI Locally? Hardware Requirements and Best Setups
+description: Can I run AI locally? A guide to hardware requirements, VRAM sizing, memory bandwidth, GGUF quantization, and the best local inference setups.
 status: published
-category: laptops
+slug: can-i-run-ai-locally-guide
 tags:
   - laptops
   - local-llm
   - ai
   - developer-tools
 pubDate: 2026-10-25T15:30:00.000Z
-updatedDate: 2026-10-25T15:30:00.000Z
-coverUrl: /media/can-i-run-ai-locally-guide.jpg
-coverAlt: "Can I run AI locally: workstation laptop and desktop PC hardware requirements and local inference setup"
-focusKeyword: "Can I run AI locally"
-targetIntent: informational
 noindex: false
 affiliate: false
 faq:
-  - question: "Can I run AI locally with only 8GB of system RAM?"
-    answer: "You can run small 1B to 3B models like Llama 3.2 1B or Qwen 2.5 3B at Q4_K_M quantization on an 8GB machine. However, 8GB leaves little headroom for the operating system, and 7B models will trigger memory thrashing."
-  - question: "Why is GPU VRAM more critical than CPU core count for local LLMs?"
-    answer: "Autoregressive token generation is memory-bandwidth bound. A dedicated GPU with GDDR6 memory provides 300 to 1,000 GB/s of bandwidth, whereas dual-channel DDR5 system RAM delivers only 60 to 90 GB/s, making CPU token generation 5x to 10x slower."
-  - question: "What is the best software tool to start running models locally?"
-    answer: "Ollama is the best choice for command-line users and developers who want an automated background daemon with an OpenAI-compatible API. LM Studio is the best desktop option for users who prefer a graphical interface with built-in hardware sizing calculators."
-  - question: "How much memory does a 70B parameter model need?"
-    answer: "At 4-bit quantization, a 70B model requires approximately 42GB for model weights plus 4GB for the KV cache at 8k context. This requires either dual 24GB GPUs (like two RTX 3090s) or a Mac Studio with at least 64GB of unified memory."
+  - question: Can I run AI locally with only 8GB of system RAM?
+    answer: You can run small 1B to 3B models like Llama 3.2 1B or Qwen 2.5 3B at Q4_K_M quantization on an 8GB machine. However, 8GB leaves little headroom for the operating system, and 7B models will trigger memory thrashing.
+  - question: Why is GPU VRAM more critical than CPU core count for local LLMs?
+    answer: Autoregressive token generation is memory-bandwidth bound. A dedicated GPU with GDDR6 memory provides 300 to 1,000 GB/s of bandwidth, whereas dual-channel DDR5 system RAM delivers only 60 to 90 GB/s, making CPU token generation 5x to 10x slower.
+  - question: What is the best software tool to start running models locally?
+    answer: Ollama is the best choice for command-line users and developers who want an automated background daemon with an OpenAI-compatible API. LM Studio is the best desktop option for users who prefer a graphical interface with built-in hardware sizing calculators.
+  - question: How much memory does a 70B parameter model need?
+    answer: At 4-bit quantization, a 70B model requires approximately 42GB for model weights plus 4GB for the KV cache at 8k context. This requires either dual 24GB GPUs (like two RTX 3090s) or a Mac Studio with at least 64GB of unified memory.
+category: laptops
+updatedDate: 2026-10-25T15:30:00.000Z
+coverUrl: /media/can-i-run-ai-locally-guide.jpg
+coverAlt: "Can I run AI locally: workstation laptop and desktop PC hardware requirements and local inference setup"
+focusKeyword: Can I run AI locally
 ---
 
 ## Quick answer

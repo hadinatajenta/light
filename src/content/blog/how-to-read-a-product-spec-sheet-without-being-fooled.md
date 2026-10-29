@@ -5,11 +5,13 @@ status: published
 slug: how-to-read-a-product-spec-sheet-without-being-fooled
 tags:
   - buying-basics
-pubDate: 2026-09-27
+pubDate: 2026-09-27T00:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
+coverUrl: /media/fe533236-1ec9-4f39-89b1-1e5bfe846848.jpg
+coverAlt: How to read a product spec sheet without being fooled
 ---
 
 Specification sheets exist to sell a product, not to inform you. They are written by people who know

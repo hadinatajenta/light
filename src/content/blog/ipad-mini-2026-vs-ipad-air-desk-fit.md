@@ -73,7 +73,7 @@ Apple fit an 8.5-inch display into the previous mini's footprint by thinning the
 
 The mini fits in the gap between a 27-inch monitor's foot and the keyboard. The Air 11 in the same gap is 52 mm short before you make room for the monitor's base, and the Air 13 needs 93 square inches of clear surface.
 
-Footprint also sets the angle. A tablet propped at 60 degrees needs depth behind it, and the mini's 132.6 mm leaves room for a stand before the tablet reaches the keyboard. The Air 11's 178.5 mm pushes the stand back toward the monitor. The [compact keyboard guide](/blog/how-to-choose-a-compact-keyboard-for-a-small-desk/) covers how much width a keyboard needs before you commit the same rectangle twice.
+Footprint also sets the angle. A tablet propped at 60 degrees needs depth behind it, and the mini's 132.6 mm leaves room for a stand before the tablet reaches the keyboard. The Air 11's 178.5 mm pushes the stand back toward the monitor. The compact keyboard guide covers how much width a keyboard needs before you commit the same rectangle twice.
 
 ## Weight, thickness, and the stand question
 

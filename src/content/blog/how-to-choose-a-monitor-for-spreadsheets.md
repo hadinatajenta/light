@@ -1,7 +1,7 @@
 ---
 title: How to choose a monitor for spreadsheets
 description: "How to choose a monitor for spreadsheets: count visible rows and columns, not refresh rate. Scaling, aspect ratio, and viewing distance decide."
-status: published
+status: archived
 slug: how-to-choose-a-monitor-for-spreadsheets
 tags:
   - monitors

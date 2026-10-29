@@ -2,24 +2,24 @@
 title: "OpenClaw: The Local-First Personal AI Assistant and Autonomous Agent"
 description: "An architectural guide to OpenClaw: self-hosted personal AI agents, chat app integrations, local tool execution, and embodied robotics control."
 status: published
-category: accessories
+slug: openclaw-personal-ai-agent-guide
 tags:
   - accessories
   - ai
   - developer-tools
   - agents
 pubDate: 2026-10-25T14:20:00.000Z
-updatedDate: 2026-10-25T14:20:00.000Z
-coverUrl: /media/5c6d7e8f-0a1b-4c2d-8e3f-4a5b6c7d8e9f.jpg
-coverAlt: "OpenClaw local-first AI assistant workstation with laptop and terminal interface"
 noindex: false
 affiliate: false
-slug: openclaw-personal-ai-agent-guide
 faq:
-  - question: "What is OpenClaw in the personal AI ecosystem?"
-    answer: "OpenClaw is an open-source, local-first autonomous agent framework created by Peter Steinberger that connects LLMs to everyday messaging apps (Telegram, WhatsApp, Slack, Discord) and executes real digital and physical tasks."
-  - question: "Can OpenClaw run completely offline with local LLMs?"
-    answer: "Yes, OpenClaw is model-agnostic and supports local inference engines like Ollama or LM Studio alongside cloud frontier models like Claude, GPT, or DeepSeek."
+  - question: What is OpenClaw in the personal AI ecosystem?
+    answer: OpenClaw is an open-source, local-first autonomous agent framework created by Peter Steinberger that connects LLMs to everyday messaging apps (Telegram, WhatsApp, Slack, Discord) and executes real digital and physical tasks.
+  - question: Can OpenClaw run completely offline with local LLMs?
+    answer: Yes, OpenClaw is model-agnostic and supports local inference engines like Ollama or LM Studio alongside cloud frontier models like Claude, GPT, or DeepSeek.
+category: accessories
+updatedDate: 2026-10-25T14:20:00.000Z
+coverUrl: /media/5c6d7e8f-0a1b-4c2d-8e3f-4a5b6c7d8e9f.jpg
+coverAlt: OpenClaw local-first AI assistant workstation with laptop and terminal interface
 ---
 
 ## Quick answer

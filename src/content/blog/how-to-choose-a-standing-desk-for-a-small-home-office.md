@@ -154,7 +154,7 @@ Sources:
 
 ### What height should a standing desk reach in a small room?
 
-A desk that tops out around 48 inches covers most standing users. The low end matters more in a small room because it sets your seated height. Measure your seated and standing elbow height before choosing, and use the [height range guide](/blog/standing-desk-height-range-measuring-for-sit-stand-use/) for the calculation.
+A desk that tops out around 48 inches covers most standing users. The low end matters more in a small room because it sets your seated height. Measure your seated and standing elbow height before choosing, and use the height range guide for the calculation.
 
 ### How much depth does a standing desk need?
 

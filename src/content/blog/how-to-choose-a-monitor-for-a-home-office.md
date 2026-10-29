@@ -6,11 +6,13 @@ slug: how-to-choose-a-monitor-for-a-home-office
 tags:
   - monitors
   - buying-basics
-pubDate: 2026-06-08
+pubDate: 2026-06-08T00:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
 updatedDate: 2026-10-11T04:00:00.000Z
+coverUrl: /media/0960b5b7-7576-46c0-a7b0-d781018b79ef.jpg
+coverAlt: How to choose a monitor for a home office
 ---
 
 Most people buy a monitor by choosing a size and a budget, then discover a month later that the stand

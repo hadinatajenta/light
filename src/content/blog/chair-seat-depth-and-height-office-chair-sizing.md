@@ -2,7 +2,7 @@
 title: "Sizing an office chair: what the standards actually require"
 description: OSHA and ANSI/BIFMA give specific chair measurements. Here is how to check a chair against them before you buy, using two measurements of your own.
 status: published
-category: chairs
+slug: chair-seat-depth-and-height-office-chair-sizing
 tags:
   - chairs
   - buying-basics
@@ -10,7 +10,10 @@ pubDate: 2026-10-11T13:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
-slug: chair-seat-depth-and-height-office-chair-sizing
+category: chairs
+updatedDate: 2026-10-25T14:45:44.777Z
+coverUrl: /media/1256d61f-475a-49a9-8211-125140d4895e.jpg
+coverAlt: "Sizing an office chair: what the standards actually require"
 ---
 
 Most office chair advice is folk wisdom. You will read that you should fit "two to three fingers" between your knee and the seat edge, that lumbar support should sit "in the small of your back", that you should sit "with your feet flat". None of it is wrong, and none of it is checkable.

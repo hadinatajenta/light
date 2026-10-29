@@ -1,24 +1,24 @@
 ---
 title: "Global Security Alert: Critical Flaws in PHP, Node.js, Go, and Oracle"
-description: "An architectural analysis of recent critical RCE and privilege escalation CVEs across PHP, Node.js, Go, and Oracle runtime environments."
+description: An architectural analysis of recent critical RCE and privilege escalation CVEs across PHP, Node.js, Go, and Oracle runtime environments.
 status: published
-category: networking
+slug: global-security-vulnerabilities-php-node-go-oracle-guide
 tags:
   - networking
   - developer-tools
   - security
 pubDate: 2026-10-25T15:10:00.000Z
-updatedDate: 2026-10-25T15:10:00.000Z
-coverUrl: /media/2a3b4c5d-6e7f-8901-2345-6789abcdef01.jpg
-coverAlt: "Cybersecurity operations monitor displaying vulnerability patch matrices and CVE alerts"
 noindex: false
 affiliate: false
-slug: global-security-vulnerabilities-php-node-go-oracle-guide
 faq:
-  - question: "What are the PHP2Shell vulnerabilities affecting PHP web servers?"
-    answer: "CVE-2026-109618 and CVE-2026-109619 are CVSS 9.2 unauthenticated RCE flaws caused by memory corruption after out-of-memory (OOM) conditions and stale global state reuse in persistent worker pools like PHP-FPM."
-  - question: "What should system administrators patch first during this vulnerability cycle?"
-    answer: "Public-facing PHP-FPM web servers running PHP 8.2 through 8.5 and Node.js production web services using Brotli compression should be updated immediately before tackling internal database and Go plugin dependencies."
+  - question: What are the PHP2Shell vulnerabilities affecting PHP web servers?
+    answer: CVE-2026-109618 and CVE-2026-109619 are CVSS 9.2 unauthenticated RCE flaws caused by memory corruption after out-of-memory (OOM) conditions and stale global state reuse in persistent worker pools like PHP-FPM.
+  - question: What should system administrators patch first during this vulnerability cycle?
+    answer: Public-facing PHP-FPM web servers running PHP 8.2 through 8.5 and Node.js production web services using Brotli compression should be updated immediately before tackling internal database and Go plugin dependencies.
+category: networking
+updatedDate: 2026-10-25T15:10:00.000Z
+coverUrl: /media/2a3b4c5d-6e7f-8901-2345-6789abcdef01.jpg
+coverAlt: Cybersecurity operations monitor displaying vulnerability patch matrices and CVE alerts
 ---
 
 ## Quick answer

@@ -1,7 +1,7 @@
 ---
 title: "Laptop cooling: when a stand is enough"
 description: "Laptop cooling: how sustained power, vents and room temperature decide whether a passive stand is enough, and when a fan cooler earns its noise."
-status: published
+status: archived
 slug: laptop-cooling-when-a-stand-is-enough
 tags:
   - laptop-stands

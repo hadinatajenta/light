@@ -2,7 +2,7 @@
 title: "Desk surface materials: what to check before you buy"
 description: "Laminate, MDF, solid wood, bamboo, or glass: how the top and the frame are built decides whether a desk survives daily use."
 status: published
-category: desk-setup
+slug: desk-surface-materials-what-to-check-before-you-buy
 tags:
   - desk-setup
   - buying-basics
@@ -10,7 +10,10 @@ pubDate: 2026-10-21T09:00:00.000Z
 noindex: false
 affiliate: false
 faq: []
-slug: desk-surface-materials-what-to-check-before-you-buy
+category: desk-setup
+updatedDate: 2026-10-25T14:30:45.570Z
+coverUrl: /media/dcde70bc-e475-42de-870d-fe406fba681f.jpg
+coverAlt: "Desk surface materials: what to check before you buy"
 ---
 
 A desk looks like one purchase. It is really three: the top, the frame that holds it, and the hardware that joins them. Two desks can share the same width and the same height and still behave nothing alike after a year of use, because the difference is in the materials, not the size.
