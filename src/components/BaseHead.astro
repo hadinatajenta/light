@@ -39,6 +39,11 @@ const googleSiteVerification = siteSettings.googleSiteVerification;
 <meta name="description" content={description} />
 <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
 {googleSiteVerification && <meta name="google-site-verification" content={googleSiteVerification} />}
+{
+  AD_CONFIG.network === 'adsense' && AD_CONFIG.adsenseClientId && (
+    <meta name="google-adsense-account" content={AD_CONFIG.adsenseClientId} />
+  )
+}
 {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="alternate" type="application/rss+xml" title={siteSettings.title} href="/rss.xml" />

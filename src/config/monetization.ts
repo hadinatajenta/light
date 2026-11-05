@@ -61,7 +61,7 @@ export interface AdConfig {
 
 export const AD_CONFIG: AdConfig = {
   network: 'adsense',
-  adsenseClientId: 'ca-pub-5729173430518647',
+  adsenseClientId: 'ca-pub-2315999793389333',
   slots: {
     'home-top': '',
     'in-article-top': '',
