@@ -14,7 +14,7 @@ noindex: false
 affiliate: false
 faq: []
 category: buying-basics
-updatedDate: 2026-10-27T05:55:04.239Z
+updatedDate: 2026-11-05T09:05:37.000Z
 coverUrl: /media/1d8ff1ec-a61f-4bf4-8149-1f2d20544aae.jpg
 coverAlt: Architectural Guide to AI Agents and Autonomous Developer Workflows
 focusKeyword: ai agents beginners guide
@@ -76,7 +76,7 @@ An agent has no direct sensory access to your operating system; it interacts sol
 - **Description:** Specific documentation telling the model when and why to select this tool.
 - **Parameters:** Strict typed inputs (e.g., file paths, line offsets, bash strings).
 
-When the model decides to use a tool, it outputs a structured JSON payload. The host application intercepts this payload, executes the physical function on the machine, and appends the result back into the prompt history. Standardized protocols like **Model Context Protocol (MCP)** have made these tool definitions universally portable across different agent hosts.
+When the model decides to use a tool, it outputs a structured JSON payload. The host application intercepts this payload, executes the physical function on the machine, and appends the result back into the prompt history. Standardized protocols like **Model Context Protocol (MCP)** have made these tool definitions universally portable across different agent hosts. FigCraft's MCP server is a practical example: the same command registry powers the UI, the CLI, and the agent, and the [FigCraft MCP and CLI guide](/blog/figcraft-mcp-cli-ai-agents-guide) walks through a headless setup.
 
 ### 3. Context and Memory Management
 Models possess fixed context windows. Beginners often make the mistake of appending every single command output into the prompt until context overflows. Robust agent architectures split memory into tiers:
