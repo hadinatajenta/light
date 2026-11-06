@@ -14,7 +14,7 @@ noindex: false
 affiliate: false
 faq: []
 category: buying-basics
-updatedDate: 2026-10-27T05:55:04.239Z
+updatedDate: 2026-11-06T04:24:51.000Z
 coverUrl: /media/1e0d8027-ec34-41f5-9aa0-a34cb308182e.webp
 coverAlt: Google Gemini 4 Argon Official Key Art (Image via Google DeepMind)
 focusKeyword: gemini argon
@@ -97,6 +97,8 @@ Google has announced an aggressive pricing structure designed to encourage high-
 - **Context Caching:** $0.10 per million tokens (a 95% discount), dramatically reducing costs for long-running agents that repeatedly reference large codebases or repository trees.
 
 Initial access is rolling out via private preview to Fairwind security partners and enterprise testers, with general availability planned across Google AI Studio, Vertex AI, and Google AI Ultra subscribers.
+
+The pricing also lands in a market that has become much more sensitive to AI capex and return on investment. The [China AI bubble burst](/blog/china-ai-bubble-burst-480-billion-repricing) showed how quickly investors can reprice the infrastructure trade when earnings lag spending.
 
 ## Sources and further reading
 
