@@ -32,7 +32,7 @@ faq:
   - question: Does Carbon have a 1M context window?
     answer: "Google has not published a separate context limit for Carbon. It is built on Argon, whose Gemini API budget is a 1M unified input-output token limit, and Carbon's GraphWalks result covers 256k to 1M tokens. Treat 1M as the tested long-context range, not a separate Carbon specification."
 category: buying-basics
-updatedDate: 2026-11-06T05:25:37.000Z
+updatedDate: 2026-11-06T05:31:24.000Z
 coverUrl: /media/733ca7dd-f08b-4f64-938c-fa14b795a18d.png
 coverAlt: "Gemini 4 Carbon vs Argon comparison cover with benchmark bars, cybersecurity metrics, and access labels"
 focusKeyword: Gemini 4 Carbon vs Argon
@@ -41,7 +41,7 @@ targetIntent: informational
 
 Gemini 4 Carbon vs Argon is not a simple upgrade story. Carbon is Google's strongest model on the Artificial Analysis Intelligence Index, but it is also a deliberately restricted cybersecurity specialist that most developers cannot use yet. Argon is the model they can use today. The comparison is therefore two questions at once: what did Google actually improve, and what can you actually deploy?
 
-The short version is that Carbon is a real step forward on the workloads Google cares about most: long-horizon coding, agentic tool use, long-context retrieval, science and math, and defensive cybersecurity. It beats Argon on almost every row of Google's published benchmark table. But the gains are uneven, Carbon does not win every comparison against GPT-6 Astra or Claude Opus 5.5, and its access model is part of the product. Argon remains the practical choice for most teams.
+The short version is that Carbon is a real step forward on the workloads Google cares about most: long-horizon coding, agentic tool use, long-context retrieval, science and math, and defensive cybersecurity. It beats Argon on every row of Google's published benchmark table. But the gains are uneven, Carbon does not win every comparison against GPT-6 Astra or Claude Opus 5.5, and its access model is part of the product. Argon remains the practical choice for most teams.
 
 ## Quick answer
 
