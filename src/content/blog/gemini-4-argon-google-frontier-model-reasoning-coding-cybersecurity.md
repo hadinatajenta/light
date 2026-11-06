@@ -14,7 +14,7 @@ noindex: false
 affiliate: false
 faq: []
 category: buying-basics
-updatedDate: 2026-11-06T04:24:51.000Z
+updatedDate: 2026-11-06T05:25:37.000Z
 coverUrl: /media/1e0d8027-ec34-41f5-9aa0-a34cb308182e.webp
 coverAlt: Google Gemini 4 Argon Official Key Art (Image via Google DeepMind)
 focusKeyword: gemini argon
@@ -44,7 +44,7 @@ Gemini 4 Argon expands the **output token limit to 1,000,000 tokens**:
 
 - **Single-Trajectory Deliberation:** Rather than prematurely truncating deep reasoning steps, Argon has the headroom to explore multiple computational hypotheses, test internal edge cases, and self-correct before emitting final artifacts.
 - **Whole-Project Generation:** Developers and software architects can task the model with rewriting entire modules, generating comprehensive unit and integration test suites, or producing multi-hundred-page technical documentation in a single prompt execution.
-- **Extended Video and Multimodal Ingestion:** Paired with its 2M+ input context window, Argon leads the LVBench benchmark with a 91.7% score for long-form video comprehension and document-level reasoning.
+- **Extended Video and Multimodal Ingestion:** With the API's 1M unified input-output token budget, Argon leads the LVBench benchmark with a 91.7% score for long-form video comprehension and document-level reasoning.
 
 ## Real-world engineering: Autonomous C/C++ to Rust migration
 
@@ -96,7 +96,9 @@ Google has announced an aggressive pricing structure designed to encourage high-
 - **Output Tokens:** $10.00 per million tokens.
 - **Context Caching:** $0.10 per million tokens (a 95% discount), dramatically reducing costs for long-running agents that repeatedly reference large codebases or repository trees.
 
-Initial access is rolling out via private preview to Fairwind security partners and enterprise testers, with general availability planned across Google AI Studio, Vertex AI, and Google AI Ultra subscribers.
+Argon is now generally available globally through the Gemini API in AI Studio and the Gemini platform, for Google AI Ultra subscribers in Antigravity, and for Pro and Ultra subscribers in the Gemini app and AI Mode in Search. The introductory price ends on 30 November 2026; after that, the listed price is $4 per million input tokens and $20 per million output tokens.
+
+Google followed Argon with Gemini 4 Carbon two weeks later; our [Gemini 4 Carbon vs Argon comparison](/blog/gemini-4-carbon-vs-argon-benchmarks-cybersecurity) covers the benchmark gains, the safety changes, and why Carbon is still limited to cyber defenders.
 
 The pricing also lands in a market that has become much more sensitive to AI capex and return on investment. The [China AI bubble burst](/blog/china-ai-bubble-burst-480-billion-repricing) showed how quickly investors can reprice the infrastructure trade when earnings lag spending.
 
