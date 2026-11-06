@@ -1,6 +1,6 @@
 ---
 title: "China AI Bubble Burst: The $480 Billion Repricing"
-description: "China AI bubble burst wiped about $480 billion from the STAR 50. What caused the selloff, what it means for global AI stocks, and what comes next."
+description: "China AI bubble burst wiped about $480 billion from the STAR 50. What caused the selloff, how it spread to the US, and what comes next for AI stocks."
 status: published
 slug: china-ai-bubble-burst-480-billion-repricing
 tags:
@@ -22,15 +22,15 @@ faq:
   - question: What is the STAR 50?
     answer: "The STAR 50 is an index of 50 major technology and innovation companies on the Shanghai Stock Exchange's STAR Market. It is heavily weighted toward semiconductors, AI infrastructure, robotics, and other hardware companies that were central to China's AI trade."
   - question: How much money was wiped out?
-    answer: "Reuters and CNA reported that the STAR 50 lost about $480 billion in shareholder value over roughly four months. The index fell more than 40% from its summer peak, while the Nasdaq's drawdown was in the single digits."
+    answer: "Reuters and CNA reported that the STAR 50 lost about $480 billion in shareholder value over roughly four months, falling more than 40% from its summer peak. The Nasdaq's drawdown was in the single digits when the China selloff was making headlines; by 5 November, the Nasdaq had entered its own correction."
   - question: Why did China AI stocks fall?
     answer: "The selloff combined a valuation reset with several concrete pressures: peak valuations near 250 times earnings, tax bills falling due, concerns about US restrictions on Chinese data-center equipment, price competition, and doubts about how open-weight models turn into profit."
   - question: Did Beijing bail out the market?
     answer: "Not with a blanket bailout. Beijing has used targeted policy support, state-backed financing, and signals to stabilise confidence, while also trying to cool speculation. Strategically important firms are better protected than smaller companies that are burning cash without a clear path to revenue."
   - question: Is the US AI trade next?
-    answer: "There is no clean read-across. US mega-caps have earnings, cash flow, and cloud businesses that China's smaller AI listings often lack, and the Nasdaq's drawdown has been much smaller. The China episode is a warning about valuation and financing risk, not proof that global AI demand is collapsing."
+    answer: "There is no clean read-across, but the US is now in its own correction. The Nasdaq fell 5.5% on 5 November and entered a correction as Democratic midterm wins raised fears of AI regulation and data-center slowdowns. US mega-caps have stronger earnings and cash flow than many Chinese AI listings, so a 40% China-style collapse is less likely, but the same valuation and financing questions are now being tested."
 category: software-engineering
-updatedDate: 2026-11-06T04:24:51.000Z
+updatedDate: 2026-11-06T04:31:15.000Z
 coverUrl: /media/12c86277-cf39-4aa0-bb70-7f340bcf1103.png
 coverAlt: "China AI bubble burst cover: STAR 50 chart falling 40 percent and $480 billion in lost market value"
 focusKeyword: China AI bubble
@@ -39,7 +39,7 @@ targetIntent: informational
 
 The China AI bubble burst is not a single moment. It is the name investors gave to a violent repricing of the companies that sold the picks and shovels of China's artificial-intelligence boom. Between its summer peak and late October 2026, the STAR 50 index of Shanghai-listed technology companies fell more than 40%, wiping out roughly $480 billion in shareholder value. The CSI 300, a broader benchmark of China's largest companies, entered a bear market. October was the worst month for Chinese stocks since 2016, according to Reuters.
 
-That sounds like the end of a story. It is closer to the end of a valuation story, and the beginning of a harder one. The stock-market bubble has burst. The technology has not. The difference matters for anyone trying to understand what happens next in China, and whether the same mechanics could show up in the United States.
+That sounds like the end of a story. It is closer to the end of a valuation story, and the beginning of a harder one. The stock-market bubble has burst. The technology has not. The difference matters for anyone trying to understand what happens next in China, and for the global AI trade that was, until this week, still debating whether the same mechanics could show up in the United States. They did. On 5 November, the Nasdaq fell 5.5% and entered a correction; on 6 November, Asian technology stocks tumbled. The China selloff was the first act, not an isolated event.
 
 ## Quick answer
 
@@ -49,7 +49,7 @@ That sounds like the end of a story. It is closer to the end of a valuation stor
 - Several pressures met at once: tax bills, US restrictions on Chinese data-center equipment, aggressive price competition, doubts about monetising open-weight models, and a market that had become extremely concentrated in AI.
 - Beijing can support liquidity, strategic firms, and the IPO pipeline. It cannot invent global demand, remove export controls, or guarantee that every AI listing deserves its valuation.
 - China's AI industry continues to build models, chips, robots, and applications. A stock-market correction can coexist with real adoption.
-- The US is not a clean read-across. US mega-caps have earnings and cash flow that many Chinese AI listings do not, and the Nasdaq's drawdown has been much smaller. But the China episode is a useful warning about concentration, capex, and financing risk.
+- The US is not a clean read-across, but it is no longer a hypothetical. US mega-caps have earnings and cash flow that many Chinese AI listings do not, yet the Nasdaq fell 5.5% on 5 November and entered a correction as Democrats won Congress and AI-regulation fears hit chipmakers. The China episode was an early warning about concentration, capex, and financing risk.
 - Watch STAR 50 earnings and forward valuations, the IPO window, Beijing's support measures, US export rules, and whether US hyperscaler capex starts producing visible returns.
 
 ## What is the China AI bubble?
@@ -172,17 +172,21 @@ The chip constraint remains the real bottleneck. If China cannot secure enough a
 
 ## Is the US AI trade next?
 
-This is the question every investor asks after a China-style drawdown. The honest answer is that there is no clean read-across.
+Until the first week of November, the honest answer was "not yet." Then the US selloff arrived. On 5 November, the Nasdaq Composite fell 5.5%, its deepest one-day drop in 19 months, and confirmed a correction more than 10% below its 6 October record. The S&P 500 fell 4.36%, wiping about $3 trillion from S&P 500 companies. The Nasdaq 100 fell 6.4%, erasing roughly $2.5 trillion in market value. The Philadelphia Semiconductor Index dropped 12%; Nvidia fell 9%, AMD fell 17%, and data-center names such as CoreWeave, Nebius, Applied Digital, Cipher Digital, and IREN fell 10–15%. On 6 November, the KOSPI plunged more than 8%, triggering a circuit breaker, and the Nikkei fell 5%.
 
-US mega-caps are different. Microsoft, Alphabet, Amazon, and Meta have established businesses generating substantial revenue and cash flow. They can fund AI capex from operating profits, not only from speculative equity issuance. The Nasdaq's drawdown from its record was in the single digits when the China selloff was making headlines, not 40%.
+The trigger was political. Democrats won control of Congress in the US midterms, and investors began to price in tougher AI regulation, especially around data-center construction. Local opposition to data centers, power constraints, and water use had already been building. UBS analysts estimated that about 30% of expected US data-center capacity additions in 2028 could be at risk from construction pauses. The market had spent months debating the return on AI capex; the election gave it a new reason to sell the companies that benefit from the buildout.
 
-But the same mechanics exist. US AI stocks are concentrated, expensive, and dependent on a capex cycle that has to produce returns eventually. The China episode shows how quickly sentiment can reverse when investors stop accepting the earnings assumptions behind an extended rally. It is a warning, not a prophecy.
+The US is still not China. Microsoft, Alphabet, Amazon, and Meta have established businesses generating substantial revenue and cash flow. They can fund AI capex from operating profits, not only from speculative equity issuance. The US drawdown is younger and less severe than China's 40% index collapse. It does not have to repeat it.
 
-Gavekal's Beddor cautioned against drawing a direct line between the two markets: "China's stock market marches to the beat of its own drum, which is quite different from US markets and sometimes even the underlying Chinese economy." OANDA's Kelvin Wong described China's selloff as an early warning of valuation and financing risks, rather than a sign that global AI demand was faltering.
+But the same mechanics are now visible. US AI stocks are concentrated, expensive, and dependent on a capex cycle that has to produce returns eventually. The difference is the starting point: the US is correcting from a record high, with stronger earnings and a deeper capital market, while China was correcting from a retail-driven mania in smaller, more speculative listings. That makes a 40% US crash less likely, not impossible.
 
-The US version of this story is more likely to be a slow deflation than a sudden burst. The pressure points are visible: hyperscaler capex is rising faster than cloud revenue, data-center financing is moving into private credit and debt markets, power constraints are real, and the market is paying a premium for AI exposure. The [Gemini 4 Argon comparison](/blog/gemini-4-argon-google-frontier-model-reasoning-coding-cybersecurity) shows how quickly the model layer can change, which is both a growth driver and a valuation risk. The [Harness AI DevOps guide](/blog/harness-ai-devops-agents-guide) shows the enterprise side of the same question: adoption is real, but the return on investment arrives on a different schedule from the capex.
+Gavekal's Beddor was right that there is no mechanical read-across: "China's stock market marches to the beat of its own drum, which is quite different from US markets and sometimes even the underlying Chinese economy." But the correlation in sentiment is real. OANDA's Kelvin Wong described China's selloff as an early warning of valuation and financing risks, rather than a sign that global AI demand was faltering. The US selloff is the second test of that warning.
 
-A slow deflation would still hurt. It would compress multiples, punish companies that cannot show returns, and force a shakeout among smaller AI vendors. It would not require a 40% index crash. That is the more useful base case: not "the US is next," but "the US is exposed to the same question in a slower, more earnings-driven form."
+The pressure points are the same: hyperscaler capex is rising faster than cloud revenue, data-center financing is moving into private credit and debt markets, power constraints are real, and the market is paying a premium for AI exposure. The political layer is new. "The market's moving from the promise of AI to the price of AI," Ted Parkhill of Incline Investment Management told Reuters. "There's no question that AI is going to be transformative for the world in the long run. But that doesn't mean every AI-related stock is currently priced appropriately."
+
+That is the useful base case now: not "the US is next," but "the US is repricing the same assumptions, from a stronger starting point and with a political trigger." The [Gemini 4 Argon comparison](/blog/gemini-4-argon-google-frontier-model-reasoning-coding-cybersecurity) shows how quickly the model layer can change, which is both a growth driver and a valuation risk. The [Harness AI DevOps guide](/blog/harness-ai-devops-agents-guide) shows the enterprise side of the same question: adoption is real, but the return on investment arrives on a different schedule from the capex.
+
+A correction can still hurt. It compresses multiples, punishes companies that cannot show returns, and forces a shakeout among smaller AI vendors. It does not require a 40% index crash to change the narrative. The US may get a sharper correction than the "slow deflation" case, because the political trigger arrived before the earnings evidence did.
 
 ## What to watch next
 
@@ -195,11 +199,12 @@ The next few quarters will decide whether this was a valuation reset or the star
 | Beijing's support measures | Look for targeted liquidity, state-backed funds, and margin rules. Broad bailouts are less likely than support for strategic firms. |
 | US export rules | Restrictions on Chinese data-center equipment and advanced chips change the addressable market for Chinese suppliers. |
 | China's chip capacity | Domestic AI accelerators, memory, and advanced packaging determine how much compute the industry can actually deploy. |
-| US hyperscaler capex and cloud revenue | The global AI trade needs the spending to turn into revenue, not just capacity. |
-| Credit spreads and data-center financing | AI infrastructure is increasingly funded with debt. Wider spreads would raise the cost of the buildout. |
+| US AI regulation and data-center permitting | Democratic midterm wins raised the risk of tighter rules and local opposition. Watch permits, grid connections, and water use. |
+| US hyperscaler capex and cloud revenue | The spending still needs to turn into revenue, not just capacity. The selloff raises the bar for every quarter. |
+| Credit spreads and data-center financing | AI infrastructure is increasingly funded with debt. CoreWeave's credit default swaps widened to a record during the selloff; wider spreads raise the cost of the buildout. |
 | Market breadth | A selloff concentrated in AI is a repricing. A selloff that spreads to banks, consumers, and industrials is a different problem. |
 
-The most important number is not the 40% drawdown. It is the earnings growth that the remaining 100× multiple requires. If Chinese AI companies can grow into their valuations, the correction will look like a painful but healthy reset. If they cannot, the market will keep repricing until the price matches the cash flow.
+The most important number is not the 40% drawdown. It is the earnings growth that the remaining 100× multiple requires. If Chinese AI companies can grow into their valuations, the correction will look like a painful but healthy reset. If they cannot, the market will keep repricing until the price matches the cash flow. The same test now applies to the US: the Nasdaq's correction is a warning that the market will not wait forever for AI capex to become AI earnings.
 
 ## Frequently asked questions
 
@@ -213,7 +218,7 @@ The STAR 50 is an index of 50 major technology and innovation companies on the S
 
 ### How much money was wiped out?
 
-Reuters and CNA reported that the STAR 50 lost about $480 billion in shareholder value over roughly four months. The index fell more than 40% from its summer peak, while the Nasdaq's drawdown was in the single digits.
+Reuters and CNA reported that the STAR 50 lost about $480 billion in shareholder value over roughly four months, falling more than 40% from its summer peak. The Nasdaq's drawdown was in the single digits when the China selloff was making headlines; by 5 November, the Nasdaq had entered its own correction.
 
 ### Why did China AI stocks fall?
 
@@ -225,13 +230,17 @@ Not with a blanket bailout. Beijing has used targeted policy support, state-back
 
 ### Is the US AI trade next?
 
-There is no clean read-across. US mega-caps have earnings, cash flow, and cloud businesses that many Chinese AI listings lack, and the Nasdaq's drawdown has been much smaller. The China episode is a warning about valuation and financing risk, not proof that global AI demand is collapsing.
+There is no clean read-across, but the US is now in its own correction. The Nasdaq fell 5.5% on 5 November and entered a correction as Democratic midterm wins raised fears of AI regulation and data-center slowdowns. US mega-caps have stronger earnings and cash flow than many Chinese AI listings, so a 40% China-style collapse is less likely, but the same valuation and financing questions are now being tested.
 
 ## Sources and further reading
 
 - [Reuters: In China, the AI bubble has already burst](https://www.reuters.com/world/china/china-ai-bubble-has-already-burst-2026-10-26/)
 - [Reuters via MarketScreener: AI stock bubble? China's has already popped](https://www.marketscreener.com/news/ai-stock-bubble-china-s-has-already-popped-ce785cdddb8df42c)
+- [Reuters via Bilyonaryo: China stocks post biggest monthly loss since 2016 on AI selloff](https://bilyonaryo.com/china-stocks-post-biggest-monthly-loss-since-2016-on-ai-selloff/)
 - [CNA: Has China's AI bubble burst? What this means for the global tech boom](https://www.channelnewsasia.com/east-asia/has-china-ai-bubble-burst-global-tech-boom-6502616)
 - [The Daily Upside: China's AI Bubble Rapidly Loses Air](https://www.thedailyupside.com/technology/artificial-intelligence/chinas-ai-bubble-rapidly-loses-air/)
 - [BeInCrypto via Yahoo Finance: AI Bubble Bursts in China, Wiping $480 Billion](https://finance.yahoo.com/markets/stocks/articles/ai-bubble-bursts-china-wiping-195630824.html)
 - [Associated Press: US sanctions five Chinese companies tied to AI startup](https://apnews.com/article/china-sanctions-artificial-intelligence-google-us-b888b69ba10c683f89dd6049e9a9d825)
+- [Reuters via Bilyonaryo: Nasdaq posts biggest daily drop in 19 months on fears of AI regulations](https://bilyonaryo.com/nasdaq-posts-biggest-daily-drop-in-19-months-on-fears-of-ai-regulations/)
+- [Reuters via Bilyonaryo: Investors wipe $2.5 trillion off Nasdaq as blue tsunami prompts AI fears](https://bilyonaryo.com/investors-wipe-2-5-trillion-off-nasdaq-as-blue-tsunami-prompts-ai-fears/)
+- [Reuters via Bilyonaryo: Asia stocks crumble after AI rout rocks US markets](https://bilyonaryo.com/asia-stocks-crumble-after-ai-rout-rocks-us-markets/)
