@@ -16,6 +16,8 @@ tags:
   - buying-guides
 pubDate: 2026-11-07T18:50:00.000Z
 updatedDate: 2026-11-07T18:50:00.000Z
+coverUrl: /media/cef9d0bb-70b7-41c5-98df-6bbc3a83ce9e.jpg
+coverAlt: "MacBook Pro PROLED XDR review cover: the touchscreen MacBook Pro on a dark stage with a tap marker on its OLED screen"
 noindex: false
 affiliate: false
 focusKeyword: "MacBook Pro PROLED XDR review"
@@ -140,3 +142,5 @@ If you don't need M5 Pro power, the $1,999 M6 MacBook Pro or a far cheaper machi
 ## MacBook Pro PROLED XDR review: the verdict
 
 This is the best laptop screen Apple has built, in a body noticeably lighter than the mini-LED model beside it. Notebookcheck's lab numbers back up the hype on HDR brightness and color. The touchscreen works but changes little, and without Pencil support it can't replace an iPad. The chips are eight months old, and battery and heat results depend heavily on who ran the test. Pay the $400 if the screen is part of your job or the lighter weight is part of your commute. Otherwise the mini-LED MacBook Pro at $2,499, or the M6 at $1,999, does the same work for less.
+
+*Cover image: edited by Light Scripts from an [Apple Newsroom press photo](https://www.apple.com/newsroom/2026/10/apple-unveils-groundbreaking-macbook-pro-with-proled-xdr-display/) of the MacBook Pro with PROLED XDR Display. Photo © Apple.*

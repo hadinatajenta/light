@@ -16,6 +16,8 @@ tags:
   - buying-guides
 pubDate: 2026-11-07T18:55:00.000Z
 updatedDate: 2026-11-07T18:55:00.000Z
+coverUrl: /media/6f5399bc-f8f6-4e78-a7db-ce42fbd4167c.jpg
+coverAlt: "iPhone Duo hinge crack cover: the unfolded iPhone Duo with the reported crack line along its hinge marked in red"
 noindex: false
 affiliate: false
 focusKeyword: "iPhone Duo hinge crack"
@@ -158,3 +160,5 @@ You may not have the choice yet. Ternus said "Duo is constrained as of today," a
 If you're getting one anyway, the timing works in your favor: Apple says affected units fail quickly, and the reported cases took hours or a day, well inside the 14-day return window. Buy from Apple, add AppleCare+ (given the $999 alternative), and use the hinge normally in the first two weeks. Ulanoff called the issue "a blip" so far, and the numbers support that, but the foldable iPhone remains a first-generation hinge with a $999 screen.
 
 Wait if you'd buy through a carrier, skip AppleCare+, or can't stand a weeks-long swap, and watch for Apple to name a cause. If what you really want is a bigger screen, our [iPad mini vs iPad Air comparison](/blog/ipad-mini-2026-vs-ipad-air-desk-fit/) is the no-hinge route.
+
+*Cover image: edited by Light Scripts from an [Apple Newsroom press photo](https://www.apple.com/newsroom/2026/09/apple-unveils-iphone-duo/) of the iPhone Duo. The red crack-line marking is ours and shows where owners report damage, not a photo of a cracked unit. Photo © Apple.*
