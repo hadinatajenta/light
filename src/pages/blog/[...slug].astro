@@ -1,6 +1,6 @@
 ---
 import PostLayout from '@/layouts/PostLayout.astro';
-import { normalizeViewPath, recordView, shouldRecordView } from '@/lib/analytics/views';
+import { schedulePostViewRecording } from '@/lib/analytics/views';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { getPublishedPost } from '@/lib/content/public';
 
@@ -18,21 +18,13 @@ if (!post) {
 
 const database = await resolveContentDatabase();
 
-if (database && shouldRecordView(Astro.request)) {
-  const recording = recordView(database, {
-    path: normalizeViewPath(new URL(Astro.request.url).pathname),
+if (database) {
+  await schedulePostViewRecording({
+    database,
+    request: Astro.request,
     postId: post.id,
-  }).catch((error) => {
-    console.error('Failed to record a post view', error);
+    executionContext: Astro.locals.cfContext,
   });
-
-  const executionContext = Astro.locals.cfContext;
-
-  if (executionContext) {
-    executionContext.waitUntil(recording);
-  } else {
-    await recording;
-  }
 }
 ---
 

@@ -184,6 +184,31 @@ export async function recordView(
     .run();
 }
 
+export async function schedulePostViewRecording(options: {
+  database: D1Database;
+  request: Request;
+  postId: string;
+  executionContext: { waitUntil(promise: Promise<unknown>): void } | undefined;
+}): Promise<void> {
+  if (!shouldRecordView(options.request)) {
+    return;
+  }
+
+  const recording = recordView(options.database, {
+    path: normalizeViewPath(new URL(options.request.url).pathname),
+    postId: options.postId,
+  }).catch((error: unknown) => {
+    console.error('Failed to record a post view', error);
+  });
+
+  if (options.executionContext) {
+    options.executionContext.waitUntil(recording);
+    return;
+  }
+
+  await recording;
+}
+
 export function sumViewCounts(rows: CountRow[], from: string, to: string): number {
   return rows
     .filter((row) => row.day >= from && row.day <= to)
