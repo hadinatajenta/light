@@ -13,6 +13,7 @@ import {
 } from '@/lib/cache/page-cache';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { getRedirectByPath, recordRedirectHit } from '@/lib/redirects/store';
+import { buildTrailingSlashRedirect } from '@/lib/redirects/trailing-slash';
 
 const CANONICAL_HOST = 'lightscripts.com';
 const REDIRECT_HOSTS = new Set(['www.lightscripts.com', 'light.hadinata.me']);
@@ -129,6 +130,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     target.hostname = CANONICAL_HOST;
     target.protocol = 'https:';
     return Response.redirect(target.toString(), 301);
+  }
+
+  const trailingSlashRedirect = buildTrailingSlashRedirect(context.request, context.url);
+  if (trailingSlashRedirect) {
+    return trailingSlashRedirect;
   }
 
   if (!isCacheablePageRequest(context.request, context.url)) {

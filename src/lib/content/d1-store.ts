@@ -60,6 +60,7 @@ function toSummary(row: PostRow): PostSummary {
     coverUrl: row.cover_url,
     coverAlt: row.cover_alt,
     reviewStatus: row.review_status,
+    noindex: row.noindex === 1,
     pubDate: row.pub_date,
     updatedDate: row.updated_date,
     createdAt: row.created_at,

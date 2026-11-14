@@ -16,21 +16,21 @@ const PAGES: TrustPage[] = [
     id: 'about',
     title: 'About Light Scripts',
     description:
-      'Light Scripts is an independent publication for people setting up a home office, committed to evidence-based buying guides.',
+      'Light Scripts is an independent publication of buying guides for desk gear and work devices: chairs, desks, monitors, keyboards, audio, laptops, and tablets.',
     sortOrder: 10,
   },
   {
     id: 'editorial-standards',
     title: 'Editorial standards and research method',
     description:
-      'How Light Scripts researches buying guides: primary sources, verified quotes, how we recommend, how we use AI, and how we handle corrections.',
+      'How Light Scripts researches and checks its guides: cited sources, review roundups, AI assistance, editor approval, images, and corrections.',
     sortOrder: 15,
   },
   {
     id: 'contact',
     title: 'Contact',
     description:
-      'Contact Light Scripts for corrections, editorial questions, press, or partnership enquiries.',
+      'Contact Light Scripts for corrections, editorial questions, topic suggestions, and press enquiries.',
     sortOrder: 20,
   },
 ];

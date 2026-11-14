@@ -75,7 +75,7 @@ function emptySummary(id: string): SitePostSummary {
 
 export async function getPublishedPostSummaries(): Promise<SitePostSummary[]> {
   const posts = await listPosts();
-  const published = posts.filter((post) => post.status === 'published');
+  const published = posts.filter((post) => post.status === 'published' && post.noindex !== true);
 
   return published.map((post) => ({
     id: post.id,

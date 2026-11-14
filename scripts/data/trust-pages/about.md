@@ -1,20 +1,27 @@
-Light Scripts is an independent publication for people setting up a home office. We explain what actually matters when you buy a desk, a chair, a monitor, or the equipment around them, and we point out the trade-offs that marketing pages leave out.
+Light Scripts is an independent publication of buying guides for the desk you work at and the devices on it. Each guide answers one practical buying question, such as which chair fits your height, how deep a desk must be for a 27-inch monitor, or whether a new laptop can drive two displays, and backs the answer with sources you can check.
 
-## What we do
+## What we cover
 
-We write buying guides and explainers, not press releases. Each guide is built around a real decision a buyer has to make: which spec matters for your body or your room, which features are worth paying for, and which claims you should verify before spending money. Where a choice depends on a standard, a measurement, or a documented failure pattern, we say so and name the source.
+- **Desk and home office.** Desks, standing desks, chairs, monitors, keyboards, audio, and the accessories that make a desk work.
+- **Work devices.** Laptops, tablets, e-readers, and phones, judged on what changes in daily use.
 
-## How we work
+## How guides are made
 
-We research from primary sources, verify quotes against the pages we fetched, and only publish claims we can support. You can read the full process on our [editorial standards and research method](/editorial-standards/) page.
+Guides are built from manufacturer documentation, standards, measurements published by independent labs and reviewers, and other primary sources, and every source is named and linked. Most drafts are prepared with AI assistance from pages our system fetched, then checked against those sources. Since November 2026, every new guide is approved by the editor before it is published.
 
-## Independence
+We do not physically test products unless an article says so. When a guide reports a measurement, it names who measured it. The full process is on the [editorial standards and research method](/editorial-standards/) page.
 
-Our editorial choices are completely independent. A product is included because the evidence supports it, not because of commercial relationships.
+## Who runs it
 
-## Who is responsible
+Light Scripts is written and edited by [Hadinata Jenta](/author/hadinata-jenta/), who decides what the site covers and is responsible for every guide. It is an independent publication operated from Indonesia.
 
-Every article is produced by the Light Scripts editorial team and reviewed before it is published. If something is wrong, we want to know. Corrections are the fastest way to reach us.
+## Independence and money
+
+No company pays to be covered, and no guide is written to order. Advertising shown through Google AdSense is the site's only planned source of revenue, and advertisers do not see or approve articles before they are published. There are no affiliate links on the site.
+
+## Corrections
+
+If something is wrong, we want to know.
 
 - Report a correction or an error through the [contact page](/contact/).
 - Read how we research and correct mistakes on the [editorial standards](/editorial-standards/) page.

@@ -1,16 +1,16 @@
 export const SITE_TITLE = 'Light Scripts';
 export const SITE_DESCRIPTION =
-  'Independent buying guides and product comparisons for people who would rather buy once and buy well.';
-export const SITE_HOME_TITLE = 'Home-office buying guides that hold up after the unboxing';
+  'Independent buying guides for desk gear and work devices: chairs, desks, monitors, keyboards, audio, laptops, and tablets.';
+export const SITE_HOME_TITLE = 'Light Scripts: Desk Gear and Home-Office Buying Guides';
 export const SITE_TAGLINE =
-  'A reading room for people who would rather research once and buy well, than buy twice and regret it.';
+  'Buying guides for the desk you work at and the devices on it, built so you buy once and buy well.';
 export const SITE_AUTHOR = 'Hadinata Jenta';
 export const SITE_AUTHOR_SLUG = 'hadinata-jenta';
 export const SITE_AUTHOR_JOB_TITLE = 'Editor, Light Scripts';
 export const SITE_AUTHOR_WEBSITE = 'https://hadinata.me';
 export const SITE_AUTHOR_LINKEDIN = 'https://www.linkedin.com/in/hadinata-jenta/';
 export const SITE_AUTHOR_BIO =
-  'Hadinata Jenta writes and edits Light Scripts, an independent publication about home-office equipment. He researches primary sources, manufacturer documentation, and independent test data, and explains the measurements that decide whether a desk, chair, monitor, or accessory fits a real room.';
+  'Hadinata Jenta edits Light Scripts, an independent publication of buying guides for desk gear and work devices: chairs, desks, monitors, keyboards, audio, laptops, and tablets. He decides what the site covers, works from manufacturer documentation and independent test data, and approves new guides before they go live.';
 export const SITE_LOCALE = 'en-US';
 export const SITE_LANGUAGE = 'en';
 export const POSTS_PER_PAGE = 9;
@@ -40,27 +40,23 @@ export interface Topic {
 
 export const PRIMARY_NAVIGATION: NavigationLink[] = [
   { label: 'Latest', href: '/' },
-  { label: 'Guides', href: '/blog' },
-  { label: 'About', href: '/about' },
-  { label: 'Contact', href: '/contact' },
+  { label: 'Guides', href: '/blog/' },
+  { label: 'About', href: '/about/' },
+  { label: 'Contact', href: '/contact/' },
 ];
 
 export const TOPICS: Topic[] = [
+  { label: 'Desk Setup', slug: 'desk-setup' },
+  { label: 'Chairs', slug: 'chairs' },
+  { label: 'Standing Desks', slug: 'standing-desks' },
   { label: 'Monitors', slug: 'monitors' },
   { label: 'Keyboards', slug: 'keyboards' },
   { label: 'Audio', slug: 'audio' },
-  { label: 'Desk Setup', slug: 'desk-setup' },
-  { label: 'Chairs', slug: 'chairs' },
-  { label: 'Buying Basics', slug: 'buying-basics' },
   { label: 'Accessories', slug: 'accessories' },
-  { label: 'Standing Desks', slug: 'standing-desks' },
-  { label: 'Lighting', slug: 'lighting' },
+  { label: 'Buying Basics', slug: 'buying-basics' },
   { label: 'Laptops', slug: 'laptops' },
   { label: 'Tablets', slug: 'tablets' },
-  { label: 'Data Storage', slug: 'data-storage' },
-  { label: 'Networking', slug: 'networking' },
-  { label: 'Printers & Scanners', slug: 'printers' },
-  { label: 'Meeting Gear', slug: 'meeting-gear' },
+  { label: 'Phones', slug: 'phones' },
 ];
 
 export interface FooterSection {
@@ -70,12 +66,14 @@ export interface FooterSection {
 
 export const FOOTER_SECTIONS: FooterSection[] = [
   {
-    title: 'Guides',
+    title: 'Topics',
     links: [
-      { label: 'Monitors', href: '/tag/monitors/' },
-      { label: 'Keyboards', href: '/tag/keyboards/' },
-      { label: 'Audio', href: '/tag/audio/' },
       { label: 'Desk Setup', href: '/tag/desk-setup/' },
+      { label: 'Chairs', href: '/tag/chairs/' },
+      { label: 'Monitors', href: '/tag/monitors/' },
+      { label: 'Laptops', href: '/tag/laptops/' },
+      { label: 'Tablets', href: '/tag/tablets/' },
+      { label: 'Keyboards', href: '/tag/keyboards/' },
     ],
   },
   {

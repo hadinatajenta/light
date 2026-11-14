@@ -30,12 +30,13 @@ const socialImage = new URL(image, Astro.site ?? Astro.url.origin).href;
 const jsonLdBlocks = Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : [];
 const siteLocale = siteSettings.locale;
 const googleSiteVerification = siteSettings.googleSiteVerification;
+const documentTitle = title.includes(siteSettings.title) ? title : `${title} | ${siteSettings.title}`;
 ---
 
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="generator" content={Astro.generator} />
-<title>{title}</title>
+<title>{documentTitle}</title>
 <meta name="description" content={description} />
 <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
 {googleSiteVerification && <meta name="google-site-verification" content={googleSiteVerification} />}

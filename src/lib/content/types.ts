@@ -12,6 +12,7 @@ export interface PostSummary {
   coverUrl: string | null;
   coverAlt: string | null;
   reviewStatus?: string | null;
+  noindex?: boolean;
   pubDate: string | null;
   updatedDate: string | null;
   createdAt?: string | null;

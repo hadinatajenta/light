@@ -6,17 +6,17 @@ If you find a factual error, a broken link, or a claim that is not supported by 
 
 ## Editorial and tips
 
-Suggest a product or a topic we should cover, or point us to a standard or a test we missed. We read every message.
+Suggest a desk product or a work device we should cover, or point us to a standard or a test we missed. We read every message.
 
-## Press and partnerships
+## Press
 
-For press enquiries, review units, or partnership questions, use the same address and mark it clearly.
+For press enquiries or questions about how a guide was made, use the same address and mark it clearly. We do not accept payment for coverage.
 
 ## Email
 
 **Email:** [hello@lightscripts.com](mailto:hello@lightscripts.com)
 
-We are a small team, so please allow a few days for a reply. Anything about a correction is treated as urgent.
+Light Scripts is run by one editor, [Hadinata Jenta](/author/hadinata-jenta/), so please allow a few days for a reply. Anything about a correction is treated as urgent.
 
 ## Before you write
 
