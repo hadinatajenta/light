@@ -13,9 +13,12 @@ const { pageItems, totalPages, currentPage } = paginateItems(posts, 1, POSTS_PER
 ---
 
 <BaseLayout title="All Buying Guides" description="Every desk gear and work device buying guide on Light Scripts, newest first.">
-  <h1 class="text-3xl font-semibold tracking-tight">Guides</h1>
-  <div class="mt-8">
-    <PostList posts={pageItems} />
-  </div>
+  <header class="hub-header">
+    <h1 class="hub-title">Guides</h1>
+    <p class="hub-meta">
+      <span class="topic-chip numeric">{posts.length} guides</span>
+    </p>
+  </header>
+  <PostList posts={pageItems} />
   <Pagination currentPage={currentPage} totalPages={totalPages} />
 </BaseLayout>

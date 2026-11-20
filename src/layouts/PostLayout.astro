@@ -1,6 +1,7 @@
 ---
 import AdSlot from '@/components/AdSlot.astro';
 import RelatedLinks from '@/components/RelatedLinks.astro';
+import TableOfContents from '@/components/TableOfContents.astro';
 import {
   SITE_AUTHOR,
   SITE_AUTHOR_JOB_TITLE,
@@ -9,13 +10,23 @@ import {
   SITE_AUTHOR_WEBSITE,
   SITE_TITLE,
 } from '@/consts';
-import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
+import {
+  extractHeadings,
+  formatReadingTime,
+  renderMarkdown,
+  type SitePost,
+} from '@/lib/content/public';
 import { getRelatedPosts } from '@/lib/content/related';
-import { OG_CARD_HEIGHT, OG_CARD_WIDTH } from '@/lib/og/card';
 import { INDEXABLE_TOPIC_SLUGS, topicLabel } from '@/lib/content/topics';
 import { findMediaCreditByUrl } from '@/lib/media/store';
+import { OG_CARD_HEIGHT, OG_CARD_WIDTH } from '@/lib/og/card';
 import { formatDate } from '@/utils/date';
-import { buildArticleJsonLd, buildBreadcrumbJsonLd, buildCanonicalUrl, buildFaqJsonLd } from '@/utils/seo';
+import {
+  buildArticleJsonLd,
+  buildBreadcrumbJsonLd,
+  buildCanonicalUrl,
+  buildFaqJsonLd,
+} from '@/utils/seo';
 import { buildTableOfContents } from '@/utils/toc';
 import BaseLayout from './BaseLayout.astro';
 
@@ -38,7 +49,10 @@ const authorInitials = SITE_AUTHOR.split(' ')
 const coverCredit = post.coverUrl ? await findMediaCreditByUrl(post.coverUrl) : null;
 const bodyHasFaq = /^##[ \t]+frequently asked questions\??[ \t]*$/im.test(post.body);
 
-const related = await getRelatedPosts({ id: post.id, tags: post.tags, category: post.category }, 6);
+const related = await getRelatedPosts(
+  { id: post.id, tags: post.tags, category: post.category },
+  6,
+);
 const categoryLabel = post.category ? topicLabel(post.category) : undefined;
 const hubCategory =
   post.category && INDEXABLE_TOPIC_SLUGS.includes(post.category) ? post.category : undefined;
@@ -98,40 +112,7 @@ const jsonLd = [
   <div id="progress"></div>
 
   <div class="read-shell">
-    <aside class="toc-wrap">
-      <details class="toc-details">
-        <summary class="toc-summary">
-          <span class="toc-title">Contents</span>
-          <span class="toc-progress" aria-live="polite"><span id="toc-progress">0%</span></span>
-          <svg
-            class="toc-chevron"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
-        </summary>
-        <nav class="toc-nav" aria-label="Table of contents">
-          <ol class="toc-list">
-            {
-              tableOfContents.map((entry) => (
-                <li class={entry.isSub ? 'sub' : undefined}>
-                  <a href={`#${entry.id}`} class="toc-link" data-target={entry.id}>
-                    <span class="toc-num">{entry.label}</span>
-                    <span>{entry.text}</span>
-                  </a>
-                </li>
-              ))
-            }
-          </ol>
-        </nav>
-      </details>
-    </aside>
+    <TableOfContents entries={tableOfContents} />
 
     <div class="read-col">
       <a href="/blog/" class="back">
@@ -275,82 +256,4 @@ const jsonLd = [
       <AdSlot slotId="article-rail-bottom" format="rail" />
     </aside>
   </div>
-
-  <script>
-    const tocDetails = document.querySelector<HTMLDetailsElement>('.toc-details');
-    if (tocDetails && window.matchMedia('(min-width: 1000px)').matches) {
-      tocDetails.open = true;
-    }
-
-    const progressBar = document.getElementById('progress');
-    const tocPercent = document.getElementById('toc-progress');
-    const article = document.querySelector<HTMLElement>('.post-body');
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('.toc-link'));
-
-    const sections = links
-      .map((link) => {
-        const target = link.dataset.target;
-        return target ? document.getElementById(target) : null;
-      })
-      .filter((section): section is HTMLElement => section instanceof HTMLElement);
-
-    if (sections.length > 0) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const visible = entries
-            .filter((entry) => entry.isIntersecting)
-            .sort((first, second) => second.intersectionRatio - first.intersectionRatio)[0];
-
-          if (!visible) {
-            return;
-          }
-
-          for (const link of links) {
-            link.classList.toggle('active', link.dataset.target === visible.target.id);
-          }
-        },
-        { rootMargin: '-140px 0px -55% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] },
-      );
-
-      for (const section of sections) {
-        observer.observe(section);
-      }
-    }
-
-    let animationFrame = 0;
-
-    const updateProgress = (): void => {
-      animationFrame = 0;
-      const scrollableDistance = document.documentElement.scrollHeight - window.innerHeight;
-      const ratio =
-        scrollableDistance > 0 ? Math.min(Math.max(window.scrollY / scrollableDistance, 0), 1) : 0;
-
-      if (progressBar) {
-        progressBar.classList.add('on');
-        progressBar.style.width = `${ratio * 100}%`;
-      }
-
-      if (tocPercent && article) {
-        const rect = article.getBoundingClientRect();
-        const articleTop = rect.top + window.scrollY;
-        const readRatio = Math.min(
-          Math.max((window.scrollY + window.innerHeight - articleTop) / rect.height, 0),
-          1,
-        );
-        tocPercent.textContent = `${Math.round(readRatio * 100)}%`;
-      }
-    };
-
-    window.addEventListener(
-      'scroll',
-      () => {
-        if (animationFrame === 0) {
-          animationFrame = requestAnimationFrame(updateProgress);
-        }
-      },
-      { passive: true },
-    );
-
-    updateProgress();
-  </script>
 </BaseLayout>

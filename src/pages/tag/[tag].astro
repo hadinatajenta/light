@@ -1,5 +1,6 @@
 ---
 import PostList from '@/components/PostList.astro';
+import RankedGuideList from '@/components/RankedGuideList.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPostSummaries } from '@/lib/content/public';
 import {
@@ -23,8 +24,6 @@ const introParagraphs = content.guideIntro ?? [content.intro];
 const { pillarPosts, otherPosts } = splitPillarPosts(tag, posts);
 const hasPillarPosts = pillarPosts.length > 0;
 const orderedPosts = [...pillarPosts, ...otherPosts];
-const sectionHeadingClass =
-  'font-sans text-[12px] font-semibold tracking-[0.12em] uppercase text-ink-75';
 const siblingTopics = buildTopics(publishedPosts)
   .filter((topic) => topic.slug !== tag)
   .slice(0, 6);
@@ -59,53 +58,51 @@ const jsonLd = [
   noindex={!isIndexableTopic(tag, posts.length)}
   jsonLd={jsonLd}
 >
-  <nav aria-label="Breadcrumb" class="font-sans text-[12px] tracking-[0.08em] uppercase text-ink-75">
-    <a href="/" class="hover:text-ink">Home</a>
-    <span aria-hidden="true"> / </span>
+  <nav aria-label="Breadcrumb" class="hub-breadcrumb">
+    <a href="/">Home</a>
+    <span aria-hidden="true">/</span>
     <span>{label}</span>
   </nav>
 
-  <header class="mt-4 max-w-2xl">
-    <h1 class="text-3xl font-semibold tracking-tight">{label}</h1>
+  <header class="hub-header">
+    <h1 class="hub-title">{label}</h1>
     {
       introParagraphs.map((paragraph) => (
-        <p class="mt-3 text-base leading-relaxed text-ink-75">{paragraph}</p>
+        <p class="hub-intro">{paragraph}</p>
       ))
     }
-    <p class="mt-3 font-sans text-[12px] tracking-[0.08em] uppercase tabular-nums text-ink-75">
-      {posts.length} {posts.length === 1 ? 'guide' : 'guides'}
+    <p class="hub-meta">
+      <span class="topic-chip numeric">
+        {posts.length} {posts.length === 1 ? 'guide' : 'guides'}
+      </span>
     </p>
   </header>
 
   {
     hasPillarPosts && (
-      <section aria-labelledby="topic-start-here" class="mt-10">
-        <h2 id="topic-start-here" class={sectionHeadingClass}>
+      <section aria-labelledby="topic-start-here" class="hub-section">
+        <h2 id="topic-start-here" class="hub-section-title">
           Start here
         </h2>
-        <div class="mt-6">
-          <PostList posts={pillarPosts} />
-        </div>
+        <RankedGuideList posts={pillarPosts} />
       </section>
     )
   }
 
   {
     otherPosts.length > 0 && (
-      <section aria-labelledby="topic-all-guides" class="mt-10">
-        <h2 id="topic-all-guides" class={sectionHeadingClass}>
+      <section aria-labelledby="topic-all-guides" class="hub-section">
+        <h2 id="topic-all-guides" class="hub-section-title">
           All {label} guides
         </h2>
-        <div class="mt-6">
-          <PostList posts={otherPosts} />
-        </div>
+        <PostList posts={otherPosts} />
       </section>
     )
   }
 
   {
     posts.length === 0 && (
-      <div class="mt-8">
+      <div class="hub-section">
         <PostList
           posts={posts}
           emptyMessage="No guides are filed under this topic yet. New guides appear here once they are published."
@@ -116,19 +113,14 @@ const jsonLd = [
 
   {
     siblingTopics.length > 0 && (
-      <section aria-label="Other topics" class="mt-14 border-t border-ink-12 pt-6">
-        <h2 class={sectionHeadingClass}>
-          Other topics
-        </h2>
+      <section aria-label="Other topics" class="hub-section border-t border-ink-12 pt-8">
+        <h2 class="label">Other topics</h2>
         <ul class="mt-4 flex flex-wrap gap-2">
           {siblingTopics.map((topic) => (
             <li>
-              <a
-                href={`/tag/${topic.slug}/`}
-                class="inline-flex items-center gap-2 rounded-full border border-ink-12 px-3 py-1.5 font-sans text-[13px] text-ink-75 transition-colors hover:border-ink-40 hover:text-ink"
-              >
-                {topic.label}
-                <span class="tabular-nums text-ink-40">{topic.count}</span>
+              <a href={`/tag/${topic.slug}/`} class="topic-chip">
+                <span>{topic.label}</span>
+                <span class="numeric text-ink-65">{topic.count}</span>
               </a>
             </li>
           ))}

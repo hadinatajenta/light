@@ -17,45 +17,37 @@ const label = topicLabel(post.category ?? post.tags[0] ?? 'guide');
 const postHref = `/blog/${post.id}/`;
 const hasCover = Boolean(post.coverUrl);
 const cardClass = variant === 'lead' ? 'guide-card guide-card-lead' : 'guide-card';
-const plateClass = hasCover ? 'guide-plate has-image' : 'guide-plate';
 ---
 
 <article class={cardClass}>
-  <div class={plateClass}>
-    {
-      ordinal !== undefined ? (
-        <span class="guide-plate-num">{String(ordinal).padStart(2, '0')}</span>
-      ) : null
-    }
+  <div class="guide-plate">
     {
       hasCover ? (
-        <img
-          src={post.coverUrl ?? ''}
-          alt={post.coverAlt ?? ''}
-          width={variant === 'lead' ? 1280 : 800}
-          height={variant === 'lead' ? 720 : 500}
-          loading={ordinal === 1 ? 'eager' : 'lazy'}
-          decoding="async"
-          class="guide-plate-image"
-        />
+        <a href={postHref} class="guide-plate-link" tabindex="-1" aria-hidden="true">
+          <img
+            src={post.coverUrl ?? ''}
+            alt={post.coverAlt ?? ''}
+            width={variant === 'lead' ? 1280 : 800}
+            height={variant === 'lead' ? 720 : 500}
+            loading={ordinal === 1 ? 'eager' : 'lazy'}
+            decoding="async"
+            class="guide-plate-image"
+          />
+        </a>
       ) : (
         <span class="guide-plate-mark">{label}</span>
       )
     }
-    {hasCover ? <span class="guide-plate-cat">{label}</span> : null}
   </div>
   <div class="guide-card-body">
-    <p class="guide-meta">
-      <span>{label}</span>
+    <div class="guide-meta">
+      <span class="topic-chip">{label}</span>
       {
         post.pubDate ? (
-          <>
-            <span class="guide-meta-dot" aria-hidden="true" />
-            <time datetime={post.pubDate}>{formatDate(new Date(post.pubDate))}</time>
-          </>
+          <time datetime={post.pubDate}>{formatDate(new Date(post.pubDate))}</time>
         ) : null
       }
-    </p>
+    </div>
     <Heading class="guide-card-title">
       <a href={postHref}>{post.title}</a>
     </Heading>

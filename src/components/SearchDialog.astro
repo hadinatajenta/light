@@ -10,11 +10,12 @@
       stroke-width="1.8"
       stroke-linecap="round"
       aria-hidden="true"
-      style="width:22px;height:22px;color:var(--ink-40)"
+      style="width:22px;height:22px;color:var(--ink-65)"
     >
       <circle cx="11" cy="11" r="7"></circle>
       <path d="m20 20-3.6-3.6"></path>
     </svg>
+    <label for="search-input" class="sr-only">Search guides</label>
     <input
       id="search-input"
       type="search"
@@ -22,7 +23,7 @@
       aria-label="Search guides"
       autocomplete="off"
     />
-    <button type="button" class="search-close" id="search-close">Close</button>
+    <button type="button" class="search-close" id="search-close">Esc</button>
   </div>
   <div class="search-results" id="search-results"></div>
 </div>
@@ -131,6 +132,16 @@
   });
 
   document.addEventListener('keydown', (event) => {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      if (overlay?.classList.contains('open')) {
+        input?.focus();
+      } else {
+        void openDialog();
+      }
+      return;
+    }
+
     if (event.key === 'Escape' && overlay?.classList.contains('open')) {
       closeDialog();
     }

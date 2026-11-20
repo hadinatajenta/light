@@ -1,0 +1,105 @@
+:root {
+  --paper: #faf8f2;
+  --paper-raised: #f3f0e8;
+  --paper-sunk: #ece8de;
+  --paper-deep: #e2ddd0;
+
+  --ink: #14171f;
+  --ink-90: color-mix(in srgb, var(--ink) 90%, var(--paper));
+  --ink-85: color-mix(in srgb, var(--ink) 85%, var(--paper));
+  --ink-75: color-mix(in srgb, var(--ink) 75%, var(--paper));
+  --ink-65: color-mix(in srgb, var(--ink) 65%, var(--paper));
+  --ink-60: color-mix(in srgb, var(--ink) 65%, var(--paper));
+  --ink-55: color-mix(in srgb, var(--ink) 65%, var(--paper));
+  --ink-40: color-mix(in srgb, var(--ink) 40%, var(--paper));
+  --ink-20: color-mix(in srgb, var(--ink) 20%, transparent);
+  --ink-12: color-mix(in srgb, var(--ink) 12%, transparent);
+  --ink-08: color-mix(in srgb, var(--ink) 8%, transparent);
+  --ink-04: color-mix(in srgb, var(--ink) 4%, transparent);
+
+  --brand: #0d6e63;
+  --brand-strong: #0a5b52;
+  --brand-soft: color-mix(in srgb, var(--brand) 10%, var(--paper));
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lead: clamp(1.0625rem, 1.35vw, 1.1875rem);
+  --text-body: 1.1875rem;
+  --text-card: 1.125rem;
+  --text-h3: 1.25rem;
+  --text-h2: clamp(1.5rem, 2.2vw, 1.875rem);
+  --text-h1: clamp(2rem, 3.8vw, 2.875rem);
+  --text-hero: clamp(2.25rem, 4.4vw, 3.375rem);
+
+  --tracking-tight: -0.02em;
+  --tracking-display: -0.025em;
+
+  --radius: 0.375rem;
+  --radius-card: 0.5rem;
+  --nav-h: 64px;
+  --shell: 1280px;
+
+  --dur: 180ms;
+  --dur-f: 120ms;
+  --dur-s: 280ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-raised);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-sunk);
+  --muted-foreground: var(--ink-65);
+  --accent: var(--paper-raised);
+  --accent-foreground: var(--ink);
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: var(--ink-12);
+  --input: var(--ink-20);
+  --ring: var(--brand);
+
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper-raised);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--ink-12);
+  --sidebar-ring: var(--brand);
+
+  --chart-1: #1f6feb;
+  --chart-2: #17864a;
+  --chart-3: #b7791f;
+  --chart-4: #6b3fa0;
+  --chart-5: #b42318;
+}
+
+[data-theme="dark"] {
+  --paper: #111318;
+  --paper-raised: #181b22;
+  --paper-sunk: #20242d;
+  --paper-deep: #282d38;
+  --ink: #f3f1ea;
+
+  --brand: #5fd4c1;
+  --brand-strong: #8ce8d8;
+  --brand-soft: color-mix(in srgb, var(--brand) 16%, var(--paper));
+}
+
+.dark {
+  --sidebar: #111318;
+  --sidebar-foreground: #f3f1ea;
+  --sidebar-primary: #f3f1ea;
+  --sidebar-primary-foreground: #111318;
+  --sidebar-accent: #181b22;
+  --sidebar-accent-foreground: #f3f1ea;
+  --sidebar-border: color-mix(in srgb, #f3f1ea 12%, transparent);
+  --sidebar-ring: #5fd4c1;
+}

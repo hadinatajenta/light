@@ -1,0 +1,239 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-bottom: 24px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-65);
+  transition: color var(--dur) var(--ease), gap var(--dur) var(--ease);
+}
+
+.back:hover {
+  gap: 10px;
+  color: var(--ink);
+}
+
+.back svg {
+  width: 14px;
+  height: 14px;
+}
+
+.post-head {
+  margin-bottom: 36px;
+}
+
+.post-head .label {
+  margin-bottom: 14px;
+  color: var(--brand);
+}
+
+.post-title {
+  margin-bottom: 16px;
+  font-family: var(--font-display);
+  font-size: var(--text-h1);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: var(--tracking-display);
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.post-standfirst {
+  margin-bottom: 24px;
+  font-family: var(--font-sans);
+  font-size: var(--text-lead);
+  line-height: 1.55;
+  color: var(--ink-75);
+}
+
+.post-byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--ink-12);
+  border-bottom: 1px solid var(--ink-12);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink-65);
+  font-variant-numeric: tabular-nums;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+
+.post-byline strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.author-link:hover,
+.post-byline a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.byline-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+.post-hero {
+  margin: 32px 0 48px;
+  margin-right: calc(-1 * var(--read-breakout, 0px));
+}
+
+.post-hero-frame {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--ink-12);
+  background: var(--paper-raised);
+}
+
+.post-hero-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-hero-credit {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--ink-65);
+}
+
+.post-hero-credit a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.post-body {
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  line-height: 1.72;
+  color: var(--ink-85);
+}
+
+.post-body > p {
+  margin-bottom: 24px;
+}
+
+.post-body h2 {
+  margin: 48px 0 16px;
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: var(--tracking-tight);
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.post-body h3 {
+  margin: 32px 0 12px;
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.post-body h2[id],
+.post-body h3[id] {
+  scroll-margin-top: calc(var(--nav-h) + 24px);
+}
+
+.post-body blockquote {
+  margin: 36px 0;
+  padding: 4px 0 4px 22px;
+  border-left: 2px solid var(--brand);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 21px;
+  line-height: 1.48;
+  color: var(--ink);
+}
+
+.post-body ul,
+.post-body ol {
+  margin: 0 0 24px;
+  padding-left: 22px;
+}
+
+.post-body ul li {
+  list-style: disc;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.post-body ol li {
+  list-style: decimal;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.post-body strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.post-body a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--brand);
+  transition: color var(--dur) var(--ease);
+}
+
+.post-body a:hover {
+  color: var(--brand);
+}
+
+.post-body img,
+.post-body figure {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+}
+
+.post-body pre {
+  margin: 24px 0;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid var(--ink-12);
+  background: var(--paper-raised);
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.55;
+}

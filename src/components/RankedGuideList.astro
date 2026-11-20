@@ -1,0 +1,47 @@
+---
+import type { SitePostSummary } from '@/lib/content/public';
+import { topicLabel } from '@/lib/content/topics';
+import { formatDate } from '@/utils/date';
+
+interface Props {
+  posts: SitePostSummary[];
+  startRank?: number;
+}
+
+const { posts, startRank = 1 } = Astro.props;
+---
+
+<ol class="ranked-list">
+  {
+    posts.map((post, index) => {
+      const slug = post.category ?? post.tags[0];
+      const label = topicLabel(slug ?? 'guide');
+      const displayDate = post.pubDate ?? post.updatedDate;
+
+      return (
+        <li class="ranked-row">
+          <span class="ranked-num">{String(startRank + index).padStart(2, '0')}</span>
+          <div class="ranked-main">
+            <h3 class="ranked-title">
+              <a href={`/blog/${post.id}/`}>{post.title}</a>
+            </h3>
+          </div>
+          <div class="ranked-tail">
+            {slug ? (
+              <a class="topic-chip" href={`/tag/${slug}/`}>
+                {label}
+              </a>
+            ) : (
+              <span class="topic-chip">{label}</span>
+            )}
+            {displayDate ? (
+              <time class="ranked-date" datetime={displayDate}>
+                {formatDate(new Date(displayDate))}
+              </time>
+            ) : null}
+          </div>
+        </li>
+      );
+    })
+  }
+</ol>

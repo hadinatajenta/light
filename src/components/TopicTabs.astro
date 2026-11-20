@@ -12,11 +12,12 @@ const visibleTopics = topics.slice(0, 8);
 
 <section class="home-topics" aria-label="Browse by topic">
   <div class="home-container home-topics-inner">
-    <p class="home-kicker home-kicker-muted">Browse by topic</p>
-    <nav class="home-topic-list" aria-label="Topics">
+    <span class="home-kicker">Browse by topic</span>
+    <nav class="home-topic-chips" aria-label="Topics">
       {
         visibleTopics.map((topic) => (
           <a
+            class="topic-chip"
             href={`/tag/${topic.slug}/`}
             aria-current={topic.slug === activeSlug ? 'page' : undefined}
           >

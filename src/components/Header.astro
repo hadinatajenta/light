@@ -28,63 +28,16 @@ function isActive(href: string): boolean {
       <a class="brand" href="/">{SITE_TITLE}<span class="brand-mark">.</span></a>
     </div>
 
-    <nav class="nav-links" aria-label="Primary">
+    <div class="nav-search-wrap" role="search">
       <button
         type="button"
-        class="nav-link"
-        data-topics-trigger
-        aria-expanded="false"
-        aria-controls="topic-panel"
-      >
-        Topics
-        <svg
-          class="chev"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </button>
-      {
-        PRIMARY_NAVIGATION.map((link) => (
-          <a
-            class="nav-link"
-            href={link.href}
-            aria-current={isActive(link.href) ? 'page' : undefined}
-          >
-            {link.label}
-          </a>
-        ))
-      }
-    </nav>
-
-    <div class="nav-right">
-      <button
-        type="button"
-        class="icon-btn menu-btn"
-        data-topics-trigger
-        aria-expanded="false"
-        aria-controls="topic-panel"
-        aria-label="Open topics"
+        class="nav-search"
+        data-search-trigger
+        aria-label="Search guides"
+        aria-keyshortcuts="Control+k Meta+k"
       >
         <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          aria-hidden="true"
-        >
-          <path d="M4 7h16M4 12h16M4 17h16"></path>
-        </svg>
-      </button>
-      <button type="button" class="icon-btn" data-search-trigger aria-label="Search">
-        <svg
+          class="nav-search-icon"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -95,8 +48,90 @@ function isActive(href: string): boolean {
           <circle cx="11" cy="11" r="7"></circle>
           <path d="m20 20-3.6-3.6"></path>
         </svg>
+        <span class="nav-search-text">Search guides</span>
+        <span class="nav-search-kbd" aria-hidden="true">
+          <kbd>Ctrl</kbd>
+          <kbd>K</kbd>
+        </span>
       </button>
-      <ThemeToggle />
+    </div>
+
+    <div class="nav-right">
+      <nav class="nav-links" aria-label="Primary">
+        <button
+          type="button"
+          class="nav-link"
+          data-topics-trigger
+          aria-expanded="false"
+          aria-controls="topic-panel"
+        >
+          Topics
+          <svg
+            class="chev"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        {
+          PRIMARY_NAVIGATION.map((link) => (
+            <a
+              class="nav-link"
+              href={link.href}
+              aria-current={isActive(link.href) ? 'page' : undefined}
+            >
+              {link.label}
+            </a>
+          ))
+        }
+      </nav>
+
+      <div class="nav-actions">
+        <button
+          type="button"
+          class="icon-btn menu-btn"
+          data-topics-trigger
+          aria-expanded="false"
+          aria-controls="topic-panel"
+          aria-label="Open topics"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.9"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M4 7h16M4 12h16M4 17h16"></path>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="icon-btn nav-search-mobile"
+          data-search-trigger
+          aria-label="Search guides"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.9"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.6-3.6"></path>
+          </svg>
+        </button>
+        <ThemeToggle />
+      </div>
     </div>
   </div>
 </header>

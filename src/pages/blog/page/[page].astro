@@ -18,9 +18,12 @@ const { pageItems, totalPages, currentPage } = paginateItems(posts, requestedPag
   description={`Page ${currentPage} of every buying guide and product review on the site.`}
   noindex={true}
 >
-  <h1 class="text-3xl font-semibold tracking-tight">Guides</h1>
-  <div class="mt-8">
-    <PostList posts={pageItems} />
-  </div>
+  <header class="hub-header">
+    <h1 class="hub-title">Guides</h1>
+    <p class="hub-meta">
+      <span class="topic-chip numeric">Page {currentPage} of {totalPages}</span>
+    </p>
+  </header>
+  <PostList posts={pageItems} />
   <Pagination currentPage={currentPage} totalPages={totalPages} />
 </BaseLayout>
