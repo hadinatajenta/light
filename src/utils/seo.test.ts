@@ -61,6 +61,21 @@ describe('buildArticleJsonLd', () => {
 
     expect(jsonLd.image).toEqual(['https://example.com/cover.png']);
   });
+
+  it('includes the article section only when provided', () => {
+    const baseInput = {
+      title: 'Title',
+      description: 'Description',
+      url: 'https://example.com/blog/post/',
+      datePublished: new Date('2026-02-01T00:00:00Z'),
+      authorName: 'Light Editorial Team',
+    };
+
+    expect(buildArticleJsonLd(baseInput)).not.toHaveProperty('articleSection');
+    expect(buildArticleJsonLd({ ...baseInput, articleSection: 'Monitors' }).articleSection).toBe(
+      'Monitors',
+    );
+  });
 });
 
 describe('buildFaqJsonLd', () => {

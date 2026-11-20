@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { SITE_AUTHOR_SLUG } from '@/consts';
 import { resolveContentDatabase } from '@/lib/content/database';
 import { getPublishedPostSummaries } from '@/lib/content/public';
+import { listIndexableTopics } from '@/lib/content/topics';
 import { listPublishedPages } from '@/lib/pages/store';
 import { toLastModified } from '@/utils/sitemap';
 
@@ -44,6 +45,10 @@ export const GET: APIRoute = async (context) => {
     ...pages.map((page) => ({
       path: `/${page.id}/`,
       lastModified: toLastModified(page.updatedAt),
+    })),
+    ...listIndexableTopics(posts).map((topic) => ({
+      path: `/tag/${topic.slug}/`,
+      lastModified: toLastModified(topic.lastModified),
     })),
     ...posts.map((post) => ({
       path: `/blog/${post.id}/`,

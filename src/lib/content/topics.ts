@@ -2,6 +2,20 @@ import type { SitePostSummary } from './public';
 
 export const TOPIC_LIMIT = 12;
 export const MIN_TOPIC_POSTS = 2;
+export const MIN_INDEXABLE_TOPIC_POSTS = 3;
+
+export const INDEXABLE_TOPIC_SLUGS: readonly string[] = [
+  'monitors',
+  'chairs',
+  'standing-desks',
+  'keyboards',
+  'audio',
+  'desk-setup',
+  'laptops',
+  'tablets',
+  'accessories',
+  'lighting',
+];
 
 export interface TopicContent {
   title: string;
@@ -28,6 +42,8 @@ const TOPIC_LABELS: Record<string, string> = {
   accessories: 'Accessories',
   'standing-desks': 'Standing Desks',
   tablets: 'Tablets',
+  phones: 'Phones',
+  'ai-software': 'AI & Software',
   'data-storage': 'Data Storage',
   networking: 'Networking',
   printers: 'Printers & Scanners',
@@ -35,6 +51,8 @@ const TOPIC_LABELS: Record<string, string> = {
   ergonomics: 'Ergonomics',
   'home-office': 'Home Office',
 };
+
+export const TOPIC_SLUGS: readonly string[] = Object.keys(TOPIC_LABELS);
 
 const TOPIC_CONTENT: Record<string, TopicContent> = {
   monitors: {
@@ -80,11 +98,11 @@ const TOPIC_CONTENT: Record<string, TopicContent> = {
       'A specification sheet is only useful when you know which number decides the outcome. These guides are about judging a product before you buy it, not about a single product.',
   },
   accessories: {
-    title: 'Desk accessory guides: trays, stands, and organisers',
+    title: 'Desk accessory guides: docks, stands, and the smaller gear',
     description:
-      'Small additions that fix a real problem: keyboard trays, monitor stands, organisers, and the accessories worth the space.',
+      'The smaller gear that decides how a desk works: docks, laptop stands, webcams, mice, desk pads, and organisers.',
     intro:
-      'Accessories are where a desk setup is either finished or cluttered. These guides cover the small additions that solve a measurable problem and the ones that do not.',
+      'Accessories are where a desk setup is either finished or cluttered. These guides cover docks, stands, webcams, mice, and the other additions that solve a measurable problem, and the ones that do not.',
   },
   ergonomics: {
     title: 'Ergonomics guides: posture, height, and comfort',
@@ -101,11 +119,11 @@ const TOPIC_CONTENT: Record<string, TopicContent> = {
       'A home office in a small space means every choice does double duty. These guides cover compact desks, storage, lighting, and noise for rooms that are not only offices.',
   },
   laptops: {
-    title: 'Laptop guides: thermals, battery, and ports',
+    title: 'Laptop guides: performance, battery, and ports',
     description:
-      'Choose a work laptop on sustained performance, battery behaviour, and the ports you will actually need day to day.',
+      'Work laptops and handheld PCs judged on sustained performance, battery behaviour, and the ports you will actually need day to day.',
     intro:
-      'A laptop is a set of compromises between sustained performance, battery life, weight, and ports, and most of them only show up after the first month. These guides work through the trade-offs.',
+      'A laptop is a set of compromises between sustained performance, battery life, weight, and ports, and most of them only show up after the first month. These guides and review roundups work through the trade-offs, with every measurement credited to the outlet that took it.',
   },
   tablets: {
     title: 'Tablet guides: reading, notes, and a second screen',
@@ -113,6 +131,20 @@ const TOPIC_CONTENT: Record<string, TopicContent> = {
       'Tablets and e-readers judged on the reading experience, handwriting latency, and whether they replace a second screen.',
     intro:
       'A tablet earns its place when it does one job well: reading, taking handwritten notes, or holding a reference beside your main screen. These guides cover where each option stops being enough.',
+  },
+  phones: {
+    title: 'Phone guides: chips, batteries, and durability',
+    description:
+      'Phones and phone hardware judged on what changes in daily use: chips, battery chemistry, cooling, and durability.',
+    intro:
+      'A phone spec sheet hides the parts that decide daily use: how the chip behaves under sustained load, how the battery ages, and how the hardware holds up. These guides explain those parts with cited sources.',
+  },
+  'ai-software': {
+    title: 'AI and software guides: models, agents, and developer tools',
+    description:
+      'AI models, AI agents, and developer tools explained: what changed, what it costs, and where it fits in real work.',
+    intro:
+      'New AI models and tools arrive faster than anyone can evaluate them. These guides explain what a model, agent, or tool actually does, what its makers and independent testers report, and what it costs to use.',
   },
   'standing-desks': {
     title: 'Standing desk guides: height range, travel, and stability',
@@ -166,7 +198,7 @@ const TOPIC_CONTENT: Record<string, TopicContent> = {
   'buying-guide': {
     title: 'Buying guides: what to check before you pay',
     description:
-      'Research-grounded buying guides for home-office equipment, written from primary sources and checked before publishing.',
+      'Research-grounded buying guides for the tools you work with, written from primary sources and checked before publishing.',
     intro:
       'These guides answer a specific buying question with checkable detail: standards, measurements, compatibility, and the trade-offs behind each recommendation.',
   },
@@ -216,6 +248,42 @@ export function topicContent(slug: string): TopicContent {
 
 export function listTopicPosts(posts: SitePostSummary[], slug: string): SitePostSummary[] {
   return posts.filter((post) => post.tags.includes(slug) || post.category === slug);
+}
+
+export interface IndexableTopic extends TopicLink {
+  lastModified: string | undefined;
+}
+
+export function isIndexableTopic(slug: string, postCount: number): boolean {
+  return INDEXABLE_TOPIC_SLUGS.includes(slug) && postCount >= MIN_INDEXABLE_TOPIC_POSTS;
+}
+
+function findNewestPostDate(posts: SitePostSummary[]): string | undefined {
+  let newestDate: string | undefined;
+  let newestTime = Number.NEGATIVE_INFINITY;
+
+  for (const post of posts) {
+    const candidateDate = post.updatedDate ?? post.pubDate;
+    const candidateTime = candidateDate ? new Date(candidateDate).getTime() : Number.NaN;
+
+    if (candidateDate && !Number.isNaN(candidateTime) && candidateTime > newestTime) {
+      newestDate = candidateDate;
+      newestTime = candidateTime;
+    }
+  }
+
+  return newestDate;
+}
+
+export function listIndexableTopics(posts: SitePostSummary[]): IndexableTopic[] {
+  return INDEXABLE_TOPIC_SLUGS.map((slug) => ({ slug, topicPosts: listTopicPosts(posts, slug) }))
+    .filter(({ slug, topicPosts }) => isIndexableTopic(slug, topicPosts.length))
+    .map(({ slug, topicPosts }) => ({
+      slug,
+      label: topicLabel(slug),
+      count: topicPosts.length,
+      lastModified: findNewestPostDate(topicPosts),
+    }));
 }
 
 function rankTopics(counts: Map<string, number>): TopicLink[] {

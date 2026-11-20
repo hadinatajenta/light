@@ -33,6 +33,7 @@ export interface ArticleJsonLdInput {
   publisherLogoUrl?: string;
   image?: string;
   dateModified?: Date;
+  articleSection?: string;
 }
 
 export function buildArticleJsonLd(input: ArticleJsonLdInput): Record<string, unknown> {
@@ -64,6 +65,7 @@ export function buildArticleJsonLd(input: ArticleJsonLdInput): Record<string, un
         : {}),
     },
     ...(input.image ? { image: [input.image] } : {}),
+    ...(input.articleSection ? { articleSection: input.articleSection } : {}),
   };
 }
 

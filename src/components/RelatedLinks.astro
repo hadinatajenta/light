@@ -3,24 +3,34 @@ import type { RelatedPost } from '@/lib/content/related';
 
 interface Props {
   posts: RelatedPost[];
+  topicHref?: string;
+  topicLabel?: string;
 }
 
-const { posts } = Astro.props;
+const { posts, topicHref, topicLabel } = Astro.props;
+const hasTopicLink = Boolean(topicHref && topicLabel);
 ---
 
 {
-  posts.length > 0 && (
+  (posts.length > 0 || hasTopicLink) && (
     <section class="post-foot" aria-labelledby="related-reading">
       <h2 id="related-reading" class="label">
         Related reading
       </h2>
-      <ul class="related-list">
-        {posts.map((post) => (
-          <li>
-            <a href={`/blog/${post.id}/`}>{post.title}</a>
-          </li>
-        ))}
-      </ul>
+      {posts.length > 0 && (
+        <ul class="related-list">
+          {posts.map((post) => (
+            <li>
+              <a href={`/blog/${post.id}/`}>{post.title}</a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {hasTopicLink && (
+        <p class="related-topic">
+          <a href={topicHref}>More {topicLabel} guides</a>
+        </p>
+      )}
     </section>
   )
 }
@@ -32,7 +42,11 @@ const { posts } = Astro.props;
     gap: 6px;
     margin-top: 14px;
   }
-  .related-list a {
+  .related-topic {
+    margin-top: 14px;
+  }
+  .related-list a,
+  .related-topic a {
     display: block;
     padding: 5px 0;
     font-family: var(--font-sans);
@@ -47,7 +61,8 @@ const { posts } = Astro.props;
     text-decoration-color: var(--ink-40);
     transition: text-decoration-color var(--dur) var(--ease);
   }
-  .related-list a:hover {
+  .related-list a:hover,
+  .related-topic a:hover {
     text-decoration-color: var(--ink);
   }
 </style>
