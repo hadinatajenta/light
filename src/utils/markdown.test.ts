@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { wrapMarkdownTables } from './markdown';
 
 describe('wrapMarkdownTables', () => {
-  it('wraps a table in a focusable scroll container', () => {
+  it('wraps a table in a focusable, labelled scroll region', () => {
     const html = wrapMarkdownTables('<table><thead><tr><th>A</th></tr></thead></table>');
 
-    expect(html).toContain('<div class="post-table-scroll" tabindex="0">');
+    expect(html).toContain(
+      '<div class="post-table-scroll" tabindex="0" role="region" aria-label="Scrollable table">',
+    );
     expect(html).toContain('<table><thead><tr><th>A</th></tr></thead></table>');
     expect(html).toContain('</div>');
   });

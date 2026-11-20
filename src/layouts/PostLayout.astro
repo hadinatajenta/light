@@ -27,7 +27,7 @@ const { post } = Astro.props;
 const { html } = renderMarkdown(post.body);
 const tableOfContents = buildTableOfContents(extractHeadings(post.body));
 const readingMinutes = formatReadingTime(post.body);
-const primaryTag = post.tags[0] ?? 'guide';
+const kickerLabel = topicLabel(post.category ?? post.tags[0] ?? 'guide');
 const authorInitials = SITE_AUTHOR.split(' ')
   .map((word) => word.charAt(0))
   .slice(0, 2)
@@ -140,7 +140,7 @@ const jsonLd = [
       </a>
 
       <header class="post-head">
-        <span class="label">Guide &middot; {primaryTag}</span>
+        <span class="label">Guide &middot; {kickerLabel}</span>
         <h1 class="post-title">{post.title}</h1>
         <p class="post-standfirst">{post.description}</p>
         <div class="post-byline">
