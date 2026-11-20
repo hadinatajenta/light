@@ -73,6 +73,11 @@ describe('isCacheablePageRequest', () => {
       'https://lightscripts.com/media/a.jpg',
     ],
     [
+      'a social card path',
+      new Request('https://lightscripts.com/og/a.png'),
+      'https://lightscripts.com/og/a.png',
+    ],
+    [
       'an authorization header',
       new Request(POST_URL, { headers: { Authorization: 'Bearer token' } }),
       POST_URL,

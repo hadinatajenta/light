@@ -26,6 +26,7 @@ export interface SitePostSummary {
 
 export interface SitePost extends SitePostSummary {
   body: string;
+  revision: string;
   seoTitle: string | null;
   canonical: string | null;
   noindex: boolean;
@@ -116,6 +117,7 @@ export async function getPublishedPost(id: string): Promise<SitePost | null> {
     coverUrl: typeof data.coverUrl === 'string' ? data.coverUrl : null,
     coverAlt: typeof data.coverAlt === 'string' ? data.coverAlt : null,
     body: document.body,
+    revision: document.sha,
     seoTitle: typeof data.seoTitle === 'string' ? data.seoTitle : null,
     canonical: typeof data.canonical === 'string' ? data.canonical : null,
     noindex: data.noindex === true,

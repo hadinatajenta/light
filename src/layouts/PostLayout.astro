@@ -11,6 +11,7 @@ import {
 } from '@/consts';
 import { extractHeadings, formatReadingTime, renderMarkdown, type SitePost } from '@/lib/content/public';
 import { getRelatedPosts } from '@/lib/content/related';
+import { OG_CARD_HEIGHT, OG_CARD_WIDTH } from '@/lib/og/card';
 import { INDEXABLE_TOPIC_SLUGS, topicLabel } from '@/lib/content/topics';
 import { findMediaCreditByUrl } from '@/lib/media/store';
 import { formatDate } from '@/utils/date';
@@ -42,6 +43,15 @@ const categoryLabel = post.category ? topicLabel(post.category) : undefined;
 const hubCategory =
   post.category && INDEXABLE_TOPIC_SLUGS.includes(post.category) ? post.category : undefined;
 const hubPath = hubCategory ? `/tag/${hubCategory}/` : undefined;
+
+const socialCard = post.noindex
+  ? { image: post.coverUrl ?? undefined }
+  : {
+      image: `/og/${post.id}.png`,
+      imageWidth: OG_CARD_WIDTH,
+      imageHeight: OG_CARD_HEIGHT,
+      imageAlt: post.title,
+    };
 
 const canonicalUrl =
   buildCanonicalUrl(Astro.site ?? undefined, Astro.url.pathname) ?? Astro.url.pathname;
@@ -81,7 +91,7 @@ const jsonLd = [
   description={post.description}
   type="article"
   noindex={post.noindex}
-  image={post.coverUrl ?? undefined}
+  {...socialCard}
   jsonLd={jsonLd}
   contained={false}
 >

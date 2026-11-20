@@ -11,14 +11,28 @@ interface Props {
   description?: string;
   canonical?: string;
   image?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  imageAlt?: string;
   type?: 'website' | 'article' | 'profile';
   noindex?: boolean;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   contained?: boolean;
 }
 
-const { title, description, canonical, image, type, noindex, jsonLd, contained = true } =
-  Astro.props;
+const {
+  title,
+  description,
+  canonical,
+  image,
+  imageWidth,
+  imageHeight,
+  imageAlt,
+  type,
+  noindex,
+  jsonLd,
+  contained = true,
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -29,6 +43,9 @@ const { title, description, canonical, image, type, noindex, jsonLd, contained =
       description={description}
       canonical={canonical}
       image={image}
+      imageWidth={imageWidth}
+      imageHeight={imageHeight}
+      imageAlt={imageAlt}
       type={type}
       noindex={noindex}
       jsonLd={jsonLd}

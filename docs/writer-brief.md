@@ -28,6 +28,21 @@ Kalau bukti ini tidak ada, jangan tulis artikel tentang produk itu.
 - **Harga**: selalu tulis bulan dan tahunnya, misalnya "(November 2026 pricing)".
 - **Kata "review"**: hanya boleh dipakai kalau kamu benar-benar memakai produknya.
 
+## Gambar
+
+**Tidak boleh memakai gambar buatan AI.** Gunakan sumber berikut, diurutkan dari yang paling diutamakan:
+
+1. **Foto sendiri.** Ini yang paling dibutuhkan situs. Minimal 3 foto produk atau setup asli per artikel.
+2. **Press kit resmi pabrikan** (misalnya halaman newsroom atau media brand), dipakai sesuai syarat penggunaan editorialnya.
+3. **Foto berlisensi bebas** dari Unsplash, Pexels, atau Wikimedia Commons, dengan kredit sesuai lisensinya.
+
+**Dilarang**, meskipun sumbernya dicantumkan: foto dari situs review lain, foto dari toko online atau marketplace, foto hasil Google Images, dan foto dari media sosial orang lain. Mencantumkan sumber tidak memberi izin untuk memakai foto. Pelanggaran hak cipta bisa memicu laporan DMCA dan penolakan AdSense.
+
+**Setiap gambar wajib punya kredit** di caption atau di akhir artikel, dengan format:
+`Photo: <nama pemilik atau brand>, <sumber atau lisensi>`, atau `Photo: Light Scripts` untuk foto sendiri.
+
+**Cover artikel** adalah foto bersih tanpa teks, rasio 16:9, dengan lebar minimal 1600 px. Jangan menaruh judul di foto. Kartu untuk media sosial (Facebook, Threads) dibuat otomatis oleh situs dari foto cover dan judul artikel.
+
 ## Dilarang (pola template lama)
 
 - Heading: "Quick answer", "Buying checklist", "A short checklist", "Related guides", "Verdict", "Overview", "Conclusion"
