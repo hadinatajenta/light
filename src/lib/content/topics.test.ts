@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { SitePostSummary } from './public';
 import {
+  INDEXABLE_TOPIC_SLUGS,
   isIndexableTopic,
   listIndexableTopics,
+  listPillarPosts,
   listTopicPosts,
   MIN_INDEXABLE_TOPIC_POSTS,
+  PILLAR_SLUGS_BY_TOPIC,
+  splitPillarPosts,
+  topicContent,
 } from './topics';
 
 function buildSummary(overrides: Partial<SitePostSummary> & { id: string }): SitePostSummary {
@@ -95,5 +100,82 @@ describe('listIndexableTopics', () => {
     expect(listTopicPosts(POSTS, 'phones')).toHaveLength(3);
     expect(slugs).not.toContain('phones');
     expect(slugs).toEqual(['monitors']);
+  });
+});
+
+function readIds(posts: SitePostSummary[]): string[] {
+  return posts.map((post) => post.id);
+}
+
+function countWords(paragraphs: string[]): number {
+  return paragraphs.join(' ').split(/\s+/).filter(Boolean).length;
+}
+
+const MONITOR_POSTS: SitePostSummary[] = [
+  buildSummary({ id: 'monitor-review', tags: ['monitors'] }),
+  buildSummary({ id: 'how-to-choose-a-monitor-arm', tags: ['monitors'] }),
+  buildSummary({ id: 'monitor-roundup', tags: ['monitors'] }),
+  buildSummary({ id: 'how-to-choose-a-monitor-for-a-home-office', tags: ['monitors'] }),
+];
+
+describe('splitPillarPosts', () => {
+  it('orders pillar posts by the pillar map and keeps the rest in their original order', () => {
+    const { pillarPosts, otherPosts } = splitPillarPosts('monitors', MONITOR_POSTS);
+
+    expect(readIds(pillarPosts)).toEqual([
+      'how-to-choose-a-monitor-for-a-home-office',
+      'how-to-choose-a-monitor-arm',
+    ]);
+    expect(readIds(otherPosts)).toEqual(['monitor-review', 'monitor-roundup']);
+  });
+
+  it('skips pillar slugs that are not among the posts', () => {
+    const postsWithoutArmGuide = MONITOR_POSTS.filter(
+      (post) => post.id !== 'how-to-choose-a-monitor-arm',
+    );
+
+    const { pillarPosts, otherPosts } = splitPillarPosts('monitors', postsWithoutArmGuide);
+
+    expect(readIds(pillarPosts)).toEqual(['how-to-choose-a-monitor-for-a-home-office']);
+    expect(readIds(otherPosts)).toEqual(['monitor-review', 'monitor-roundup']);
+  });
+
+  it('returns every post as another post for a topic without pillars', () => {
+    const { pillarPosts, otherPosts } = splitPillarPosts('keyboards', MONITOR_POSTS);
+
+    expect(pillarPosts).toEqual([]);
+    expect(otherPosts).toEqual(MONITOR_POSTS);
+  });
+});
+
+describe('listPillarPosts', () => {
+  it('lists published pillar posts in pillar map order and skips unpublished slugs', () => {
+    const publishedPosts = [
+      buildSummary({ id: 'laptop-cooling-when-a-stand-is-enough' }),
+      buildSummary({ id: 'unrelated-post' }),
+      ...MONITOR_POSTS,
+    ];
+
+    expect(readIds(listPillarPosts(publishedPosts))).toEqual([
+      'how-to-choose-a-monitor-for-a-home-office',
+      'how-to-choose-a-monitor-arm',
+      'laptop-cooling-when-a-stand-is-enough',
+    ]);
+  });
+
+  it('maps eight pillar guides across the topics', () => {
+    expect(Object.values(PILLAR_SLUGS_BY_TOPIC).flat()).toHaveLength(8);
+  });
+});
+
+describe('topicContent guide intro', () => {
+  it.each(INDEXABLE_TOPIC_SLUGS)('gives %s a guide intro of 150 to 250 words', (slug) => {
+    const guideIntro = topicContent(slug).guideIntro ?? [];
+    const wordCount = countWords(guideIntro);
+
+    expect(guideIntro.length).toBeGreaterThanOrEqual(2);
+    expect(guideIntro.length).toBeLessThanOrEqual(3);
+    expect(wordCount).toBeGreaterThanOrEqual(150);
+    expect(wordCount).toBeLessThanOrEqual(250);
   });
 });

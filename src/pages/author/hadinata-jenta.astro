@@ -16,12 +16,12 @@ import { buildBreadcrumbJsonLd } from '@/utils/seo';
 
 export const prerender = false;
 
-const AUTHOR_UPDATED = new Date('2026-10-27T00:00:00.000Z');
+const AUTHOR_UPDATED = new Date('2026-11-08T00:00:00.000Z');
 const posts = (await getPublishedPostSummaries()).slice(0, 10);
 const siteUrl = Astro.site ?? new URL(Astro.url.origin);
 const authorUrl = new URL(`/author/${SITE_AUTHOR_SLUG}/`, siteUrl).href;
 const pageTitle = `${SITE_AUTHOR}, editor of ${SITE_TITLE}`;
-const pageDescription = `${SITE_AUTHOR} edits ${SITE_TITLE}, an independent home-office publication built on primary-source research, measurements, and disclosed AI assistance.`;
+const pageDescription = `${SITE_AUTHOR} edits ${SITE_TITLE}, an independent publication about desk gear and home-office work devices, built from cited sources with disclosed AI assistance.`;
 
 const toc = [
   { id: 'about', label: '01', text: 'About' },
@@ -34,29 +34,19 @@ const toc = [
 
 const focusAreas = [
   {
-    title: 'Standing desks',
+    title: 'Desks and standing desks',
     href: '/blog/how-to-choose-a-standing-desk-for-a-small-home-office/',
     note: 'Height range, stability, and the depth a small room can spare.',
   },
   {
     title: 'Office chairs',
-    href: '/blog/chair-seat-depth-and-height-office-chair-sizing/',
-    note: 'Seat depth, seat height, and how to size a chair to your body.',
+    href: '/blog/office-chair-features-worth-paying-for/',
+    note: 'Seat depth, seat height, lumbar support, and how to size a chair to your body.',
   },
   {
-    title: 'Monitor arms',
-    href: '/blog/how-to-choose-a-monitor-arm/',
-    note: 'Clamp depth, weight limits, and the VESA plate that fits.',
-  },
-  {
-    title: 'Monitors',
+    title: 'Monitors and arms',
     href: '/blog/how-to-choose-a-monitor-for-a-home-office/',
-    note: 'Resolution, scaling, viewing distance, and desk depth.',
-  },
-  {
-    title: 'Keyboards',
-    href: '/blog/mechanical-vs-membrane-keyboards-for-long-writing/',
-    note: 'Switch weight, layout, and noise in a shared room.',
+    note: 'Resolution, viewing distance, and the arm or stand that holds it.',
   },
   {
     title: 'Audio and calls',
@@ -64,14 +54,14 @@ const focusAreas = [
     note: 'Headsets, microphones, and the room noise between them.',
   },
   {
-    title: 'Cable management',
-    href: '/blog/cable-management-for-a-small-desk/',
-    note: 'Routing, trays, and clearance before the desk moves.',
-  },
-  {
     title: 'Laptops and docks',
     href: '/blog/how-to-choose-a-usb-c-docking-station-for-a-laptop/',
     note: 'Ports, power, thermals, and one cable at the desk.',
+  },
+  {
+    title: 'Tablets at the desk',
+    href: '/blog/ipad-mini-2026-vs-ipad-air-desk-fit/',
+    note: 'Footprint, keyboard pairing, and when a tablet replaces a second screen.',
   },
 ];
 
@@ -87,13 +77,14 @@ const jsonLd = [
       description: SITE_AUTHOR_BIO,
       sameAs: [SITE_AUTHOR_LINKEDIN, SITE_AUTHOR_WEBSITE],
       knowsAbout: [
-        'Standing desks',
+        'Home-office setup',
         'Office chairs',
-        'Monitor arms',
-        'Home-office monitors',
+        'Standing desks',
+        'Monitors',
+        'Laptops',
+        'Tablets',
         'Keyboards',
         'Desk audio',
-        'Cable management',
       ],
       worksFor: {
         '@type': 'Organization',
@@ -175,9 +166,9 @@ const jsonLd = [
         <span class="label">Author &middot; Editor</span>
         <h1 class="post-title">{SITE_AUTHOR}</h1>
         <p class="post-standfirst">
-          I write and edit Light Scripts, an independent publication about the equipment that makes a
-          home office work. The method is simple: measure first, name the trade-off, and never invent a
-          number.
+          I edit Light Scripts, an independent publication about desk gear and the devices that sit on a
+          home-office desk. The rule is simple: find the measurement behind the choice, name the
+          trade-off, and never invent a figure.
         </p>
         <div class="post-byline">
           <span class="avatar">HJ</span>
@@ -194,24 +185,24 @@ const jsonLd = [
 
       <article class="post-body author-body">
         <p class="author-lead">
-          Most home-office buying advice starts with a product and works backwards to a reason to buy
-          it. I start with the decision. A desk has to reach your standing elbow height without
-          wobbling, a chair has to put its seat depth behind your knee, and a monitor arm has to clamp a
-          top that is thick enough to hold it. Those are measurable constraints, and they decide more
-          than a brand name does.
+          A lot of buying advice starts with a product and works backwards to a reason to buy it. I
+          start with the constraint. A desk has to reach your standing elbow height, a chair has to
+          fit your seat depth, and a laptop has to drive the monitors you already own. Those
+          constraints can be checked, and they matter more than a brand name does.
         </p>
 
         <h2 id="about">About</h2>
         <p>
-          Light Scripts exists to put those constraints in one place. The guides cover standing desks,
-          office chairs, monitor arms, monitors, keyboards, audio, and the cables that connect them.
-          Where a standard, a manufacturer drawing, or an independent lab has a number, the article uses
-          it. Where the number is missing, the article says so.
+          Light Scripts covers two areas: desk and home-office gear (desks, chairs, monitors, arms,
+          lighting, and accessories) and the work devices used at that desk (laptops, tablets,
+          keyboards, and audio). Where a standard, a manufacturer document, or an
+          independent lab has a number, the guide uses it and links it. Where the number is missing,
+          the guide says so.
         </p>
         <p>
           I write for people who would rather buy once. That usually means fewer recommendations, a
           clear statement of who a product does not fit, and a source a reader can check. The site is
-          independent, and the editorial choices are not decided by a commercial relationship.
+          independent: no company pays to be covered, and no guide is written to order.
         </p>
 
         <blockquote>
@@ -220,9 +211,9 @@ const jsonLd = [
 
         <h2 id="focus">What I cover</h2>
         <p>
-          The work is organised around the decisions a home-office buyer actually faces: the height a
-          desk has to reach, the depth a room can spare, the clamp a desktop can take, and the weight a
-          monitor arm has to hold. These are the areas I return to most.
+          The work is organised around the decisions people face at a desk: the height a desk has to
+          reach, the seat depth a chair needs, the ports a laptop needs, and the distance a monitor
+          sits from your eyes. These are the areas I return to most.
         </p>
 
         <div class="author-topics">
@@ -243,8 +234,8 @@ const jsonLd = [
         <ol>
           <li>
             <strong>Start with the decision.</strong> The first question is not which product is best. It
-            is which measurement decides the answer: seat depth, clamp range, height range, VESA
-            pattern, or the depth of the room.
+            is which number decides the answer: seat depth, height range, port count, battery
+            capacity, or what a tool costs each month.
           </li>
           <li>
             <strong>Fetch the primary source.</strong> Manufacturer documentation, standards bodies,
@@ -260,9 +251,10 @@ const jsonLd = [
             It does not estimate a figure to fill the space.
           </li>
           <li>
-            <strong>Review before publishing.</strong> Every draft runs through a deterministic check for
-            title and description length, heading structure, links, and placeholder text, then an
-            editorial pass. A correction changes the update date.
+            <strong>Review before publishing.</strong> Every draft runs through automated checks for
+            sources, title and description length, heading structure, links, and placeholder text.
+            Since November 2026, I approve every new guide before it goes live. A correction changes
+            the update date.
           </li>
         </ol>
         <p>
@@ -272,13 +264,19 @@ const jsonLd = [
 
         <h2 id="ai">AI, corrections, and independence</h2>
         <p>
-          Some drafts are prepared with AI assistance. The assistance is used to organise research and
-          draft prose, not to invent facts. Every claim is checked against a page the system fetched, and
-          a draft that cannot support a claim is sent back.
+          Most guides on this site are drafted with AI assistance. The assistance organises research
+          and drafts prose from pages the system fetched; it is not allowed to add facts that are not
+          in those sources, and a claim that cannot be matched to a source is removed.
         </p>
         <p>
-          The site does not claim hands-on testing unless an article says otherwise. If you find an error, send it through the
-          <a href="/contact/">contact page</a>; a correction is published with the update date changed.
+          Many guides, especially device reviews, compare and summarise measurements published by
+          independent reviewers and labs, and every one of those sources is named and linked. The site
+          does not claim hands-on testing unless an article says so. Cover images are either
+          AI-generated illustrations or credited press and Creative Commons photos.
+        </p>
+        <p>
+          If you find an error, send it through the <a href="/contact/">contact page</a>; a correction
+          is published with the update date changed.
         </p>
 
         <h2 id="latest">Latest guides</h2>
@@ -342,11 +340,11 @@ const jsonLd = [
             </div>
             <div>
               <dt>Focus</dt>
-              <dd>Home-office equipment</dd>
+              <dd>Desk gear and home-office work devices</dd>
             </div>
             <div>
               <dt>Method</dt>
-              <dd>Primary-source research</dd>
+              <dd>Cited sources, editor approval</dd>
             </div>
             <div>
               <dt>Since</dt>

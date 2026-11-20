@@ -720,6 +720,17 @@
   margin-top: 8px;
 }
 
+.home-start {
+  padding: 72px 0 0;
+}
+.home-start-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 48px;
+  margin-top: 8px;
+  border-top: 0;
+}
+
 .home-guide-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -784,6 +795,12 @@
     padding: 56px 0 48px;
   }
   .home-guide-grid {
+    grid-template-columns: 1fr;
+  }
+  .home-start {
+    padding-top: 48px;
+  }
+  .home-start-list {
     grid-template-columns: 1fr;
   }
   .home-topics-inner {

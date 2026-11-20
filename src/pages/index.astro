@@ -6,7 +6,7 @@ import TopicTabs from '@/components/TopicTabs.astro';
 import { SITE_DESCRIPTION, SITE_HOME_TITLE, SITE_TITLE, SOCIAL_PROFILES } from '@/consts';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { getPublishedPostSummaries } from '@/lib/content/public';
-import { buildTopics, topicLabel } from '@/lib/content/topics';
+import { buildTopics, listPillarPosts, topicLabel } from '@/lib/content/topics';
 import { formatDate } from '@/utils/date';
 import {
   buildCanonicalUrl,
@@ -29,6 +29,7 @@ const leadPost = posts[1] ?? null;
 const sidePosts = posts.slice(2, 6);
 const gridPosts = posts.slice(6, 12);
 const topics = buildTopics(publishedPosts).slice(0, 8);
+const pillarPosts = listPillarPosts(publishedPosts);
 
 const jsonLd = [
   buildWebsiteJsonLd({ name: SITE_TITLE, url: siteUrl, description: SITE_DESCRIPTION }),
@@ -54,6 +55,39 @@ const jsonLd = [
 <BaseLayout contained={false} title={SITE_HOME_TITLE} jsonLd={jsonLd}>
   <HomeIntro featured={heroPost} />
   <TopicTabs topics={topics} />
+
+  {
+    pillarPosts.length > 0 && (
+      <section class="home-start" aria-labelledby="home-start-title">
+        <div class="home-container">
+          <div class="home-section-head">
+            <div>
+              <p class="home-kicker">Pillar guides</p>
+              <h2 class="home-section-title" id="home-start-title">
+                Start here
+              </h2>
+            </div>
+          </div>
+
+          <ol class="home-compact-list home-start-list">
+            {pillarPosts.map((post, index) => (
+              <li>
+                <span class="home-list-num">{String(index + 1).padStart(2, '0')}</span>
+                <div>
+                  <h3 class="home-list-title">
+                    <a href={`/blog/${post.id}/`}>{post.title}</a>
+                  </h3>
+                  <p class="guide-meta">
+                    <span>{topicLabel(post.category ?? post.tags[0] ?? 'guide')}</span>
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+    )
+  }
 
   {
     leadPost ? (
